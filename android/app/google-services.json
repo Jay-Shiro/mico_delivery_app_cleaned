@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "831467395917",
+    "project_id": "micollinsapp",
+    "storage_bucket": "micollinsapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:831467395917:android:b942aae8311ee6eb39f504",
+        "android_client_info": {
+          "package_name": "com.example.micollins_delivery_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "831467395917-vr95493bms1nclmii1nshbngbuqrvg6m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_Op-lSfNmmGPzKvsdImneVuL1jzYfNoM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "831467395917-vr95493bms1nclmii1nshbngbuqrvg6m.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
