@@ -50,7 +50,7 @@ dependencies:
   geolocator: ^13.0.1
   geocoding: ^3.0.0
   http: ^1.2.2
-  pay_with_paystack: ^1.0.10
+  paystack_for_flutter: ^1.0.2
   money_formatter: ^0.0.6
   firebase_storage: ^12.3.6
   dash_chat_2: ^0.0.21

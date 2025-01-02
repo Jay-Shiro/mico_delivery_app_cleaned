@@ -8,8 +8,10 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import 'package:micollins_delivery_app/components/m_buttons.dart';
-import 'package:pay_with_paystack/pay_with_paystack.dart';
+import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:money_formatter/money_formatter.dart';
+import 'package:paystack_for_flutter/paystack_for_flutter.dart';
+import 'package:provider/provider.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -24,53 +26,45 @@ class _MapPageState extends State<MapPage> {
   final Set<Marker> _userMarkers = {};
   Map<PolylineId, Polyline> polylines = {};
 
-  @override
-  void initState() {
-    super.initState();
-    _getLocation();
-  }
-
-  Future<void> _getLocation() async {
+  Future<void> _getUserLocation() async {
     try {
       Position position = await _determinePosition();
-      setState(
-        () {
+      if (mounted) {
+        setState(() {
           _userCurrentLocation = LatLng(position.latitude, position.longitude);
-
-          // Update the existing marker or add a new one
-          if (_userMarkers.isEmpty) {
-            _userMarkers.add(
-              Marker(
-                markerId: const MarkerId('user_location'),
-                position: _userCurrentLocation,
-                icon: BitmapDescriptor.defaultMarker,
-              ),
-            );
-          } else {
-            _userMarkers.clear();
-            _userMarkers.add(
-              Marker(
-                markerId: const MarkerId('user_location'),
-                position: _userCurrentLocation,
-                icon: BitmapDescriptor.defaultMarker,
-              ),
-            );
-          }
+          _userMarkers.add(
+            Marker(
+              markerId: const MarkerId('user_location'),
+              position: _userCurrentLocation,
+            ),
+          );
           _mapController.animateCamera(
             CameraUpdate.newLatLngZoom(_userCurrentLocation, 15),
           );
-        },
-      );
+        });
+      }
 
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
-      _startPointController.text = placemarks.first.name ?? '';
-    } catch (error) {
-      print("Error getting address: $error");
-      // Handle error, e.g., display a snackbar
+      _startPointController.text = placemarks.first.street ?? '';
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error getting location: $e'),
+            backgroundColor: const Color.fromRGBO(255, 91, 82, 1),
+          ),
+        );
+      }
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _getUserLocation();
   }
 
   Future<Position> _determinePosition() async {
@@ -105,9 +99,14 @@ class _MapPageState extends State<MapPage> {
 
   @override
   void dispose() {
-    super.dispose();
+    _mapController.dispose();
+    _startPointController.dispose();
+    _destinationController.dispose();
+    _controller1.dispose();
+    _controller2.dispose();
     _startPointFN.dispose();
     _endPointFN.dispose();
+    super.dispose();
   }
 
   static final CameraPosition _initialPosition = CameraPosition(
@@ -122,91 +121,103 @@ class _MapPageState extends State<MapPage> {
   late double _userDestinationLngDEC;
 
   // ignore: unused_field
-  late double _userLocationLatDEC;
+  late double? _userLocationLatDEC;
 
   // ignore: unused_field
-  late double _userLocationLngDEC;
+  late double? _userLocationLngDEC;
 
   final _controller1 = TextEditingController();
   // ignore: unused_field
   final _controller2 = TextEditingController();
 
-  void _userDesToMarker(Prediction pCordinates) {
-    _userDestinationLatDEC = double.parse(pCordinates.lat!);
-    _userDestinationLngDEC = double.parse(pCordinates.lng!);
-    setState(() {
-      _userDestinationLatLng =
-          LatLng(_userDestinationLatDEC, _userDestinationLngDEC);
-      _userMarkers.add(
-        Marker(
-          markerId: const MarkerId('destination'),
-          position: _userDestinationLatLng,
-          icon: BitmapDescriptor.defaultMarker,
-        ),
-      );
-      _mapController.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          _userDestinationLatLng,
-          15,
-        ),
-      );
-    });
+  void _userDesToMarker(Prediction pCoordinates) {
+    try {
+      _userDestinationLatDEC = double.parse(pCoordinates.lat!);
+      _userDestinationLngDEC = double.parse(pCoordinates.lng!);
+      if (mounted) {
+        setState(() {
+          _userDestinationLatLng =
+              LatLng(_userDestinationLatDEC, _userDestinationLngDEC);
+          _userMarkers.add(
+            Marker(
+              markerId: const MarkerId('destination'),
+              position: _userDestinationLatLng,
+              icon: BitmapDescriptor.defaultMarker,
+            ),
+          );
+          _mapController.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              _userDestinationLatLng,
+              15,
+            ),
+          );
+        });
+      }
+    } catch (e) {
+      debugPrint('Error adding destination marker: $e');
+    }
   }
 
-  void _userLocToMarker(Prediction pCordinatesLoc) {
-    _userLocationLatDEC = double.parse(pCordinatesLoc.lat!);
-    _userLocationLngDEC = double.parse(pCordinatesLoc.lng!);
-    setState(() {
-      _userCurrentLocation = LatLng(_userLocationLatDEC, _userLocationLngDEC);
-      _userMarkers.clear();
-      _userMarkers.add(
-        Marker(
-          markerId: const MarkerId('user_des_location'),
-          position: _userCurrentLocation,
-          icon: BitmapDescriptor.defaultMarker,
-        ),
-      );
-      _mapController.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          _userCurrentLocation,
-          15,
-        ),
-      );
-    });
+  void _userLocToMarker(Prediction pCoordinates) {
+    try {
+      _userLocationLatDEC = double.parse(pCoordinates.lat!);
+      _userLocationLngDEC = double.parse(pCoordinates.lng!);
+      if (mounted) {
+        setState(() {
+          _userCurrentLocation =
+              LatLng(_userDestinationLatDEC, _userDestinationLngDEC);
+          _userMarkers.add(
+            Marker(
+              markerId: const MarkerId('user_des_location'),
+              position: _userDestinationLatLng,
+              icon: BitmapDescriptor.defaultMarker,
+            ),
+          );
+          _mapController.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              _userDestinationLatLng,
+              15,
+            ),
+          );
+        });
+      }
+    } catch (e) {
+      debugPrint('Error adding destination marker: $e');
+    }
   }
 
   Future<List<LatLng>> getPolylinePoints() async {
-    List<LatLng> polylineCordinates = [];
-    PolylinePoints polylinePoints = PolylinePoints();
-    PolylineResult lineResult = await polylinePoints.getRouteBetweenCoordinates(
-      googleApiKey: key,
-      request: PolylineRequest(
-        origin: PointLatLng(
-          _userCurrentLocation.latitude,
-          _userCurrentLocation.longitude,
+    List<LatLng> polylineCoordinates = [];
+    try {
+      PolylinePoints polylinePoints = PolylinePoints();
+      PolylineResult lineResult =
+          await polylinePoints.getRouteBetweenCoordinates(
+        googleApiKey: key,
+        request: PolylineRequest(
+          origin: PointLatLng(
+            _userCurrentLocation.latitude,
+            _userCurrentLocation.longitude,
+          ),
+          destination: PointLatLng(
+            _userDestinationLatLng.latitude,
+            _userDestinationLatLng.longitude,
+          ),
+          mode: TravelMode.driving,
         ),
-        destination: PointLatLng(
-          _userDestinationLatLng.latitude,
-          _userDestinationLatLng.longitude,
-        ),
-        mode: TravelMode.driving,
-      ),
-    );
-    if (lineResult.points.isNotEmpty) {
-      lineResult.points.forEach(
-        (PointLatLng point) async {
-          polylineCordinates.add(
-            LatLng(point.latitude, point.longitude),
-          );
-        },
       );
-      calculateDistance(polylineCordinates);
-      calculateExpress(polylineCordinates);
-      calculateStandard(polylineCordinates);
-    } else {
-      print(lineResult.errorMessage);
+
+      if (lineResult.points.isNotEmpty) {
+        polylineCoordinates = lineResult.points
+            .map((point) => LatLng(point.latitude, point.longitude))
+            .toList();
+        await _calculateDeliveryDetails(polylineCoordinates);
+      } else {
+        debugPrint('Error fetching polyline: ${lineResult.errorMessage}');
+      }
+    } catch (e) {
+      debugPrint('Error generating polyline: $e');
     }
-    return polylineCordinates;
+    return polylineCoordinates;
   }
 
   void generatePolylineFromPoints(List<LatLng> polylineCordinates) async {
@@ -217,16 +228,17 @@ class _MapPageState extends State<MapPage> {
       points: polylineCordinates,
       width: 8,
     );
-    setState(() async {
+    setState(() {
       polylines[id] = polyline;
     });
   }
 
-  Future<double> calculateDistance(pCordinates) async {
+  Future<void> _calculateDeliveryDetails(
+      List<LatLng> polylineCordinates) async {
     double totalDistance = 0.0;
-    for (int i = 0; i < pCordinates.length - 1; i++) {
-      LatLng start = pCordinates[i];
-      LatLng end = pCordinates[i + 1];
+    for (int i = 0; i < polylineCordinates.length - 1; i++) {
+      LatLng start = polylineCordinates[i];
+      LatLng end = polylineCordinates[i + 1];
       totalDistance += await Geolocator.distanceBetween(
         start.latitude,
         start.longitude,
@@ -234,122 +246,76 @@ class _MapPageState extends State<MapPage> {
         end.longitude,
       );
     }
+
     setState(() {
       finalDistance = totalDistance / 1000;
-      roundDistanceKM = double.parse((finalDistance).toStringAsFixed(1));
+      roundDistanceKM = double.parse(finalDistance.toStringAsFixed(1));
+      expressCost = (roundDistanceKM / 1.2) * 1200;
+      standardCost = (roundDistanceKM / 1.6) * 1200;
+
+      // Update formatted values only after cost changes
+      standardFormatted = formatMoney(standardCost);
+      expressFormatted = formatMoney(expressCost);
+
+      // Update size-related formatted values
+      size25Formatted = formatMoney(packageSize25Price);
+      size50Formatted = formatMoney(packageSize50Price);
+      size75Formatted = formatMoney(packageSize75Price);
+      size100Formatted = formatMoney(packageSize100Price);
     });
-
-    return roundDistanceKM;
   }
 
-  Future<double> calculateExpress(pCordinates) async {
-    for (int i = 0; i < pCordinates.length - 1; i++) {
-      setState(() {
-        expressCost = (roundDistanceKM / 1.2) * 1200;
-      });
-    }
-
-    return expressCost;
+  // Utility function to format the money values
+  MoneyFormatterOutput formatMoney(double amount) {
+    return MoneyFormatter(
+      amount: amount,
+      settings: MoneyFormatterSettings(
+        symbol: '₦',
+        thousandSeparator: ',',
+        decimalSeparator: '.',
+        symbolAndNumberSeparator: ' ',
+        fractionDigits: 0,
+        compactFormatType: CompactFormatType.short,
+      ),
+    ).output;
   }
 
-  Future<double> calculateStandard(pCordinates) async {
-    for (int i = 0; i < pCordinates.length - 1; i++) {
-      setState(() {
-        standardCost = (roundDistanceKM / 1.6) * 1200;
-      });
-    }
-
-    return standardCost;
-  }
-
-  void makePayment() {
+  void _showPaymentPrompt() {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
           content: Container(
-            height: 250,
-            width: 300,
-            child: Padding(
-              padding: const EdgeInsets.only(
-                  left: 4.0, right: 4, top: 16, bottom: 0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).pop();
-                        },
-                        child: Icon(Icons.close),
-                      ),
-                    ],
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10.0, vertical: 20.0),
+            child: Column(
+              mainAxisSize:
+                  MainAxisSize.min, // Use MainAxisSize.min for dynamic height
+              children: [
+                Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
-                  Row(
-                    children: [
-                      Text(
-                        'Email Address(required)',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  TextField(
-                    controller: _controller1,
-                    decoration: InputDecoration(
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Colors.black,
-                        ),
-                      ),
-                      fillColor: Colors.white,
-                      filled: true,
-                      hintText: 'Enter email address',
-                      hintStyle: TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                  ListTile(
-                    title: Text(
-                      (isExpressSelected == false
-                              ? standardFormated.symbolOnLeft
-                              : expressFormated.symbolOnLeft)
-                          .toString(),
-                    ),
-                  ),
-                  MButtons(
-                      onTap: () {
-                        final uniqueTransRef =
-                            PayWithPayStack().generateUuidV4();
-
-                        PayWithPayStack().now(
-                            context: context,
-                            secretKey:
-                                "sk_test_c69312cc47b0d93bd17d0407d4292f11ee38e2fb",
-                            customerEmail: _controller1.text,
-                            reference: uniqueTransRef,
-                            currency: "NGN",
-                            amount: isExpressSelected == false
-                                ? standardAmt
-                                : expressAmt,
-                            transactionCompleted: () {
-                              print("Transaction Successful");
-                            },
-                            transactionNotCompleted: () {
-                              print("Transaction Not Successful!");
-                            },
-                            callbackUrl: '');
-                      },
-                      btnText: 'Pay now'),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16.0),
+                _buildEmailField(),
+                const SizedBox(height: 16.0),
+                _buildPriceRow('Delivery Price', _getDeliveryCost()),
+                _buildPriceRow('Package Price', _getPackagePrice()),
+                const SizedBox(height: 20.0),
+                MButtons(
+                  onTap: () async {
+                    await makePayment().then((_) {
+                      Provider.of<IndexProvider>(context, listen: false)
+                          .setSelectedIndex(2);
+                    });
+                  },
+                  btnText: 'Pay $formattedPaymentAmt',
+                ),
+              ],
             ),
           ),
         );
@@ -357,8 +323,223 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
+  double _getDeliveryCost() {
+    return isExpressSelected == true ? expressCost : standardCost;
+  }
+
+  double _getPackagePrice() {
+    double packagePrice = 0;
+
+    if (is25Selected) {
+      packagePrice = packageSize25Price;
+    } else if (is50Selected) {
+      packagePrice = packageSize50Price;
+    } else if (is75Selected) {
+      packagePrice = packageSize75Price;
+    } else if (is100Selected) {
+      packagePrice = packageSize100Price;
+    }
+
+    return packagePrice;
+  }
+
+  Widget _buildEmailField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Email Address (needed for receipt)',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        TextField(
+          controller: _controller1,
+          decoration: InputDecoration(
+            enabledBorder:
+                OutlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+            focusedBorder:
+                OutlineInputBorder(borderSide: BorderSide(color: Colors.black)),
+            fillColor: Colors.white,
+            filled: true,
+            hintText: 'Enter email address',
+            hintStyle: TextStyle(color: Colors.grey),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPriceRow(String label, double price) {
+    final formattedPrice =
+        formatMoney(price).symbolOnLeft; // Access formatted string with symbol
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label),
+        Text(formattedPrice), // Correctly formatted output
+      ],
+    );
+  }
+
+  Future<void> makePayment() async {
+    if (_controller1.text.isEmpty || !_controller1.text.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Invalid email address'),
+            backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    try {
+      await PaystackFlutter().pay(
+        context: context,
+        secretKey: 'sk_test_c69312cc47b0d93bd17d0407d4292f11ee38e2fb',
+        amount: paymentParameter * 100,
+        email: _controller1.text,
+        callbackUrl: 'https://callback.com',
+        showProgressBar: true,
+        paymentOptions: [
+          PaymentOption.card,
+          PaymentOption.bankTransfer,
+          PaymentOption.mobileMoney,
+        ],
+        currency: Currency.NGN,
+        metaData: {
+          "start_point": _startPointController.text,
+          "end_point": _destinationController.text,
+          "delivery_price": paymentAmt,
+        },
+        onSuccess: (paystackCallback) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content:
+                  Text('Transaction Successful: ${paystackCallback.reference}'),
+              backgroundColor: Color.fromRGBO(0, 70, 67, 1),
+            ),
+          );
+        },
+        onCancelled: (paystackCallback) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content:
+                  Text('Transaction Failed: ${paystackCallback.reference}'),
+              backgroundColor: Color.fromRGBO(255, 91, 82, 1),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Payment failed: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   void confirmOrder(BuildContext ctx) {
-    makePayment();
+    _modeOfPayment();
+  }
+
+  void _modeOfPayment() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        bool dialogIsCashorTransfer = isCashorTransfer;
+        bool dialogIsOnlinePayment = isOnlinePayment;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              content: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10.0, vertical: 20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                    const SizedBox(height: 4.0),
+                    _buildPaymentOption(
+                      title: 'Cash or Transfer',
+                      value: dialogIsCashorTransfer,
+                      onChanged: (newBool) {
+                        setDialogState(() {
+                          dialogIsCashorTransfer = newBool!;
+                          dialogIsOnlinePayment = false;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 2.0),
+                    _buildPaymentOption(
+                      title: 'Pay Online',
+                      value: dialogIsOnlinePayment,
+                      onChanged: (newBool) {
+                        setDialogState(() {
+                          dialogIsOnlinePayment = newBool!;
+                          dialogIsCashorTransfer = false;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8.0),
+                    MButtons(
+                      onTap: () {
+                        setState(() {
+                          isCashorTransfer = dialogIsCashorTransfer;
+                          isOnlinePayment = dialogIsOnlinePayment;
+                        });
+                        _processPayment();
+                      },
+                      btnText: 'Process Order',
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPaymentOption({
+    required String title,
+    required bool? value,
+    required ValueChanged<bool?> onChanged,
+  }) {
+    return ListTile(
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      trailing: Checkbox(
+        activeColor: const Color.fromRGBO(40, 115, 115, 1),
+        value: value,
+        onChanged: onChanged,
+        checkColor: Colors.white,
+      ),
+    );
+  }
+
+  void _processPayment() {
+    if (isCashorTransfer == true && isOnlinePayment == false) {
+      Provider.of<IndexProvider>(context, listen: false).setSelectedIndex(2);
+      Navigator.of(context).pop();
+    } else if (isOnlinePayment == true && isCashorTransfer == false) {
+      _showPaymentPrompt();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a mode of Payment'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   var finalDistance;
@@ -366,38 +547,32 @@ class _MapPageState extends State<MapPage> {
   bool? isExpressSelected = false;
   bool? isStandardSelected = false;
 
-  late double expressCost;
-  late double standardCost;
-  late double standardAmt = double.parse(
-    standardCost.toString(),
-  );
-  late double expressAmt = double.parse(
-    expressCost.toString(),
-  );
+  bool isCashorTransfer = false;
+  bool isOnlinePayment = false;
 
-  late MoneyFormatter exFo = MoneyFormatter(
-    amount: expressAmt,
-    settings: MoneyFormatterSettings(
-        symbol: '₦',
-        thousandSeparator: ',',
-        decimalSeparator: '.',
-        symbolAndNumberSeparator: ' ',
-        fractionDigits: 0,
-        compactFormatType: CompactFormatType.short),
-  );
-  late MoneyFormatterOutput expressFormated = exFo.output;
+  bool is25Selected = false;
+  bool is50Selected = false;
+  bool is75Selected = false;
+  bool is100Selected = false;
 
-  late MoneyFormatter staFo = MoneyFormatter(
-    amount: standardAmt,
-    settings: MoneyFormatterSettings(
-        symbol: '₦',
-        thousandSeparator: ',',
-        decimalSeparator: '.',
-        symbolAndNumberSeparator: ' ',
-        fractionDigits: 0,
-        compactFormatType: CompactFormatType.short),
-  );
-  late MoneyFormatterOutput standardFormated = staFo.output;
+  double packageSize25Price = 1250;
+  double packageSize50Price = 2500;
+  double packageSize75Price = 3750;
+  double packageSize100Price = 5000;
+
+  double expressCost = 0;
+  double standardCost = 0;
+
+  MoneyFormatterOutput? standardFormatted;
+  MoneyFormatterOutput? expressFormatted;
+  MoneyFormatterOutput? size25Formatted;
+  MoneyFormatterOutput? size50Formatted;
+  MoneyFormatterOutput? size75Formatted;
+  MoneyFormatterOutput? size100Formatted;
+
+  double get paymentAmt => _getDeliveryCost() + _getPackagePrice();
+  String get formattedPaymentAmt => formatMoney(paymentAmt).symbolOnLeft;
+  int get paymentParameter => (paymentAmt).toInt();
 
   @override
   Widget build(BuildContext context) {
@@ -478,7 +653,7 @@ class _MapPageState extends State<MapPage> {
                         child: GooglePlaceAutoCompleteTextField(
                           focusNode: _startPointFN,
                           textEditingController: _startPointController,
-                          debounceTime: 800,
+                          debounceTime: 600,
                           googleAPIKey: key,
                           isLatLngRequired: true,
                           countries: ['ng'],
@@ -548,7 +723,7 @@ class _MapPageState extends State<MapPage> {
                         child: GooglePlaceAutoCompleteTextField(
                           focusNode: _endPointFN,
                           textEditingController: _destinationController,
-                          debounceTime: 800,
+                          debounceTime: 600,
                           googleAPIKey: key,
                           getPlaceDetailWithLatLng: (Prediction cordinates) {
                             _userDesToMarker(cordinates);
@@ -620,7 +795,7 @@ class _MapPageState extends State<MapPage> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 10.0),
                                 child: Container(
-                                  height: 550,
+                                  height: 860,
                                   width: MediaQuery.sizeOf(context).width,
                                   child: Column(
                                     children: [
@@ -757,7 +932,7 @@ class _MapPageState extends State<MapPage> {
                                               fontWeight: FontWeight.w600),
                                         ),
                                         subtitle: Text(
-                                          standardFormated.symbolOnLeft
+                                          standardFormatted!.symbolOnLeft
                                               .toString(),
                                           style: TextStyle(fontSize: 16),
                                         ),
@@ -800,7 +975,7 @@ class _MapPageState extends State<MapPage> {
                                               fontWeight: FontWeight.w600),
                                         ),
                                         subtitle: Text(
-                                          expressFormated.symbolOnLeft
+                                          expressFormatted!.symbolOnLeft
                                               .toString(),
                                           style: TextStyle(fontSize: 16),
                                         ),
@@ -812,6 +987,134 @@ class _MapPageState extends State<MapPage> {
                                             setState(() {
                                               isExpressSelected = newBool;
                                               isStandardSelected = false;
+                                            });
+                                          },
+                                          checkColor: Colors.white,
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 20.0),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                                child: Divider(
+                                              thickness: 0.8,
+                                              color: Colors.grey,
+                                            ))
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(
+                                        height: 10,
+                                      ),
+                                      Container(
+                                        width: 340,
+                                        child: Text(
+                                          'Our delivery boxes are 3.05 cubic feet, and thus we charge on the space your item takes. Select an option from below',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                      ListTile(
+                                        title: Text(
+                                          'Quarter the Box',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                        subtitle: Text(
+                                          size25Formatted?.symbolOnLeft ??
+                                              'N/A', // Null-safe access
+                                        ),
+                                        trailing: Checkbox(
+                                          activeColor: const Color.fromRGBO(
+                                              40, 115, 115, 1),
+                                          value: is25Selected,
+                                          onChanged: (newBool) {
+                                            setState(() {
+                                              is25Selected = newBool ??
+                                                  false; // Avoid null assignment
+                                              is50Selected = false;
+                                              is75Selected = false;
+                                              is100Selected = false;
+                                            });
+                                          },
+                                          checkColor: Colors.white,
+                                        ),
+                                      ),
+                                      ListTile(
+                                        title: Text(
+                                          'Half of Box',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                        subtitle: Text(
+                                          size50Formatted?.symbolOnLeft ??
+                                              'N/A', // Null-safe access
+                                        ),
+                                        trailing: Checkbox(
+                                          activeColor: const Color.fromRGBO(
+                                              40, 115, 115, 1),
+                                          value: is50Selected,
+                                          onChanged: (newBool) {
+                                            setState(() {
+                                              is50Selected = newBool ??
+                                                  false; // Avoid null assignment
+                                              is25Selected = false;
+                                              is75Selected = false;
+                                              is100Selected = false;
+                                            });
+                                          },
+                                          checkColor: Colors.white,
+                                        ),
+                                      ),
+                                      ListTile(
+                                        title: Text(
+                                          'One Quarter of Box',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                        subtitle: Text(
+                                          size75Formatted?.symbolOnLeft ??
+                                              'N/A', // Null-safe access
+                                        ),
+                                        trailing: Checkbox(
+                                          activeColor: const Color.fromRGBO(
+                                              40, 115, 115, 1),
+                                          value: is75Selected,
+                                          onChanged: (newBool) {
+                                            setState(() {
+                                              is75Selected = newBool ??
+                                                  false; // Avoid null assignment
+                                              is50Selected = false;
+                                              is25Selected = false;
+                                              is100Selected = false;
+                                            });
+                                          },
+                                          checkColor: Colors.white,
+                                        ),
+                                      ),
+                                      ListTile(
+                                        title: Text(
+                                          'Full Box',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                        subtitle: Text(
+                                          size100Formatted?.symbolOnLeft ??
+                                              'N/A', // Null-safe access
+                                        ),
+                                        trailing: Checkbox(
+                                          activeColor: const Color.fromRGBO(
+                                              40, 115, 115, 1),
+                                          value: is100Selected,
+                                          onChanged: (newBool) {
+                                            setState(() {
+                                              is100Selected = newBool ??
+                                                  false; // Avoid null assignment
+                                              is50Selected = false;
+                                              is75Selected = false;
+                                              is25Selected = false;
                                             });
                                           },
                                           checkColor: Colors.white,
