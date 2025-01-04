@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:provider/provider.dart';
 
@@ -12,8 +11,6 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
-  FirebaseFirestore db = FirebaseFirestore.instance;
-
   int _currentPage = 0;
 
   @override

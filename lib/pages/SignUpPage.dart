@@ -1,11 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:micollins_delivery_app/components/nameFields.dart';
-import 'package:micollins_delivery_app/components/alt_sign_in_tile.dart';
-import 'package:micollins_delivery_app/components/emailTextField.dart';
+import 'package:http/http.dart' as http;
 import 'package:micollins_delivery_app/components/m_buttons.dart';
-import 'package:micollins_delivery_app/services/auth_service.dart';
 
 class SignUpPage extends StatefulWidget {
   SignUpPage({super.key});
@@ -15,261 +12,245 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
-  FirebaseFirestore db = FirebaseFirestore.instance;
-
-  final nameController = TextEditingController();
-
+  final firstNameController = TextEditingController();
+  final lastNameController = TextEditingController();
   final emailController = TextEditingController();
-
+  final phoneController = TextEditingController();
   final passwordController = TextEditingController();
 
   bool? isChecked = false;
-
   bool _isObscured = true;
+  bool _isLoading = false; // Loading state
 
-  final name_formKey = GlobalKey<FormState>();
+  final formKey = GlobalKey<FormState>();
 
-  final email_formKey = GlobalKey<FormState>();
+  InputDecoration customInputDecoration(String hintText) {
+    return InputDecoration(
+      hintText: hintText,
+      filled: true,
+      fillColor: Colors.grey[200],
+      contentPadding:
+          const EdgeInsets.symmetric(vertical: 12.0, horizontal: 15.0),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: BorderSide.none,
+      ),
+    );
+  }
 
-  final pass_formKey = GlobalKey<FormState>();
+  Future<void> _signup() async {
+    if (!formKey.currentState!.validate() || isChecked == false) {
+      Fluttertoast.showToast(
+        msg: 'Please complete all fields and agree to the terms.',
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+      return;
+    }
 
-  var eMessage;
+    setState(() {
+      _isLoading = true; // Start showing the loading spinner
+    });
+
+    const String apiUrl =
+        "https://deliveryapi-plum.vercel.app/usersignup"; // Replace with your actual API URL.
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        body: {
+          'firstname': firstNameController.text.trim(),
+          'lastname': lastNameController.text.trim(),
+          'email': emailController.text.trim(),
+          'password': passwordController.text.trim(),
+          'phone': phoneController.text.trim(),
+        },
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['status'] == 'success') {
+        Fluttertoast.showToast(
+          msg: data['message'] ?? 'Signup successful!',
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+        // Navigate to the login page or another screen
+        Navigator.of(context).pushReplacementNamed('/loginpage');
+      } else {
+        Fluttertoast.showToast(
+          msg: data['detail'] ?? 'Signup failed.',
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: 'An error occurred: $e',
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    } finally {
+      setState(() {
+        _isLoading = false; // Hide the loading spinner
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final userName = db.collection("users");
-    final name = <String, dynamic>{'name': nameController.text};
-
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 254, 255, 254),
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 40.0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Form(
+              key: formKey,
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  //logo
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 110),
-                    child: Row(
+                  const SizedBox(height: 30),
+
+                  // Logo and App Name
+                  Center(
+                    child: Column(
                       children: [
                         Image.asset(
                           'assets/images/micollins_icon.png',
-                          height: 100,
-                          scale: 2.5,
+                          height: 50,
                         ),
-                        Text('MICO',
-                            style: TextStyle(
-                              color: const Color.fromRGBO(40, 115, 115, 1),
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ))
-                      ],
-                    ),
-                  ),
-                  //sign in prompt
-                  Text(
-                    'Create an Account',
-                    style: TextStyle(
-                      color: const Color.fromRGBO(40, 115, 115, 1),
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  //name textfield
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30),
-                    child: Row(
-                      children: [
                         Text(
-                          'First name',
+                          'MICO',
                           style: TextStyle(
+                            color: const Color.fromRGBO(40, 115, 115, 1),
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  nameFields(
-                    form_Key: name_formKey,
-                    controller: nameController,
-                    hintText: 'Enter your Name',
-                    obscureText: false,
-                  ),
-
                   const SizedBox(height: 20),
 
-                  //email textfield
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30),
-                    child: Row(
-                      children: [
-                        Text(
-                          'Email Address',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                  // Page Title
+                  Center(
+                    child: Text(
+                      'Create an Account',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: const Color.fromRGBO(40, 115, 115, 1),
+                      ),
                     ),
                   ),
-                  EmailTextField(
-                    form_Key: email_formKey,
+                  const SizedBox(height: 25),
+
+                  // First Name
+                  const Text('First Name'),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: firstNameController,
+                    decoration: customInputDecoration('Enter your first name'),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 15),
+
+                  // Last Name
+                  const Text('Last Name'),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: lastNameController,
+                    decoration: customInputDecoration('Enter your last name'),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 15),
+
+                  // Email Address
+                  const Text('Email Address'),
+                  const SizedBox(height: 8),
+                  TextFormField(
                     controller: emailController,
-                    hintText: 'Enter your email address',
-                    obscureText: false,
+                    decoration:
+                        customInputDecoration('Enter your email address'),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Required' : null,
                   ),
+                  const SizedBox(height: 15),
 
-                  const SizedBox(height: 20),
+                  // Phone Number
+                  const Text('Phone Number'),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: phoneController,
+                    decoration:
+                        customInputDecoration('Enter your phone number'),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 15),
 
-                  //password textfield
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 25),
-                    child: Row(
-                      children: [
-                        Text(
-                          'Password',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
+                  // Password
+                  const Text('Password'),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: _isObscured,
+                    decoration:
+                        customInputDecoration('Enter your password').copyWith(
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isObscured ? Icons.visibility_off : Icons.visibility,
                         ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 25),
-                    child: Form(
-                      key: pass_formKey,
-                      child: TextFormField(
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please create a password';
-                          }
-                          return null;
+                        onPressed: () {
+                          setState(() {
+                            _isObscured = !_isObscured;
+                          });
                         },
-                        controller: passwordController,
-                        obscureText: _isObscured,
-                        decoration: InputDecoration(
-                            suffixIcon: IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _isObscured = !_isObscured;
-                                  });
-                                },
-                                icon: _isObscured
-                                    ? const Icon(Icons.visibility_off)
-                                    : const Icon(Icons.visibility)),
-                            enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Colors.grey),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.black,
-                              ),
-                            ),
-                            fillColor: Colors.white,
-                            filled: true,
-                            hintText: 'Enter your password',
-                            hintStyle: TextStyle(color: Colors.grey)),
                       ),
                     ),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Required' : null,
                   ),
-
                   const SizedBox(height: 20),
 
-                  //privacy policy
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 25),
-                    child: Row(
-                      children: [
-                        Checkbox(
-                          activeColor: const Color.fromRGBO(40, 115, 115, 1),
-                          value: isChecked,
-                          onChanged: (newBool) {
-                            setState(() {
-                              isChecked = newBool;
-                            });
-                          },
-                          checkColor: Colors.white,
-                        ),
-                        Flexible(
-                          child: Text(
-                              'I have read and agreed to the User Agreement  and Privacy Policy'),
-                        )
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  //create account button
-                  MButtons(
-                    btnText: 'Create Account',
-                    onTap: () async {
-                      if (name_formKey.currentState!.validate() &&
-                          email_formKey.currentState!.validate() &&
-                          pass_formKey.currentState!.validate() &&
-                          isChecked == true) {
-                        await AuthService().signUp(
-                          email: emailController.text,
-                          password: passwordController.text,
-                          context: context,
-                        );
-                        userName.doc('UN').set(name);
-                      } else {
-                        eMessage =
-                            'Please tick box to agree to user agreement and privacy policy';
-                      }
-                      Fluttertoast.showToast(
-                        msg: eMessage,
-                        toastLength: Toast.LENGTH_LONG,
-                        gravity: ToastGravity.SNACKBAR,
-                        backgroundColor: Colors.black54,
-                        textColor: Colors.white,
-                        fontSize: 14,
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-
+                  // Privacy Policy
                   Row(
                     children: [
-                      Expanded(
-                        child: Divider(
-                          thickness: 0.5,
-                          color: Colors.grey,
-                        ),
+                      Checkbox(
+                        activeColor: const Color.fromRGBO(40, 115, 115, 1),
+                        value: isChecked,
+                        onChanged: (newBool) {
+                          setState(() {
+                            isChecked = newBool;
+                          });
+                        },
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Text('Or continue with'),
-                      ),
-                      Expanded(
-                        child: Divider(
-                          thickness: 0.5,
-                          color: Colors.grey,
+                      Flexible(
+                        child: Text(
+                          'I have read and agreed to the User Agreement and Privacy Policy',
+                          style:
+                              TextStyle(fontSize: 14, color: Colors.grey[800]),
                         ),
                       ),
                     ],
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 20),
 
-                  //google + apple sign in options
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      AltSignInTile(imagePath: 'assets/images/google_icon.png'),
-                      const SizedBox(width: 10),
-                      AltSignInTile(imagePath: 'assets/images/apple_icon.png'),
-                    ],
+                  // Create Account Button
+                  Center(
+                    child: _isLoading
+                        ? CircularProgressIndicator() // Show progress indicator
+                        : MButtons(
+                            btnText: 'Create Account',
+                            onTap: _signup,
+                          ),
                   ),
+
+                  const SizedBox(height: 30),
                 ],
               ),
             ),

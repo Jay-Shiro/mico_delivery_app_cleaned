@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:micollins_delivery_app/components/m_buttons.dart';
 import 'package:micollins_delivery_app/components/emailTextField.dart';
-import 'package:micollins_delivery_app/services/auth_service.dart';
 
 class RecoverPassword extends StatelessWidget {
   RecoverPassword({super.key});
@@ -83,12 +82,7 @@ class RecoverPassword extends StatelessWidget {
                   //sign in button
                   MButtons(
                     btnText: 'Send Link',
-                    onTap: () async {
-                      await AuthService().sendPasswordResetLink(
-                        email: resetEmailController.text,
-                        context: context,
-                      );
-                    },
+                    onTap: () async {},
                   ),
 
                   const SizedBox(height: 60),

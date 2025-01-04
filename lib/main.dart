@@ -1,7 +1,4 @@
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:micollins_delivery_app/firebase_options.dart';
 import 'package:micollins_delivery_app/pages/LoginPage.dart';
 import 'package:micollins_delivery_app/pages/MapPage.dart';
 import 'package:micollins_delivery_app/pages/RecoverPassword.dart';
@@ -14,7 +11,6 @@ import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(ChangeNotifierProvider(
       create: (context) => IndexProvider(), child: const MyApp()));
 }
@@ -26,9 +22,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Loginpage(),
+      home: LoginPage(),
       routes: {
-        '/loginpage': (context) => Loginpage(),
+        '/loginpage': (context) => LoginPage(),
         '/signuppage': (context) => SignUpPage(),
         '/resetpasspage': (context) => RecoverPassword(),
         '/homepage': (context) => Homepage(),
