@@ -27,10 +27,7 @@ class IndexProvider extends ChangeNotifier {
 final List<Widget> _pages = [
   Homepage(),
   MapPage(),
-  OrdersPage(
-    startPoint: '', distance: '', endPoint: '', price: '',
-    // You can pass data here if needed
-  ),
+  OrdersPage(),
   SupportPage(),
   ProfilePage(),
 ];
