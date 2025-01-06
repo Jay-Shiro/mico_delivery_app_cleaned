@@ -67,7 +67,7 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString('user', json.encode(data['user']));
 
         // Navigate to the next screen
-        Navigator.of(context).pushReplacementNamed('/homepage');
+        Navigator.of(context).pushReplacementNamed('/firstpage');
       } else {
         Fluttertoast.showToast(
           msg: data['detail'] ?? 'Incorrect email or password',

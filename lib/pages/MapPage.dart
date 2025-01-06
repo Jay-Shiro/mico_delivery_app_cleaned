@@ -88,7 +88,7 @@ class _MapPageState extends State<MapPage> {
     return await Geolocator.getCurrentPosition();
   }
 
-  static const String key = "AIzaSyAGpi5xRhCSbDFkoj25FlDkzGXDhILXRow";
+  static const String key = "AIzaSyBz7ASOm7zcavVHsO5v_-FW1GtQVC5_xEE";
   final _startPointController = TextEditingController();
   final _destinationController = TextEditingController();
   final DraggableScrollableController _bottomSheetController =
@@ -932,8 +932,8 @@ class _MapPageState extends State<MapPage> {
                                               fontWeight: FontWeight.w600),
                                         ),
                                         subtitle: Text(
-                                          standardFormatted!.symbolOnLeft
-                                              .toString(),
+                                          standardFormatted?.symbolOnLeft ??
+                                              ''.toString(),
                                           style: TextStyle(fontSize: 16),
                                         ),
                                         trailing: Checkbox(
@@ -942,7 +942,8 @@ class _MapPageState extends State<MapPage> {
                                           value: isStandardSelected,
                                           onChanged: (newBool) {
                                             setState(() {
-                                              isStandardSelected = newBool;
+                                              isStandardSelected =
+                                                  newBool ?? false;
                                               isExpressSelected = false;
                                             });
                                           },
@@ -975,8 +976,8 @@ class _MapPageState extends State<MapPage> {
                                               fontWeight: FontWeight.w600),
                                         ),
                                         subtitle: Text(
-                                          expressFormatted!.symbolOnLeft
-                                              .toString(),
+                                          expressFormatted?.symbolOnLeft ??
+                                              ''.toString(),
                                           style: TextStyle(fontSize: 16),
                                         ),
                                         trailing: Checkbox(
@@ -985,7 +986,8 @@ class _MapPageState extends State<MapPage> {
                                           value: isExpressSelected,
                                           onChanged: (newBool) {
                                             setState(() {
-                                              isExpressSelected = newBool;
+                                              isExpressSelected =
+                                                  newBool ?? false;
                                               isStandardSelected = false;
                                             });
                                           },
@@ -1023,8 +1025,7 @@ class _MapPageState extends State<MapPage> {
                                               fontWeight: FontWeight.w600),
                                         ),
                                         subtitle: Text(
-                                          size25Formatted?.symbolOnLeft ??
-                                              'N/A', // Null-safe access
+                                          size25Formatted?.symbolOnLeft ?? '',
                                         ),
                                         trailing: Checkbox(
                                           activeColor: const Color.fromRGBO(
@@ -1032,8 +1033,7 @@ class _MapPageState extends State<MapPage> {
                                           value: is25Selected,
                                           onChanged: (newBool) {
                                             setState(() {
-                                              is25Selected = newBool ??
-                                                  false; // Avoid null assignment
+                                              is25Selected = newBool ?? false;
                                               is50Selected = false;
                                               is75Selected = false;
                                               is100Selected = false;
@@ -1044,13 +1044,12 @@ class _MapPageState extends State<MapPage> {
                                       ),
                                       ListTile(
                                         title: Text(
-                                          'Half of Box',
+                                          'Half the Box',
                                           style: TextStyle(
                                               fontWeight: FontWeight.w600),
                                         ),
                                         subtitle: Text(
-                                          size50Formatted?.symbolOnLeft ??
-                                              'N/A', // Null-safe access
+                                          size25Formatted?.symbolOnLeft ?? '',
                                         ),
                                         trailing: Checkbox(
                                           activeColor: const Color.fromRGBO(
@@ -1058,9 +1057,8 @@ class _MapPageState extends State<MapPage> {
                                           value: is50Selected,
                                           onChanged: (newBool) {
                                             setState(() {
-                                              is50Selected = newBool ??
-                                                  false; // Avoid null assignment
                                               is25Selected = false;
+                                              is50Selected = newBool ?? false;
                                               is75Selected = false;
                                               is100Selected = false;
                                             });
@@ -1070,13 +1068,12 @@ class _MapPageState extends State<MapPage> {
                                       ),
                                       ListTile(
                                         title: Text(
-                                          'One Quarter of Box',
+                                          'One quarter the Box',
                                           style: TextStyle(
                                               fontWeight: FontWeight.w600),
                                         ),
                                         subtitle: Text(
-                                          size75Formatted?.symbolOnLeft ??
-                                              'N/A', // Null-safe access
+                                          size75Formatted?.symbolOnLeft ?? '',
                                         ),
                                         trailing: Checkbox(
                                           activeColor: const Color.fromRGBO(
@@ -1084,10 +1081,9 @@ class _MapPageState extends State<MapPage> {
                                           value: is75Selected,
                                           onChanged: (newBool) {
                                             setState(() {
-                                              is75Selected = newBool ??
-                                                  false; // Avoid null assignment
-                                              is50Selected = false;
                                               is25Selected = false;
+                                              is50Selected = false;
+                                              is75Selected = newBool ?? false;
                                               is100Selected = false;
                                             });
                                           },
@@ -1101,8 +1097,7 @@ class _MapPageState extends State<MapPage> {
                                               fontWeight: FontWeight.w600),
                                         ),
                                         subtitle: Text(
-                                          size100Formatted?.symbolOnLeft ??
-                                              'N/A', // Null-safe access
+                                          size100Formatted?.symbolOnLeft ?? '',
                                         ),
                                         trailing: Checkbox(
                                           activeColor: const Color.fromRGBO(
@@ -1110,11 +1105,10 @@ class _MapPageState extends State<MapPage> {
                                           value: is100Selected,
                                           onChanged: (newBool) {
                                             setState(() {
-                                              is100Selected = newBool ??
-                                                  false; // Avoid null assignment
+                                              is25Selected = false;
                                               is50Selected = false;
                                               is75Selected = false;
-                                              is25Selected = false;
+                                              is100Selected = newBool ?? false;
                                             });
                                           },
                                           checkColor: Colors.white,
