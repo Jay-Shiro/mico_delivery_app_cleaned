@@ -250,7 +250,7 @@ class _HomepageState extends State<Homepage> {
                           ),
                         ),
                       ),
-                      Container(
+                      SizedBox(
                         height: MediaQuery.sizeOf(context).width,
                         width: MediaQuery.sizeOf(context).width,
                         child: Center(

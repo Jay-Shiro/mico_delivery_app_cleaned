@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:micollins_delivery_app/components/m_buttons.dart';
 
 class SignUpPage extends StatefulWidget {
-  SignUpPage({super.key});
+  const SignUpPage({super.key});
 
   @override
   State<SignUpPage> createState() => _SignUpPageState();
