@@ -41,8 +41,7 @@ class _LoginPageState extends State<LoginPage> {
       _isLoading = true;
     });
 
-    const String apiUrl =
-        "https://deliveryapi-plum.vercel.app/usersignin"; // Replace with your actual API URL.
+    const String apiUrl = "https://deliveryapi-plum.vercel.app/usersignin";
 
     try {
       final response = await http.post(
@@ -54,19 +53,31 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       final data = json.decode(response.body);
+      debugPrint('API Response: $data'); // Log the full response
 
       if (response.statusCode == 200 && data['status'] == 'success') {
+        // Save all relevant data to SharedPreferences with null checks
+        final prefs = await SharedPreferences.getInstance();
+        final userData = data['user'] as Map<String, dynamic>;
+
+        await prefs.setString('user', json.encode(userData));
+        await prefs.setString('email', userData['email']?.toString() ?? '');
+        await prefs.setString('name', userData['name']?.toString() ?? '');
+        await prefs.setString('phone', userData['phone']?.toString() ?? '');
+
+        // Log the saved data
+        debugPrint('Saved User Data:');
+        debugPrint('Email: ${userData['email']}');
+        debugPrint('Name: ${userData['name']}');
+        debugPrint('Phone: ${userData['phone']}');
+        debugPrint('Full User Object: ${json.encode(userData)}');
+
         Fluttertoast.showToast(
           msg: data['message'] ?? 'Sign-in successful!',
           backgroundColor: Colors.green,
           textColor: Colors.white,
         );
 
-        // Save user data to shared preferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user', json.encode(data['user']));
-
-        // Navigate to the next screen
         Navigator.of(context).pushReplacementNamed('/firstpage');
       } else {
         Fluttertoast.showToast(
@@ -76,8 +87,9 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } catch (e) {
+      debugPrint('Login Error: $e');
       Fluttertoast.showToast(
-        msg: 'An error occurred: $e',
+        msg: 'An error occurred. Please try again.',
         backgroundColor: Colors.red,
         textColor: Colors.white,
       );

@@ -4,7 +4,7 @@ class Resetpasswordfields extends StatelessWidget {
   final controller;
   final String hintText;
   final bool obscureText;
-  const Resetpasswordfields({
+  Resetpasswordfields({
     super.key,
     required this.controller,
     required this.hintText,

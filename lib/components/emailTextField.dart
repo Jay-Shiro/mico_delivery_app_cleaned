@@ -5,7 +5,7 @@ class EmailTextField extends StatelessWidget {
   final String hintText;
   final bool obscureText;
   final form_Key;
-  const EmailTextField({
+  EmailTextField({
     super.key,
     required this.controller,
     required this.hintText,

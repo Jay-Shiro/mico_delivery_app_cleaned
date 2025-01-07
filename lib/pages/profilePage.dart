@@ -9,10 +9,11 @@ class ProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
         child: SafeArea(
-            child: Container(
+            child: SizedBox(
                 height: MediaQuery.sizeOf(context).height * 0.9,
                 width: MediaQuery.sizeOf(context).width,
-                child: Scaffold(body: profileUi()))));
+                child: Scaffold(
+                    backgroundColor: Colors.white, body: profileUi()))));
   }
 }
 

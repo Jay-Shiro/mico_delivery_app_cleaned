@@ -12,6 +12,7 @@ import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:money_formatter/money_formatter.dart';
 import 'package:paystack_for_flutter/paystack_for_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -31,20 +32,22 @@ class _MapPageState extends State<MapPage> {
     zoom: 15,
   );
 
+  String? userEmail;
+
   @override
   void initState() {
     super.initState();
     _initializeLocation();
+    _loadUserEmail();
   }
 
   Future<void> _initializeLocation() async {
     try {
       Position position = await _determinePosition();
 
-      _userCurrentLocation = LatLng(position.latitude, position.longitude);
-
       if (mounted) {
         setState(() {
+          _userCurrentLocation = LatLng(position.latitude, position.longitude);
           _userMarkers.add(
             Marker(
               markerId: const MarkerId('user_location'),
@@ -55,20 +58,25 @@ class _MapPageState extends State<MapPage> {
           );
         });
 
-        _mapController.animateCamera(
-          CameraUpdate.newLatLngZoom(_userCurrentLocation!, 15),
+        // Get address for the location
+        List<Placemark> placemarks = await placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
         );
-      }
 
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
+        if (mounted) {
+          setState(() {
+            String address = [
+              placemarks.first.street,
+              placemarks.first.subLocality,
+              placemarks.first.locality,
+            ]
+                .where((element) => element != null && element.isNotEmpty)
+                .join(', ');
 
-      if (mounted) {
-        setState(() {
-          _startPointController.text = placemarks.first.street ?? '';
-        });
+            _startPointController.text = address;
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -103,7 +111,7 @@ class _MapPageState extends State<MapPage> {
     return await Geolocator.getCurrentPosition();
   }
 
-  static const String key = "AIzaSyBz7ASOm7zcavVHsO5v_-FW1GtQVC5_xEE";
+  static final String key = "AIzaSyC_Op-lSfNmmGPzKvsdImneVuL1jzYfNoM";
   final _startPointController = TextEditingController();
   final _destinationController = TextEditingController();
   final DraggableScrollableController _bottomSheetController =
@@ -124,7 +132,7 @@ class _MapPageState extends State<MapPage> {
     super.dispose();
   }
 
-  late LatLng _userDestinationLatLng;
+  LatLng? _userDestinationLatLng;
 
   late double _userDestinationLatDEC;
 
@@ -142,29 +150,59 @@ class _MapPageState extends State<MapPage> {
 
   void _userDesToMarker(Prediction pCoordinates) {
     try {
+      // First check if we have valid coordinates
+      if (pCoordinates.lat == null || pCoordinates.lng == null) {
+        debugPrint('Invalid coordinates in prediction');
+        return;
+      }
+
+      // Parse coordinates
       _userDestinationLatDEC = double.parse(pCoordinates.lat!);
       _userDestinationLngDEC = double.parse(pCoordinates.lng!);
+
       if (mounted) {
         setState(() {
+          // Update destination text first
+          _destinationController.text = pCoordinates.description ?? '';
+
+          // Create the LatLng object
           _userDestinationLatLng =
               LatLng(_userDestinationLatDEC, _userDestinationLngDEC);
+
+          // Update markers
+          _userMarkers
+              .removeWhere((marker) => marker.markerId.value == 'destination');
           _userMarkers.add(
             Marker(
               markerId: const MarkerId('destination'),
-              position: _userDestinationLatLng,
+              position: _userDestinationLatLng!,
               icon: BitmapDescriptor.defaultMarker,
             ),
           );
-          _mapController.animateCamera(
-            CameraUpdate.newLatLngZoom(
-              _userDestinationLatLng,
-              15,
-            ),
-          );
+        });
+
+        // Wait a bit to ensure state is updated
+        Future.delayed(Duration(milliseconds: 100), () {
+          if (_userCurrentLocation != null && _userDestinationLatLng != null) {
+            // Update map and calculate route
+            _mapController
+                .animateCamera(
+              CameraUpdate.newLatLngZoom(_userDestinationLatLng!, 15),
+            )
+                .then((_) {
+              getPolylinePoints().then(
+                (coordinates) => generatePolylineFromPoints(coordinates),
+              );
+            });
+          } else {
+            debugPrint('Current location: $_userCurrentLocation');
+            debugPrint('Destination location: $_userDestinationLatLng');
+          }
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Error adding destination marker: $e');
+      debugPrint('Stack trace: $stackTrace');
     }
   }
 
@@ -175,30 +213,40 @@ class _MapPageState extends State<MapPage> {
       if (mounted) {
         setState(() {
           _userCurrentLocation =
-              LatLng(_userDestinationLatDEC, _userDestinationLngDEC);
+              LatLng(_userLocationLatDEC!, _userLocationLngDEC!);
+          // Clear previous pickup marker
+          _userMarkers.removeWhere(
+              (marker) => marker.markerId.value == 'user_location');
           _userMarkers.add(
             Marker(
-              markerId: const MarkerId('user_des_location'),
-              position: _userDestinationLatLng,
-              icon: BitmapDescriptor.defaultMarker,
+              markerId: const MarkerId('user_location'),
+              position: _userCurrentLocation!,
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueGreen),
             ),
           );
           _mapController.animateCamera(
             CameraUpdate.newLatLngZoom(
-              _userDestinationLatLng,
+              _userCurrentLocation!,
               15,
             ),
           );
         });
       }
     } catch (e) {
-      debugPrint('Error adding destination marker: $e');
+      debugPrint('Error adding pickup marker: $e');
     }
   }
 
   Future<List<LatLng>> getPolylinePoints() async {
     List<LatLng> polylineCoordinates = [];
     try {
+      // Check if both locations are available
+      if (_userCurrentLocation == null || _userDestinationLatLng == null) {
+        debugPrint('One or both locations are null');
+        return polylineCoordinates;
+      }
+
       PolylinePoints polylinePoints = PolylinePoints();
       PolylineResult lineResult =
           await polylinePoints.getRouteBetweenCoordinates(
@@ -209,8 +257,8 @@ class _MapPageState extends State<MapPage> {
             _userCurrentLocation!.longitude,
           ),
           destination: PointLatLng(
-            _userDestinationLatLng.latitude,
-            _userDestinationLatLng.longitude,
+            _userDestinationLatLng!.latitude,
+            _userDestinationLatLng!.longitude,
           ),
           mode: TravelMode.driving,
         ),
@@ -220,7 +268,14 @@ class _MapPageState extends State<MapPage> {
         polylineCoordinates = lineResult.points
             .map((point) => LatLng(point.latitude, point.longitude))
             .toList();
-        await _calculateDeliveryDetails(polylineCoordinates);
+
+        if (polylineCoordinates.isNotEmpty) {
+          // Calculate and update the distance
+          await _calculateDeliveryDetails(polylineCoordinates);
+
+          // Update the polyline on the map
+          generatePolylineFromPoints(polylineCoordinates);
+        }
       } else {
         debugPrint('Error fetching polyline: ${lineResult.errorMessage}');
       }
@@ -230,13 +285,15 @@ class _MapPageState extends State<MapPage> {
     return polylineCoordinates;
   }
 
-  void generatePolylineFromPoints(List<LatLng> polylineCordinates) async {
-    PolylineId id = PolylineId('poly');
+  void generatePolylineFromPoints(List<LatLng> polylineCordinates) {
+    if (polylineCordinates.isEmpty) return;
+
+    PolylineId id = const PolylineId('poly');
     Polyline polyline = Polyline(
       polylineId: id,
-      color: Colors.blue,
+      color: Color.fromRGBO(0, 70, 67, 1),
       points: polylineCordinates,
-      width: 8,
+      width: 4,
     );
     setState(() {
       polylines[id] = polyline;
@@ -245,34 +302,38 @@ class _MapPageState extends State<MapPage> {
 
   Future<void> _calculateDeliveryDetails(
       List<LatLng> polylineCordinates) async {
-    double totalDistance = 0.0;
-    for (int i = 0; i < polylineCordinates.length - 1; i++) {
-      LatLng start = polylineCordinates[i];
-      LatLng end = polylineCordinates[i + 1];
-      totalDistance += await Geolocator.distanceBetween(
-        start.latitude,
-        start.longitude,
-        end.latitude,
-        end.longitude,
-      );
+    try {
+      if (_userCurrentLocation != null && _userDestinationLatLng != null) {
+        // Calculate direct distance between points
+        double totalDistance = Geolocator.distanceBetween(
+          _userCurrentLocation!.latitude,
+          _userCurrentLocation!.longitude,
+          _userDestinationLatLng!.latitude,
+          _userDestinationLatLng!.longitude,
+        );
+
+        setState(() {
+          finalDistance = totalDistance / 1000; // Convert to kilometers
+          roundDistanceKM = double.parse(finalDistance.toStringAsFixed(1));
+
+          // Calculate costs based on distance
+          expressCost = (roundDistanceKM / 1.2) * 1200;
+          standardCost = (roundDistanceKM / 1.6) * 1200;
+
+          // Update formatted values
+          standardFormatted = formatMoney(standardCost);
+          expressFormatted = formatMoney(expressCost);
+
+          // Update size-related formatted values
+          size25Formatted = formatMoney(packageSize25Price);
+          size50Formatted = formatMoney(packageSize50Price);
+          size75Formatted = formatMoney(packageSize75Price);
+          size100Formatted = formatMoney(packageSize100Price);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error calculating delivery details: $e');
     }
-
-    setState(() {
-      finalDistance = totalDistance / 1000;
-      roundDistanceKM = double.parse(finalDistance.toStringAsFixed(1));
-      expressCost = (roundDistanceKM / 1.2) * 1200;
-      standardCost = (roundDistanceKM / 1.6) * 1200;
-
-      // Update formatted values only after cost changes
-      standardFormatted = formatMoney(standardCost);
-      expressFormatted = formatMoney(expressCost);
-
-      // Update size-related formatted values
-      size25Formatted = formatMoney(packageSize25Price);
-      size50Formatted = formatMoney(packageSize50Price);
-      size75Formatted = formatMoney(packageSize75Price);
-      size100Formatted = formatMoney(packageSize100Price);
-    });
   }
 
   // Utility function to format the money values
@@ -550,7 +611,60 @@ class _MapPageState extends State<MapPage> {
       Provider.of<IndexProvider>(context, listen: false).setSelectedIndex(2);
       Navigator.of(context).pop();
     } else if (isOnlinePayment == true && isCashorTransfer == false) {
-      _showPaymentPrompt();
+      if (userEmail == null || userEmail!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: User email not found'),
+            backgroundColor: Color.fromRGBO(255, 91, 82, 1),
+          ),
+        );
+        return;
+      }
+
+      try {
+        PaystackFlutter().pay(
+          context: context,
+          secretKey: 'sk_test_c69312cc47b0d93bd17d0407d4292f11ee38e2fb',
+          amount: paymentParameter * 100,
+          email: userEmail!,
+          callbackUrl: 'https://callback.com',
+          showProgressBar: true,
+          paymentOptions: [
+            PaymentOption.card,
+            PaymentOption.bankTransfer,
+            PaymentOption.mobileMoney,
+          ],
+          currency: Currency.NGN,
+          metaData: {
+            "start_point": _startPointController.text,
+            "end_point": _destinationController.text,
+            "delivery_price": paymentAmt,
+          },
+          onSuccess: (paystackCallback) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    'Transaction Successful: ${paystackCallback.reference}'),
+                backgroundColor: Color.fromRGBO(0, 70, 67, 1),
+              ),
+            );
+            Provider.of<IndexProvider>(context, listen: false)
+                .setSelectedIndex(2);
+            Navigator.of(context).pop();
+          },
+          onCancelled: (paystackCallback) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content:
+                    Text('Transaction Failed: ${paystackCallback.reference}'),
+                backgroundColor: Color.fromRGBO(255, 91, 82, 1),
+              ),
+            );
+          },
+        );
+      } catch (e) {
+        debugPrint('Payment error: $e');
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -669,13 +783,20 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
+  Future<void> _loadUserEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userEmail = prefs.getString('email') ?? '';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Map with larger rounded corners
+          // Map with rounded corners
           Padding(
             padding: EdgeInsets.fromLTRB(
                 12, 12, 12, MediaQuery.of(context).padding.bottom),
@@ -686,7 +807,7 @@ class _MapPageState extends State<MapPage> {
                 onMapCreated: (GoogleMapController controller) {
                   _mapController = controller;
                   if (_userCurrentLocation != null) {
-                    controller.animateCamera(
+                    _mapController.animateCamera(
                       CameraUpdate.newLatLngZoom(_userCurrentLocation!, 15),
                     );
                   }
@@ -701,89 +822,49 @@ class _MapPageState extends State<MapPage> {
             ),
           ),
 
-          // Floating action buttons group
+          // Floating action buttons with unique hero tags
           Positioned(
             top: 60,
             right: 20,
             child: Column(
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: FloatingActionButton.small(
-                    backgroundColor: Colors.white,
-                    onPressed: () {
-                      if (_userCurrentLocation != null) {
-                        _mapController.animateCamera(
-                          CameraUpdate.newLatLngZoom(_userCurrentLocation!, 15),
-                        );
-                      }
-                    },
-                    child: Icon(
-                      Icons.my_location_rounded,
-                      color: Color.fromRGBO(0, 70, 67, 1),
-                      size: 20,
-                    ),
-                    elevation: 0,
+                FloatingActionButton.small(
+                  heroTag: 'location_button', // Add unique hero tag
+                  backgroundColor: Colors.white,
+                  onPressed: () {
+                    if (_userCurrentLocation != null) {
+                      _mapController.animateCamera(
+                        CameraUpdate.newLatLngZoom(_userCurrentLocation!, 15),
+                      );
+                    }
+                  },
+                  child: Icon(
+                    Icons.my_location_rounded,
+                    color: Color.fromRGBO(0, 70, 67, 1),
                   ),
                 ),
                 SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: FloatingActionButton.small(
-                    backgroundColor: Colors.white,
-                    onPressed: () {
-                      _mapController.animateCamera(
-                        CameraUpdate.zoomIn(),
-                      );
-                    },
-                    child: Icon(
-                      Icons.add,
-                      color: Color.fromRGBO(0, 70, 67, 1),
-                      size: 20,
-                    ),
-                    elevation: 0,
+                FloatingActionButton.small(
+                  heroTag: 'zoom_in_button', // Add unique hero tag
+                  backgroundColor: Colors.white,
+                  onPressed: () {
+                    _mapController.animateCamera(CameraUpdate.zoomIn());
+                  },
+                  child: Icon(
+                    Icons.add,
+                    color: Color.fromRGBO(0, 70, 67, 1),
                   ),
                 ),
                 SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: FloatingActionButton.small(
-                    backgroundColor: Colors.white,
-                    onPressed: () {
-                      _mapController.animateCamera(
-                        CameraUpdate.zoomOut(),
-                      );
-                    },
-                    child: Icon(
-                      Icons.remove,
-                      color: Color.fromRGBO(0, 70, 67, 1),
-                      size: 20,
-                    ),
-                    elevation: 0,
+                FloatingActionButton.small(
+                  heroTag: 'zoom_out_button', // Add unique hero tag
+                  backgroundColor: Colors.white,
+                  onPressed: () {
+                    _mapController.animateCamera(CameraUpdate.zoomOut());
+                  },
+                  child: Icon(
+                    Icons.remove,
+                    color: Color.fromRGBO(0, 70, 67, 1),
                   ),
                 ),
               ],
@@ -849,8 +930,8 @@ class _MapPageState extends State<MapPage> {
                                               prediction.description!.length),
                                     );
                                   },
-                                  onGetDetailWithLatLng: (cordinates_cus) {
-                                    _userLocToMarker(cordinates_cus);
+                                  onGetDetailWithLatLng: (cordinatesCus) {
+                                    _userLocToMarker(cordinatesCus);
                                     getPolylinePoints().then(
                                       (cordinates) =>
                                           generatePolylineFromPoints(
@@ -864,14 +945,17 @@ class _MapPageState extends State<MapPage> {
                                   focusNode: _endPointFN,
                                   hintText: 'Destination Location',
                                   onItemClick: (prediction) {
-                                    _destinationController.text =
-                                        prediction.description!;
-                                    _destinationController.selection =
-                                        TextSelection.fromPosition(
-                                      TextPosition(
-                                          offset:
-                                              prediction.description!.length),
-                                    );
+                                    setState(() {
+                                      _destinationController.text =
+                                          prediction.description!;
+                                      _destinationController.selection =
+                                          TextSelection.fromPosition(
+                                        TextPosition(
+                                            offset:
+                                                prediction.description!.length),
+                                      );
+                                    });
+                                    _userDesToMarker(prediction);
                                   },
                                   onGetDetailWithLatLng: (cordinates) {
                                     _userDesToMarker(cordinates);
@@ -1137,7 +1221,7 @@ class _MapPageState extends State<MapPage> {
                                         const SizedBox(
                                           height: 10,
                                         ),
-                                        Container(
+                                        SizedBox(
                                           width: 340,
                                           child: Text(
                                             'Our delivery boxes are 3.05 cubic feet, and thus we charge on the space your item takes. Select an option from below',

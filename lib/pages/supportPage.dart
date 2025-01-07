@@ -9,7 +9,7 @@ class SupportPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: SafeArea(
-        child: SizedBox(
+        child: Container(
           height: MediaQuery.sizeOf(context).height * 0.9,
           width: MediaQuery.sizeOf(context).width,
           child: Scaffold(
@@ -58,7 +58,7 @@ Widget supportImage() {
 }
 
 Widget supportWelcomeText() {
-  return SizedBox(
+  return Container(
     width: 312,
     child: Text(
       'Chat with our Customer service representative who is available 24/7 to attend to any complaints or questions',

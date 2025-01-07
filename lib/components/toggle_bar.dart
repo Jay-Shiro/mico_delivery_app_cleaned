@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class ToggleBar extends StatefulWidget {
-  const ToggleBar({super.key});
+  final Function(int) onStatusChanged;
+
+  const ToggleBar({Key? key, required this.onStatusChanged}) : super(key: key);
 
   @override
   State<ToggleBar> createState() => _ToggleBarState();
@@ -52,5 +54,6 @@ class _ToggleBarState extends State<ToggleBar> {
     setState(() {
       selectedIndex = index;
     });
+    widget.onStatusChanged(index);
   }
 }
