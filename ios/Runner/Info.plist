@@ -49,5 +49,7 @@
 	<string>We need your location to provide accurate route reccomedation.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>We need your location to provide accurate route reccomedation.</string>
+	<key>GMSPlacesAPIKey</key>
+	<string>AIzaSyC_Op-lSfNmmGPzKvsdImneVuL1jzYfNoM</string>
 </dict>
 </plist>

@@ -22,33 +22,54 @@ class MapPage extends StatefulWidget {
 
 class _MapPageState extends State<MapPage> {
   late GoogleMapController _mapController;
-  late LatLng _userCurrentLocation;
+  LatLng? _userCurrentLocation;
   final Set<Marker> _userMarkers = {};
   Map<PolylineId, Polyline> polylines = {};
 
-  Future<void> _getUserLocation() async {
+  static final CameraPosition _initialPosition = CameraPosition(
+    target: LatLng(6.435872, 3.456507),
+    zoom: 15,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeLocation();
+  }
+
+  Future<void> _initializeLocation() async {
     try {
       Position position = await _determinePosition();
+
+      _userCurrentLocation = LatLng(position.latitude, position.longitude);
+
       if (mounted) {
         setState(() {
-          _userCurrentLocation = LatLng(position.latitude, position.longitude);
           _userMarkers.add(
             Marker(
               markerId: const MarkerId('user_location'),
-              position: _userCurrentLocation,
+              position: _userCurrentLocation!,
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueGreen),
             ),
           );
-          _mapController.animateCamera(
-            CameraUpdate.newLatLngZoom(_userCurrentLocation, 15),
-          );
         });
+
+        _mapController.animateCamera(
+          CameraUpdate.newLatLngZoom(_userCurrentLocation!, 15),
+        );
       }
 
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
-      _startPointController.text = placemarks.first.street ?? '';
+
+      if (mounted) {
+        setState(() {
+          _startPointController.text = placemarks.first.street ?? '';
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -59,12 +80,6 @@ class _MapPageState extends State<MapPage> {
         );
       }
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _getUserLocation();
   }
 
   Future<Position> _determinePosition() async {
@@ -108,11 +123,6 @@ class _MapPageState extends State<MapPage> {
     _endPointFN.dispose();
     super.dispose();
   }
-
-  static final CameraPosition _initialPosition = CameraPosition(
-    target: LatLng(6.435872, 3.456507),
-    zoom: 13,
-  );
 
   late LatLng _userDestinationLatLng;
 
@@ -195,8 +205,8 @@ class _MapPageState extends State<MapPage> {
         googleApiKey: key,
         request: PolylineRequest(
           origin: PointLatLng(
-            _userCurrentLocation.latitude,
-            _userCurrentLocation.longitude,
+            _userCurrentLocation!.latitude,
+            _userCurrentLocation!.longitude,
           ),
           destination: PointLatLng(
             _userDestinationLatLng.latitude,
@@ -362,6 +372,15 @@ class _MapPageState extends State<MapPage> {
             filled: true,
             hintText: 'Enter email address',
             hintStyle: TextStyle(color: Colors.grey),
+            suffixIcon: _controller1.text.isNotEmpty
+                ? IconButton(
+                    icon: Icon(Icons.close, color: Colors.grey),
+                    onPressed: () {
+                      _controller1.clear();
+                      setState(() {});
+                    },
+                  )
+                : null,
           ),
         ),
       ],
@@ -574,343 +593,382 @@ class _MapPageState extends State<MapPage> {
   String get formattedPaymentAmt => formatMoney(paymentAmt).symbolOnLeft;
   int get paymentParameter => (paymentAmt).toInt();
 
+  // First, let's create a reusable method for the input field container
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required FocusNode focusNode,
+    required String hintText,
+    required Function(Prediction) onItemClick,
+    required Function(Prediction) onGetDetailWithLatLng,
+    bool isPickupField = false,
+  }) {
+    return StatefulBuilder(builder: (context, setState) {
+      controller.addListener(() {
+        setState(() {});
+      });
+
+      return Container(
+        margin: EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: GooglePlaceAutoCompleteTextField(
+          focusNode: focusNode,
+          textEditingController: controller,
+          debounceTime: 600,
+          googleAPIKey: key,
+          isLatLngRequired: isPickupField,
+          countries: isPickupField ? ['ng'] : null,
+          getPlaceDetailWithLatLng: onGetDetailWithLatLng,
+          itemClick: onItemClick,
+          inputDecoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: TextStyle(
+              color: Colors.grey.shade400,
+              fontSize: 15,
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.transparent),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.transparent),
+            ),
+            prefixIcon: Icon(
+              Icons.location_on_rounded,
+              color: Color.fromRGBO(0, 70, 67, 1),
+            ),
+            suffixIcon: controller.text.isNotEmpty
+                ? IconButton(
+                    icon: Icon(Icons.close, color: Colors.white),
+                    onPressed: () {
+                      controller.clear();
+                      setState(() {});
+                    },
+                  )
+                : null,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Stack(
-      children: [
-        // google map integration
-        GoogleMap(
-          initialCameraPosition: _initialPosition,
-          onMapCreated: (GoogleMapController controller) {
-            _mapController = controller;
-            _mapController.animateCamera(
-              CameraUpdate.newLatLngZoom(_userCurrentLocation, 15),
-            );
-          },
-          markers: _userMarkers,
-          polylines: Set<Polyline>.of(polylines.values),
-        ),
-        // reset location button
-        Padding(
-          padding: const EdgeInsets.only(top: 60.0, right: 20.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              FloatingActionButton(
-                backgroundColor: Color.fromRGBO(0, 70, 67, 1),
-                onPressed: () {
-                  _mapController.animateCamera(
-                      CameraUpdate.newLatLngZoom(_userCurrentLocation, 15));
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          // Map with larger rounded corners
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+                12, 12, 12, MediaQuery.of(context).padding.bottom),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(30),
+              child: GoogleMap(
+                initialCameraPosition: _initialPosition,
+                onMapCreated: (GoogleMapController controller) {
+                  _mapController = controller;
+                  if (_userCurrentLocation != null) {
+                    controller.animateCamera(
+                      CameraUpdate.newLatLngZoom(_userCurrentLocation!, 15),
+                    );
+                  }
                 },
-                child: Icon(
-                  Icons.center_focus_strong,
-                  color: Colors.white,
-                ),
+                markers: _userMarkers,
+                polylines: Set<Polyline>.of(polylines.values),
+                myLocationEnabled: true,
+                myLocationButtonEnabled: false,
+                zoomControlsEnabled: false,
+                mapToolbarEnabled: false,
               ),
-            ],
+            ),
           ),
-        ),
-        //draggable bottom sheet
-        DraggableScrollableSheet(
-          controller: _bottomSheetController,
-          maxChildSize: 0.8,
-          initialChildSize: 0.4,
-          minChildSize: 0.3,
-          builder: (BuildContext context, scrollController) {
-            return Container(
-              clipBehavior: Clip.hardEdge,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
+
+          // Floating action buttons group
+          Positioned(
+            top: 60,
+            right: 20,
+            child: Column(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: FloatingActionButton.small(
+                    backgroundColor: Colors.white,
+                    onPressed: () {
+                      if (_userCurrentLocation != null) {
+                        _mapController.animateCamera(
+                          CameraUpdate.newLatLngZoom(_userCurrentLocation!, 15),
+                        );
+                      }
+                    },
+                    child: Icon(
+                      Icons.my_location_rounded,
+                      color: Color.fromRGBO(0, 70, 67, 1),
+                      size: 20,
+                    ),
+                    elevation: 0,
+                  ),
                 ),
-              ),
-              child: CustomScrollView(
-                controller: scrollController,
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Center(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Color.fromRGBO(217, 217, 217, 1),
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(10),
-                          ),
-                        ),
-                        height: 9,
-                        width: 60,
-                        margin:
-                            const EdgeInsetsDirectional.symmetric(vertical: 20),
+                SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: FloatingActionButton.small(
+                    backgroundColor: Colors.white,
+                    onPressed: () {
+                      _mapController.animateCamera(
+                        CameraUpdate.zoomIn(),
+                      );
+                    },
+                    child: Icon(
+                      Icons.add,
+                      color: Color.fromRGBO(0, 70, 67, 1),
+                      size: 20,
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: FloatingActionButton.small(
+                    backgroundColor: Colors.white,
+                    onPressed: () {
+                      _mapController.animateCamera(
+                        CameraUpdate.zoomOut(),
+                      );
+                    },
+                    child: Icon(
+                      Icons.remove,
+                      color: Color.fromRGBO(0, 70, 67, 1),
+                      size: 20,
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Bottom sheet with glass effect
+          DraggableScrollableSheet(
+            controller: _bottomSheetController,
+            maxChildSize: 0.9,
+            initialChildSize: 0.4,
+            minChildSize: 0.25,
+            builder: (BuildContext context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.95),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 20,
+                      offset: Offset(0, -5),
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Modern drag handle
+                    Container(
+                      margin: EdgeInsets.symmetric(vertical: 12),
+                      height: 5,
+                      width: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                  ),
-                  SliverList.list(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: GooglePlaceAutoCompleteTextField(
-                          focusNode: _startPointFN,
-                          textEditingController: _startPointController,
-                          debounceTime: 600,
-                          googleAPIKey: key,
-                          isLatLngRequired: true,
-                          countries: ['ng'],
-                          getPlaceDetailWithLatLng:
-                              (Prediction cordinates_cus) {
-                            _userLocToMarker(cordinates_cus);
-                            getPolylinePoints().then(
-                              (cordinates) => {
-                                generatePolylineFromPoints(cordinates),
-                              },
-                            );
-                          },
-                          itemClick: (Prediction prediction) {
-                            _startPointController.text =
-                                prediction.description!;
-                            _startPointController.selection =
-                                TextSelection.fromPosition(
-                              TextPosition(
-                                  offset: prediction.description!.length),
-                            );
-                          },
-                          inputDecoration: InputDecoration(
-                            hintText: 'Pickup',
-                            hintStyle: TextStyle(
-                              color: Colors.grey,
-                            ),
-                            filled: true,
-                            fillColor: Color.fromRGBO(231, 231, 231, 1),
-                            enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.grey,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Color.fromRGBO(0, 70, 67, 1),
-                              ),
-                            ),
-                          ),
-                          itemBuilder: (context, index, Prediction prediction) {
-                            return Container(
-                              padding: EdgeInsets.all(10),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.location_on,
-                                    size: 30,
-                                    color: const Color.fromRGBO(0, 70, 67, 1),
-                                  ),
-                                  SizedBox(
-                                    width: 7,
-                                  ),
-                                  Expanded(
-                                      child: Text(
-                                          "${prediction.description ?? ""}"))
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 20,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: GooglePlaceAutoCompleteTextField(
-                          focusNode: _endPointFN,
-                          textEditingController: _destinationController,
-                          debounceTime: 600,
-                          googleAPIKey: key,
-                          getPlaceDetailWithLatLng: (Prediction cordinates) {
-                            _userDesToMarker(cordinates);
-                            getPolylinePoints().then(
-                              (cordinates) => {
-                                generatePolylineFromPoints(cordinates),
-                              },
-                            );
-                          },
-                          itemClick: (Prediction prediction) {
-                            _destinationController.text =
-                                prediction.description!;
-                            _destinationController.selection =
-                                TextSelection.fromPosition(
-                              TextPosition(
-                                offset: prediction.description!.length,
-                              ),
-                            );
-                          },
-                          inputDecoration: InputDecoration(
-                            hintText: 'Destination',
-                            hintStyle: TextStyle(
-                              color: Colors.grey,
-                            ),
-                            filled: true,
-                            fillColor: Color.fromRGBO(231, 231, 231, 1),
-                            enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.grey,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Color.fromRGBO(0, 70, 67, 1),
-                              ),
+                    // Scrollable content
+                    Expanded(
+                      child: ListView(
+                        controller: scrollController,
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        physics: BouncingScrollPhysics(),
+                        children: [
+                          // Search fields styling
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Column(
+                              children: [
+                                _buildInputField(
+                                  controller: _startPointController,
+                                  focusNode: _startPointFN,
+                                  hintText: 'Pickup Location',
+                                  isPickupField: true,
+                                  onItemClick: (prediction) {
+                                    _startPointController.text =
+                                        prediction.description!;
+                                    _startPointController.selection =
+                                        TextSelection.fromPosition(
+                                      TextPosition(
+                                          offset:
+                                              prediction.description!.length),
+                                    );
+                                  },
+                                  onGetDetailWithLatLng: (cordinates_cus) {
+                                    _userLocToMarker(cordinates_cus);
+                                    getPolylinePoints().then(
+                                      (cordinates) =>
+                                          generatePolylineFromPoints(
+                                              cordinates),
+                                    );
+                                  },
+                                ),
+                                SizedBox(height: 16),
+                                _buildInputField(
+                                  controller: _destinationController,
+                                  focusNode: _endPointFN,
+                                  hintText: 'Destination Location',
+                                  onItemClick: (prediction) {
+                                    _destinationController.text =
+                                        prediction.description!;
+                                    _destinationController.selection =
+                                        TextSelection.fromPosition(
+                                      TextPosition(
+                                          offset:
+                                              prediction.description!.length),
+                                    );
+                                  },
+                                  onGetDetailWithLatLng: (cordinates) {
+                                    _userDesToMarker(cordinates);
+                                    getPolylinePoints().then(
+                                      (cordinates) =>
+                                          generatePolylineFromPoints(
+                                              cordinates),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                           ),
-                          itemBuilder: (context, index, Prediction prediction) {
-                            return Container(
-                              padding: EdgeInsets.all(10),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.location_on,
-                                    size: 30,
-                                    color: const Color.fromRGBO(0, 70, 67, 1),
-                                  ),
-                                  SizedBox(
-                                    width: 7,
-                                  ),
-                                  Expanded(
-                                      child: Text(
-                                          "${prediction.description ?? ""}"))
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 20,
-                      ),
-                      FutureBuilder(
-                        future: getPolylinePoints(),
-                        builder: (deliveryDetails, snapshot) {
-                          if (snapshot.hasData) {
-                            return Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10.0),
-                                child: Container(
-                                  height: 860,
-                                  width: MediaQuery.sizeOf(context).width,
-                                  child: Column(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 20.0),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              child: Column(
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          FutureBuilder(
+                            future: getPolylinePoints(),
+                            builder: (deliveryDetails, snapshot) {
+                              if (snapshot.hasData) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10.0),
+                                  child: SingleChildScrollView(
+                                    physics: NeverScrollableScrollPhysics(),
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: 16, horizontal: 20),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     'Distance',
-                                                    style:
-                                                        TextStyle(fontSize: 16),
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      color:
+                                                          Colors.grey.shade600,
+                                                    ),
                                                   ),
+                                                  SizedBox(height: 4),
                                                   Text(
-                                                    '${roundDistanceKM}Km ',
+                                                    '${roundDistanceKM ?? 0}Km',
                                                     style: TextStyle(
                                                       fontSize: 22,
                                                       fontWeight:
                                                           FontWeight.w600,
+                                                      color: Color.fromRGBO(
+                                                          0, 70, 67, 1),
                                                     ),
                                                   ),
                                                 ],
                                               ),
-                                            )
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        height: 10,
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 20.0),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                                child: Divider(
-                                              thickness: 0.8,
-                                              color: Colors.grey,
-                                            ))
-                                          ],
-                                        ),
-                                      ),
-                                      ListTile(
-                                        leading: Container(
-                                          decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.all(
-                                                  Radius.circular(8)),
-                                              color: Color.fromRGBO(
-                                                  0, 70, 67, 0.24)),
-                                          height: 80,
-                                          width: 60,
-                                          child: Icon(
-                                            Icons.location_on,
-                                            size: 40,
-                                            color: const Color.fromRGBO(
-                                                0, 70, 67, 1),
+                                              if (roundDistanceKM != null &&
+                                                  roundDistanceKM != 0)
+                                                IconButton(
+                                                  icon: Icon(Icons.close,
+                                                      color: Colors.grey),
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      roundDistanceKM = 0;
+                                                      _userMarkers.clear();
+                                                      polylines.clear();
+                                                      _startPointController
+                                                          .clear();
+                                                      _destinationController
+                                                          .clear();
+                                                    });
+                                                  },
+                                                ),
+                                            ],
                                           ),
                                         ),
-                                        title: Text(
-                                          'Pickup Location',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w600),
+                                        const SizedBox(
+                                          height: 10,
                                         ),
-                                        subtitle:
-                                            Text(_startPointController.text),
-                                      ),
-                                      const SizedBox(
-                                        height: 20,
-                                      ),
-                                      ListTile(
-                                        leading: Container(
-                                          decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.all(
-                                                  Radius.circular(8)),
-                                              color: Color.fromRGBO(
-                                                  0, 70, 67, 0.24)),
-                                          height: 80,
-                                          width: 60,
-                                          child: Icon(
-                                            Icons.location_on,
-                                            size: 40,
-                                            color: const Color.fromRGBO(
-                                                0, 70, 67, 1),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 20.0),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                  child: Divider(
+                                                thickness: 0.8,
+                                                color: Colors.grey,
+                                              ))
+                                            ],
                                           ),
                                         ),
-                                        title: Text(
-                                          'Delivery Location',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w600),
-                                        ),
-                                        subtitle:
-                                            Text(_destinationController.text),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 20.0),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                                child: Divider(
-                                              thickness: 0.8,
-                                              color: Colors.grey,
-                                            ))
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        height: 10,
-                                      ),
-                                      ListTile(
-                                        leading: Container(
+                                        ListTile(
+                                          leading: Container(
                                             decoration: BoxDecoration(
                                                 borderRadius: BorderRadius.all(
                                                     Radius.circular(8)),
@@ -918,43 +976,26 @@ class _MapPageState extends State<MapPage> {
                                                     0, 70, 67, 0.24)),
                                             height: 80,
                                             width: 60,
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.all(6.0),
-                                              child: Image.asset(
-                                                'assets/images/bike.png',
-                                                scale: 12,
-                                              ),
-                                            )),
-                                        title: Text(
-                                          'Same-Day Delivery',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w600),
+                                            child: Icon(
+                                              Icons.location_on,
+                                              size: 40,
+                                              color: const Color.fromRGBO(
+                                                  0, 70, 67, 1),
+                                            ),
+                                          ),
+                                          title: Text(
+                                            'Pickup Location',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          subtitle:
+                                              Text(_startPointController.text),
                                         ),
-                                        subtitle: Text(
-                                          standardFormatted?.symbolOnLeft ??
-                                              ''.toString(),
-                                          style: TextStyle(fontSize: 16),
+                                        const SizedBox(
+                                          height: 20,
                                         ),
-                                        trailing: Checkbox(
-                                          activeColor: const Color.fromRGBO(
-                                              40, 115, 115, 1),
-                                          value: isStandardSelected,
-                                          onChanged: (newBool) {
-                                            setState(() {
-                                              isStandardSelected =
-                                                  newBool ?? false;
-                                              isExpressSelected = false;
-                                            });
-                                          },
-                                          checkColor: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        height: 20,
-                                      ),
-                                      ListTile(
-                                        leading: Container(
+                                        ListTile(
+                                          leading: Container(
                                             decoration: BoxDecoration(
                                                 borderRadius: BorderRadius.all(
                                                     Radius.circular(8)),
@@ -962,193 +1003,280 @@ class _MapPageState extends State<MapPage> {
                                                     0, 70, 67, 0.24)),
                                             height: 80,
                                             width: 60,
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.all(6.0),
-                                              child: Image.asset(
-                                                'assets/images/bike.png',
-                                                scale: 12,
-                                              ),
-                                            )),
-                                        title: Text(
-                                          'Express Delivery',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w600),
+                                            child: Icon(
+                                              Icons.location_on,
+                                              size: 40,
+                                              color: const Color.fromRGBO(
+                                                  0, 70, 67, 1),
+                                            ),
+                                          ),
+                                          title: Text(
+                                            'Delivery Location',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          subtitle:
+                                              Text(_destinationController.text),
                                         ),
-                                        subtitle: Text(
-                                          expressFormatted?.symbolOnLeft ??
-                                              ''.toString(),
-                                          style: TextStyle(fontSize: 16),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 20.0),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                  child: Divider(
+                                                thickness: 0.8,
+                                                color: Colors.grey,
+                                              ))
+                                            ],
+                                          ),
                                         ),
-                                        trailing: Checkbox(
-                                          activeColor: const Color.fromRGBO(
-                                              40, 115, 115, 1),
-                                          value: isExpressSelected,
-                                          onChanged: (newBool) {
-                                            setState(() {
-                                              isExpressSelected =
-                                                  newBool ?? false;
-                                              isStandardSelected = false;
-                                            });
-                                          },
-                                          checkColor: Colors.white,
+                                        const SizedBox(
+                                          height: 10,
                                         ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 20.0),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                                child: Divider(
-                                              thickness: 0.8,
-                                              color: Colors.grey,
-                                            ))
-                                          ],
+                                        ListTile(
+                                          leading: Container(
+                                              decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.all(
+                                                          Radius.circular(8)),
+                                                  color: Color.fromRGBO(
+                                                      0, 70, 67, 0.24)),
+                                              height: 80,
+                                              width: 60,
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.all(6.0),
+                                                child: Image.asset(
+                                                  'assets/images/bike.png',
+                                                  scale: 12,
+                                                ),
+                                              )),
+                                          title: Text(
+                                            'Same-Day Delivery',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          subtitle: Text(
+                                            standardFormatted?.symbolOnLeft ??
+                                                ''.toString(),
+                                            style: TextStyle(fontSize: 16),
+                                          ),
+                                          trailing: Checkbox(
+                                            activeColor: const Color.fromRGBO(
+                                                40, 115, 115, 1),
+                                            value: isStandardSelected,
+                                            onChanged: (newBool) {
+                                              setState(() {
+                                                isStandardSelected =
+                                                    newBool ?? false;
+                                                isExpressSelected = false;
+                                              });
+                                            },
+                                            checkColor: Colors.white,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(
-                                        height: 10,
-                                      ),
-                                      Container(
-                                        width: 340,
-                                        child: Text(
-                                          'Our delivery boxes are 3.05 cubic feet, and thus we charge on the space your item takes. Select an option from below',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w600),
+                                        const SizedBox(
+                                          height: 20,
                                         ),
-                                      ),
-                                      ListTile(
-                                        title: Text(
-                                          'Quarter the Box',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w600),
+                                        ListTile(
+                                          leading: Container(
+                                              decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.all(
+                                                          Radius.circular(8)),
+                                                  color: Color.fromRGBO(
+                                                      0, 70, 67, 0.24)),
+                                              height: 80,
+                                              width: 60,
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.all(6.0),
+                                                child: Image.asset(
+                                                  'assets/images/bike.png',
+                                                  scale: 12,
+                                                ),
+                                              )),
+                                          title: Text(
+                                            'Express Delivery',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          subtitle: Text(
+                                            expressFormatted?.symbolOnLeft ??
+                                                ''.toString(),
+                                            style: TextStyle(fontSize: 16),
+                                          ),
+                                          trailing: Checkbox(
+                                            activeColor: const Color.fromRGBO(
+                                                40, 115, 115, 1),
+                                            value: isExpressSelected,
+                                            onChanged: (newBool) {
+                                              setState(() {
+                                                isExpressSelected =
+                                                    newBool ?? false;
+                                                isStandardSelected = false;
+                                              });
+                                            },
+                                            checkColor: Colors.white,
+                                          ),
                                         ),
-                                        subtitle: Text(
-                                          size25Formatted?.symbolOnLeft ?? '',
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 20.0),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                  child: Divider(
+                                                thickness: 0.8,
+                                                color: Colors.grey,
+                                              ))
+                                            ],
+                                          ),
                                         ),
-                                        trailing: Checkbox(
-                                          activeColor: const Color.fromRGBO(
-                                              40, 115, 115, 1),
-                                          value: is25Selected,
-                                          onChanged: (newBool) {
-                                            setState(() {
-                                              is25Selected = newBool ?? false;
-                                              is50Selected = false;
-                                              is75Selected = false;
-                                              is100Selected = false;
-                                            });
-                                          },
-                                          checkColor: Colors.white,
+                                        const SizedBox(
+                                          height: 10,
                                         ),
-                                      ),
-                                      ListTile(
-                                        title: Text(
-                                          'Half the Box',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w600),
+                                        Container(
+                                          width: 340,
+                                          child: Text(
+                                            'Our delivery boxes are 3.05 cubic feet, and thus we charge on the space your item takes. Select an option from below',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w600),
+                                          ),
                                         ),
-                                        subtitle: Text(
-                                          size25Formatted?.symbolOnLeft ?? '',
+                                        ListTile(
+                                          title: Text(
+                                            'Quarter the Box',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          subtitle: Text(
+                                            size25Formatted?.symbolOnLeft ?? '',
+                                          ),
+                                          trailing: Checkbox(
+                                            activeColor: const Color.fromRGBO(
+                                                40, 115, 115, 1),
+                                            value: is25Selected,
+                                            onChanged: (newBool) {
+                                              setState(() {
+                                                is25Selected = newBool ?? false;
+                                                is50Selected = false;
+                                                is75Selected = false;
+                                                is100Selected = false;
+                                              });
+                                            },
+                                            checkColor: Colors.white,
+                                          ),
                                         ),
-                                        trailing: Checkbox(
-                                          activeColor: const Color.fromRGBO(
-                                              40, 115, 115, 1),
-                                          value: is50Selected,
-                                          onChanged: (newBool) {
-                                            setState(() {
-                                              is25Selected = false;
-                                              is50Selected = newBool ?? false;
-                                              is75Selected = false;
-                                              is100Selected = false;
-                                            });
-                                          },
-                                          checkColor: Colors.white,
+                                        ListTile(
+                                          title: Text(
+                                            'Half the Box',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          subtitle: Text(
+                                            size25Formatted?.symbolOnLeft ?? '',
+                                          ),
+                                          trailing: Checkbox(
+                                            activeColor: const Color.fromRGBO(
+                                                40, 115, 115, 1),
+                                            value: is50Selected,
+                                            onChanged: (newBool) {
+                                              setState(() {
+                                                is25Selected = false;
+                                                is50Selected = newBool ?? false;
+                                                is75Selected = false;
+                                                is100Selected = false;
+                                              });
+                                            },
+                                            checkColor: Colors.white,
+                                          ),
                                         ),
-                                      ),
-                                      ListTile(
-                                        title: Text(
-                                          'One quarter the Box',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w600),
+                                        ListTile(
+                                          title: Text(
+                                            'One quarter the Box',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          subtitle: Text(
+                                            size75Formatted?.symbolOnLeft ?? '',
+                                          ),
+                                          trailing: Checkbox(
+                                            activeColor: const Color.fromRGBO(
+                                                40, 115, 115, 1),
+                                            value: is75Selected,
+                                            onChanged: (newBool) {
+                                              setState(() {
+                                                is25Selected = false;
+                                                is50Selected = false;
+                                                is75Selected = newBool ?? false;
+                                                is100Selected = false;
+                                              });
+                                            },
+                                            checkColor: Colors.white,
+                                          ),
                                         ),
-                                        subtitle: Text(
-                                          size75Formatted?.symbolOnLeft ?? '',
+                                        ListTile(
+                                          title: Text(
+                                            'Full Box',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          subtitle: Text(
+                                            size100Formatted?.symbolOnLeft ??
+                                                '',
+                                          ),
+                                          trailing: Checkbox(
+                                            activeColor: const Color.fromRGBO(
+                                                40, 115, 115, 1),
+                                            value: is100Selected,
+                                            onChanged: (newBool) {
+                                              setState(() {
+                                                is25Selected = false;
+                                                is50Selected = false;
+                                                is75Selected = false;
+                                                is100Selected =
+                                                    newBool ?? false;
+                                              });
+                                            },
+                                            checkColor: Colors.white,
+                                          ),
                                         ),
-                                        trailing: Checkbox(
-                                          activeColor: const Color.fromRGBO(
-                                              40, 115, 115, 1),
-                                          value: is75Selected,
-                                          onChanged: (newBool) {
-                                            setState(() {
-                                              is25Selected = false;
-                                              is50Selected = false;
-                                              is75Selected = newBool ?? false;
-                                              is100Selected = false;
-                                            });
-                                          },
-                                          checkColor: Colors.white,
+                                        const SizedBox(
+                                          height: 30,
                                         ),
-                                      ),
-                                      ListTile(
-                                        title: Text(
-                                          'Full Box',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w600),
-                                        ),
-                                        subtitle: Text(
-                                          size100Formatted?.symbolOnLeft ?? '',
-                                        ),
-                                        trailing: Checkbox(
-                                          activeColor: const Color.fromRGBO(
-                                              40, 115, 115, 1),
-                                          value: is100Selected,
-                                          onChanged: (newBool) {
-                                            setState(() {
-                                              is25Selected = false;
-                                              is50Selected = false;
-                                              is75Selected = false;
-                                              is100Selected = newBool ?? false;
-                                            });
-                                          },
-                                          checkColor: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        height: 30,
-                                      ),
-                                      MButtons(
-                                          onTap: () {
-                                            confirmOrder(context);
-                                          },
-                                          btnText: 'Confirm Order')
-                                    ],
+                                        MButtons(
+                                            onTap: () {
+                                              confirmOrder(context);
+                                            },
+                                            btnText: 'Confirm Order')
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ),
-                            );
-                          } else {
-                            return Center(
-                              child: Container(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 60.0),
-                                  child: CircularProgressIndicator(
-                                    color: Color.fromRGBO(0, 70, 67, 1),
+                                );
+                              } else {
+                                return Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 60.0),
+                                    child: CircularProgressIndicator(
+                                      color: Color.fromRGBO(0, 70, 67, 1),
+                                    ),
                                   ),
-                                ),
-                              ),
-                            );
-                          }
-                        },
+                                );
+                              }
+                            },
+                          ),
+                        ],
                       ),
-                    ],
-                  )
-                ],
-              ),
-            );
-          },
-        ),
-      ],
-    ));
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 }

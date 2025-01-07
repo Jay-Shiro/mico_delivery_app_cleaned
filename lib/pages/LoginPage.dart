@@ -213,32 +213,7 @@ class _LoginPageState extends State<LoginPage> {
                             onTap: _signIn,
                           ),
                   ),
-                  const SizedBox(height: 20),
-
-                  // Create Account Link
-                  Center(
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).pushNamed('/signuppage');
-                      },
-                      child: RichText(
-                        text: TextSpan(
-                          text: "Don't have an account? ",
-                          style: TextStyle(color: Colors.black),
-                          children: [
-                            TextSpan(
-                              text: 'Create an Account',
-                              style: TextStyle(
-                                color: const Color.fromRGBO(40, 115, 115, 1),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 50),
                 ],
               ),
             ),

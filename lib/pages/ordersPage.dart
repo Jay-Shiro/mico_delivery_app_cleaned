@@ -17,7 +17,7 @@ class _OrdersPageState extends State<OrdersPage> {
 
     return SingleChildScrollView(
       child: SafeArea(
-        child: Container(
+        child: SizedBox(
           height: MediaQuery.sizeOf(context).height * 0.9,
           width: MediaQuery.sizeOf(context).width,
           child: Scaffold(
