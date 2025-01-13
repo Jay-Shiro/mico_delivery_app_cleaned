@@ -13,6 +13,8 @@ import 'package:money_formatter/money_formatter.dart';
 import 'package:paystack_for_flutter/paystack_for_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert'; // For JSON encoding and decoding
+import 'package:http/http.dart' as http;
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -48,34 +50,38 @@ class _MapPageState extends State<MapPage> {
       if (mounted) {
         setState(() {
           _userCurrentLocation = LatLng(position.latitude, position.longitude);
-          _userMarkers.add(
-            Marker(
-              markerId: const MarkerId('user_location'),
-              position: _userCurrentLocation!,
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueGreen),
-            ),
-          );
+          if (_userCurrentLocation != null) {
+            _userMarkers.add(
+              Marker(
+                markerId: const MarkerId('user_location'),
+                position: _userCurrentLocation!,
+                icon: BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueGreen),
+              ),
+            );
+          }
         });
 
         // Get address for the location
-        List<Placemark> placemarks = await placemarkFromCoordinates(
-          position.latitude,
-          position.longitude,
-        );
+        if (_userCurrentLocation != null) {
+          List<Placemark> placemarks = await placemarkFromCoordinates(
+            _userCurrentLocation!.latitude,
+            _userCurrentLocation!.longitude,
+          );
 
-        if (mounted) {
-          setState(() {
-            String address = [
-              placemarks.first.street,
-              placemarks.first.subLocality,
-              placemarks.first.locality,
-            ]
-                .where((element) => element != null && element.isNotEmpty)
-                .join(', ');
+          if (mounted && placemarks.isNotEmpty) {
+            setState(() {
+              String address = [
+                placemarks.first.street,
+                placemarks.first.subLocality,
+                placemarks.first.locality,
+              ]
+                  .where((element) => element != null && element.isNotEmpty)
+                  .join(', ');
 
-            _startPointController.text = address;
-          });
+              _startPointController.text = address;
+            });
+          }
         }
       }
     } catch (e) {
@@ -151,40 +157,46 @@ class _MapPageState extends State<MapPage> {
   void _userDesToMarker(Prediction pCoordinates) {
     try {
       // First check if we have valid coordinates
-      if (pCoordinates.lat == null || pCoordinates.lng == null) {
+      if (pCoordinates.lat == null ||
+          pCoordinates.lng == null ||
+          pCoordinates.lat!.isEmpty ||
+          pCoordinates.lng!.isEmpty) {
         debugPrint('Invalid coordinates in prediction');
         return;
       }
 
-      // Parse coordinates
-      _userDestinationLatDEC = double.parse(pCoordinates.lat!);
-      _userDestinationLngDEC = double.parse(pCoordinates.lng!);
+      // Validate coordinate format
+      _userDestinationLatDEC = double.tryParse(pCoordinates.lat!) ?? 0;
+      _userDestinationLngDEC = double.tryParse(pCoordinates.lng!) ?? 0;
+
+      if (_userDestinationLatDEC == 0 || _userDestinationLngDEC == 0) {
+        debugPrint('Invalid coordinate values');
+        return;
+      }
 
       if (mounted) {
         setState(() {
-          // Update destination text first
           _destinationController.text = pCoordinates.description ?? '';
-
-          // Create the LatLng object
           _userDestinationLatLng =
               LatLng(_userDestinationLatDEC, _userDestinationLngDEC);
 
-          // Update markers
           _userMarkers
               .removeWhere((marker) => marker.markerId.value == 'destination');
-          _userMarkers.add(
-            Marker(
-              markerId: const MarkerId('destination'),
-              position: _userDestinationLatLng!,
-              icon: BitmapDescriptor.defaultMarker,
-            ),
-          );
+
+          if (_userDestinationLatLng != null) {
+            _userMarkers.add(
+              Marker(
+                markerId: const MarkerId('destination'),
+                position: _userDestinationLatLng!,
+                icon: BitmapDescriptor.defaultMarker,
+              ),
+            );
+          }
         });
 
-        // Wait a bit to ensure state is updated
+        // Wait for state update
         Future.delayed(Duration(milliseconds: 100), () {
           if (_userCurrentLocation != null && _userDestinationLatLng != null) {
-            // Update map and calculate route
             _mapController
                 .animateCamera(
               CameraUpdate.newLatLngZoom(_userDestinationLatLng!, 15),
@@ -194,9 +206,6 @@ class _MapPageState extends State<MapPage> {
                 (coordinates) => generatePolylineFromPoints(coordinates),
               );
             });
-          } else {
-            debugPrint('Current location: $_userCurrentLocation');
-            debugPrint('Destination location: $_userDestinationLatLng');
           }
         });
       }
@@ -238,30 +247,73 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
+  Future<void> setAddressCoordinates(String address, bool isPickup) async {
+    try {
+      // Call the Geocoding API with the entered address
+      String geocodeUrl =
+          'https://maps.googleapis.com/maps/api/geocode/json?address=${Uri.encodeComponent(address)}&key=$key';
+
+      final response = await http.get(Uri.parse(geocodeUrl));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['results'] != null && data['results'].isNotEmpty) {
+          double lat = data['results'][0]['geometry']['location']['lat'];
+          double lng = data['results'][0]['geometry']['location']['lng'];
+
+          // Update state based on whether it's pickup or delivery
+          if (isPickup) {
+            setState(() {
+              _userCurrentLocation = LatLng(lat, lng);
+            });
+            debugPrint('Pickup location updated: $_userCurrentLocation');
+          } else {
+            setState(() {
+              _userDestinationLatLng = LatLng(lat, lng);
+            });
+            debugPrint('Destination location updated: $_userDestinationLatLng');
+          }
+        } else {
+          debugPrint('Invalid address: $address');
+        }
+      } else {
+        debugPrint('Failed to fetch coordinates: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error in geocoding: $e');
+    }
+  }
+
   Future<List<LatLng>> getPolylinePoints() async {
     List<LatLng> polylineCoordinates = [];
     try {
       // Check if both locations are available
-      if (_userCurrentLocation == null || _userDestinationLatLng == null) {
-        debugPrint('One or both locations are null');
-        return polylineCoordinates;
+      if (_userCurrentLocation == null) {
+        debugPrint('Current location is null');
+        return []; // Returning an empty list if the current location is null
+      }
+
+      if (_userDestinationLatLng == null) {
+        debugPrint('Destination location is null');
+        return []; // Returning an empty list if the destination location is null
       }
 
       PolylinePoints polylinePoints = PolylinePoints();
+
+      // Create a PolylineRequest object
+      PolylineRequest request = PolylineRequest(
+        origin: PointLatLng(
+            _userCurrentLocation!.latitude, _userCurrentLocation!.longitude),
+        destination: PointLatLng(_userDestinationLatLng!.latitude,
+            _userDestinationLatLng!.longitude),
+        mode: TravelMode.driving, // Specify travel mode
+      );
+
+      // Pass the request object to the method
       PolylineResult lineResult =
           await polylinePoints.getRouteBetweenCoordinates(
-        googleApiKey: key,
-        request: PolylineRequest(
-          origin: PointLatLng(
-            _userCurrentLocation!.latitude,
-            _userCurrentLocation!.longitude,
-          ),
-          destination: PointLatLng(
-            _userDestinationLatLng!.latitude,
-            _userDestinationLatLng!.longitude,
-          ),
-          mode: TravelMode.driving,
-        ),
+        googleApiKey: key, // Your API key
+        request: request, // Pass the request object
       );
 
       if (lineResult.points.isNotEmpty) {
@@ -270,10 +322,7 @@ class _MapPageState extends State<MapPage> {
             .toList();
 
         if (polylineCoordinates.isNotEmpty) {
-          // Calculate and update the distance
           await _calculateDeliveryDetails(polylineCoordinates);
-
-          // Update the polyline on the map
           generatePolylineFromPoints(polylineCoordinates);
         }
       } else {
@@ -285,14 +334,14 @@ class _MapPageState extends State<MapPage> {
     return polylineCoordinates;
   }
 
-  void generatePolylineFromPoints(List<LatLng> polylineCordinates) {
-    if (polylineCordinates.isEmpty) return;
+  void generatePolylineFromPoints(List<LatLng> polylineCoordinates) {
+    if (polylineCoordinates.isEmpty) return;
 
     PolylineId id = const PolylineId('poly');
     Polyline polyline = Polyline(
       polylineId: id,
-      color: Color.fromRGBO(0, 70, 67, 1),
-      points: polylineCordinates,
+      color: const Color.fromRGBO(0, 70, 67, 1),
+      points: polylineCoordinates,
       width: 4,
     );
     setState(() {
