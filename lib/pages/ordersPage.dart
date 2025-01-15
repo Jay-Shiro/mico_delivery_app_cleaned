@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:micollins_delivery_app/components/toggle_bar.dart';
-import 'package:micollins_delivery_app/pages/firstPage.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 
 class OrdersPage extends StatefulWidget {
