@@ -56,6 +56,8 @@ class _MapPageState extends State<MapPage> {
                   BitmapDescriptor.hueGreen),
             ),
           );
+          _mapController.animateCamera(CameraUpdate.newCameraPosition(
+              CameraPosition(target: _userCurrentLocation!, zoom: 15)));
         });
 
         // Get address for the location
@@ -151,10 +153,10 @@ class _MapPageState extends State<MapPage> {
   void _userDesToMarker(Prediction pCoordinates) {
     try {
       // First check if we have valid coordinates
-      if (pCoordinates.lat == null || pCoordinates.lng == null) {
-        debugPrint('Invalid coordinates in prediction');
-        return;
-      }
+      //if (pCoordinates.lat == null || pCoordinates.lng == null) {
+      //debugPrint('Invalid coordinates in prediction');
+      //return;
+      //}
 
       // Parse coordinates
       _userDestinationLatDEC = double.parse(pCoordinates.lat!);
@@ -185,15 +187,9 @@ class _MapPageState extends State<MapPage> {
         Future.delayed(Duration(milliseconds: 100), () {
           if (_userCurrentLocation != null && _userDestinationLatLng != null) {
             // Update map and calculate route
-            _mapController
-                .animateCamera(
+            _mapController.animateCamera(
               CameraUpdate.newLatLngZoom(_userDestinationLatLng!, 15),
-            )
-                .then((_) {
-              getPolylinePoints().then(
-                (coordinates) => generatePolylineFromPoints(coordinates),
-              );
-            });
+            );
           } else {
             debugPrint('Current location: $_userCurrentLocation');
             debugPrint('Destination location: $_userDestinationLatLng');
@@ -351,49 +347,6 @@ class _MapPageState extends State<MapPage> {
     ).output;
   }
 
-  void _showPaymentPrompt() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          content: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10.0, vertical: 20.0),
-            child: Column(
-              mainAxisSize:
-                  MainAxisSize.min, // Use MainAxisSize.min for dynamic height
-              children: [
-                Align(
-                  alignment: Alignment.topRight,
-                  child: IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ),
-                const SizedBox(height: 16.0),
-                _buildEmailField(),
-                const SizedBox(height: 16.0),
-                _buildPriceRow('Delivery Price', _getDeliveryCost()),
-                _buildPriceRow('Package Price', _getPackagePrice()),
-                const SizedBox(height: 20.0),
-                MButtons(
-                  onTap: () async {
-                    await makePayment().then((_) {
-                      Provider.of<IndexProvider>(context, listen: false)
-                          .setSelectedIndex(2);
-                    });
-                  },
-                  btnText: 'Pay $formattedPaymentAmt',
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   double _getDeliveryCost() {
     return isExpressSelected == true ? expressCost : standardCost;
   }
@@ -412,108 +365,6 @@ class _MapPageState extends State<MapPage> {
     }
 
     return packagePrice;
-  }
-
-  Widget _buildEmailField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Email Address (needed for receipt)',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
-        TextField(
-          controller: _controller1,
-          decoration: InputDecoration(
-            enabledBorder:
-                OutlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-            focusedBorder:
-                OutlineInputBorder(borderSide: BorderSide(color: Colors.black)),
-            fillColor: Colors.white,
-            filled: true,
-            hintText: 'Enter email address',
-            hintStyle: TextStyle(color: Colors.grey),
-            suffixIcon: _controller1.text.isNotEmpty
-                ? IconButton(
-                    icon: Icon(Icons.close, color: Colors.grey),
-                    onPressed: () {
-                      _controller1.clear();
-                      setState(() {});
-                    },
-                  )
-                : null,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPriceRow(String label, double price) {
-    final formattedPrice =
-        formatMoney(price).symbolOnLeft; // Access formatted string with symbol
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label),
-        Text(formattedPrice), // Correctly formatted output
-      ],
-    );
-  }
-
-  Future<void> makePayment() async {
-    if (_controller1.text.isEmpty || !_controller1.text.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Invalid email address'),
-            backgroundColor: Colors.red),
-      );
-      return;
-    }
-
-    try {
-      await PaystackFlutter().pay(
-        context: context,
-        secretKey: 'sk_test_c69312cc47b0d93bd17d0407d4292f11ee38e2fb',
-        amount: paymentParameter * 100,
-        email: _controller1.text,
-        callbackUrl: 'https://callback.com',
-        showProgressBar: true,
-        paymentOptions: [
-          PaymentOption.card,
-          PaymentOption.bankTransfer,
-          PaymentOption.mobileMoney,
-        ],
-        currency: Currency.NGN,
-        metaData: {
-          "start_point": _startPointController.text,
-          "end_point": _destinationController.text,
-          "delivery_price": paymentAmt,
-        },
-        onSuccess: (paystackCallback) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content:
-                  Text('Transaction Successful: ${paystackCallback.reference}'),
-              backgroundColor: Color.fromRGBO(0, 70, 67, 1),
-            ),
-          );
-        },
-        onCancelled: (paystackCallback) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content:
-                  Text('Transaction Failed: ${paystackCallback.reference}'),
-              backgroundColor: Color.fromRGBO(255, 91, 82, 1),
-            ),
-          );
-        },
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Payment failed: $e'), backgroundColor: Colors.red),
-      );
-    }
   }
 
   void confirmOrder(BuildContext ctx) {
@@ -606,7 +457,7 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  void _processPayment() {
+  void _processPayment() async {
     if (isCashorTransfer == true && isOnlinePayment == false) {
       Provider.of<IndexProvider>(context, listen: false).setSelectedIndex(2);
       Navigator.of(context).pop();
@@ -740,7 +591,7 @@ class _MapPageState extends State<MapPage> {
           textEditingController: controller,
           debounceTime: 600,
           googleAPIKey: key,
-          isLatLngRequired: isPickupField,
+          isLatLngRequired: true,
           countries: isPickupField ? ['ng'] : null,
           getPlaceDetailWithLatLng: onGetDetailWithLatLng,
           itemClick: onItemClick,

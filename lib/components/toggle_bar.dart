@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class ToggleBar extends StatefulWidget {
   final Function(int) onStatusChanged;
 
-  const ToggleBar({Key? key, required this.onStatusChanged}) : super(key: key);
+  const ToggleBar({super.key, required this.onStatusChanged});
 
   @override
   State<ToggleBar> createState() => _ToggleBarState();

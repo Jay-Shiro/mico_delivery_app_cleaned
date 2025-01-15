@@ -8,7 +8,7 @@ class CustomBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 110,
+      height: 80,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
@@ -29,7 +29,7 @@ class CustomBottomNavBar extends StatelessWidget {
           topRight: Radius.circular(15),
         ),
         child: Padding(
-          padding: EdgeInsets.only(top: 15),
+          padding: EdgeInsets.only(top: 12),
           child: BottomNavigationBar(
             selectedItemColor: Color.fromRGBO(0, 70, 67, 1),
             currentIndex: context.watch<IndexProvider>().selectedIndex,
