@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:micollins_delivery_app/components/mico_list_tiles.dart';
+import 'package:micollins_delivery_app/pages/profile_edit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -97,16 +98,23 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          MicoListTiles(
-            leading: Image.asset(
-              'assets/images/profile.png',
-              scale: 20,
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => ProfileEdit()),
+              );
+            },
+            child: MicoListTiles(
+              leading: Image.asset(
+                'assets/images/profile.png',
+                scale: 20,
+              ),
+              title: Text(
+                'Edit Profile',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              trailing: Icon(Icons.arrow_forward_ios, size: 18),
             ),
-            title: Text(
-              'Edit Profile',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            trailing: Icon(Icons.arrow_forward),
           ),
           const SizedBox(
             height: 25,
@@ -120,7 +128,7 @@ class _ProfilePageState extends State<ProfilePage> {
               'Notification',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
-            trailing: Icon(Icons.arrow_forward),
+            trailing: Icon(Icons.arrow_forward_ios, size: 18),
           ),
           const SizedBox(
             height: 25,
@@ -134,7 +142,7 @@ class _ProfilePageState extends State<ProfilePage> {
               'Payment',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
-            trailing: Icon(Icons.arrow_forward),
+            trailing: Icon(Icons.arrow_forward_ios, size: 18),
           ),
           const SizedBox(
             height: 25,
@@ -148,7 +156,7 @@ class _ProfilePageState extends State<ProfilePage> {
               'Security',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
-            trailing: Icon(Icons.arrow_forward),
+            trailing: Icon(Icons.arrow_forward_ios, size: 18),
           ),
           const SizedBox(
             height: 25,
@@ -162,25 +170,30 @@ class _ProfilePageState extends State<ProfilePage> {
               'Invite friends',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
-            trailing: Icon(Icons.arrow_forward),
+            trailing: Icon(Icons.arrow_forward_ios, size: 18),
           ),
           const SizedBox(
             height: 25,
           ),
-          MicoListTiles(
-            leading: Image.asset(
-              'assets/images/logout.png',
-              scale: 20,
-            ),
-            title: Text(
-              'Log out',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color.fromRGBO(255, 114, 0, 1),
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).pushNamed('/loginpage');
+            },
+            child: MicoListTiles(
+              leading: Image.asset(
+                'assets/images/logout.png',
+                scale: 40,
               ),
+              title: Text(
+                'Log out',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color.fromRGBO(126, 168, 82, 1),
+                ),
+              ),
+              trailing: Icon(Icons.arrow_forward_ios, size: 18),
             ),
-            trailing: Icon(Icons.arrow_forward),
           ),
         ],
       ),

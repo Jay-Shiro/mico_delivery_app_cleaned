@@ -449,7 +449,7 @@ class _MapPageState extends State<MapPage> {
         style: const TextStyle(fontWeight: FontWeight.w600),
       ),
       trailing: Checkbox(
-        activeColor: const Color.fromRGBO(40, 115, 115, 1),
+        activeColor: const Color.fromRGBO(0, 31, 62, 1),
         value: value,
         onChanged: onChanged,
         checkColor: Colors.white,
@@ -496,7 +496,7 @@ class _MapPageState extends State<MapPage> {
               SnackBar(
                 content: Text(
                     'Transaction Successful: ${paystackCallback.reference}'),
-                backgroundColor: Color.fromRGBO(0, 70, 67, 1),
+                backgroundColor: Color.fromRGBO(0, 31, 62, 1),
               ),
             );
             Provider.of<IndexProvider>(context, listen: false)
@@ -613,7 +613,7 @@ class _MapPageState extends State<MapPage> {
             ),
             prefixIcon: Icon(
               Icons.location_on_rounded,
-              color: Color.fromRGBO(0, 70, 67, 1),
+              color: Color.fromRGBO(0, 31, 62, 1),
             ),
             suffixIcon: controller.text.isNotEmpty
                 ? IconButton(
@@ -691,7 +691,7 @@ class _MapPageState extends State<MapPage> {
                   },
                   child: Icon(
                     Icons.my_location_rounded,
-                    color: Color.fromRGBO(0, 70, 67, 1),
+                    color: Color.fromRGBO(0, 31, 62, 1),
                   ),
                 ),
                 SizedBox(height: 8),
@@ -703,7 +703,7 @@ class _MapPageState extends State<MapPage> {
                   },
                   child: Icon(
                     Icons.add,
-                    color: Color.fromRGBO(0, 70, 67, 1),
+                    color: Color.fromRGBO(0, 31, 62, 1),
                   ),
                 ),
                 SizedBox(height: 8),
@@ -715,7 +715,7 @@ class _MapPageState extends State<MapPage> {
                   },
                   child: Icon(
                     Icons.remove,
-                    color: Color.fromRGBO(0, 70, 67, 1),
+                    color: Color.fromRGBO(0, 31, 62, 1),
                   ),
                 ),
               ],
@@ -861,7 +861,7 @@ class _MapPageState extends State<MapPage> {
                                                       fontWeight:
                                                           FontWeight.w600,
                                                       color: Color.fromRGBO(
-                                                          0, 70, 67, 1),
+                                                          0, 31, 62, 1),
                                                     ),
                                                   ),
                                                 ],
@@ -915,7 +915,7 @@ class _MapPageState extends State<MapPage> {
                                               Icons.location_on,
                                               size: 40,
                                               color: const Color.fromRGBO(
-                                                  0, 70, 67, 1),
+                                                  0, 31, 62, 1),
                                             ),
                                           ),
                                           title: Text(
@@ -942,7 +942,7 @@ class _MapPageState extends State<MapPage> {
                                               Icons.location_on,
                                               size: 40,
                                               color: const Color.fromRGBO(
-                                                  0, 70, 67, 1),
+                                                  0, 31, 67, 1),
                                             ),
                                           ),
                                           title: Text(
@@ -999,7 +999,7 @@ class _MapPageState extends State<MapPage> {
                                           ),
                                           trailing: Checkbox(
                                             activeColor: const Color.fromRGBO(
-                                                40, 115, 115, 1),
+                                                0, 31, 62, 1),
                                             value: isStandardSelected,
                                             onChanged: (newBool) {
                                               setState(() {
@@ -1044,7 +1044,7 @@ class _MapPageState extends State<MapPage> {
                                           ),
                                           trailing: Checkbox(
                                             activeColor: const Color.fromRGBO(
-                                                40, 115, 115, 1),
+                                                0, 31, 62, 1),
                                             value: isExpressSelected,
                                             onChanged: (newBool) {
                                               setState(() {
@@ -1091,7 +1091,7 @@ class _MapPageState extends State<MapPage> {
                                           ),
                                           trailing: Checkbox(
                                             activeColor: const Color.fromRGBO(
-                                                40, 115, 115, 1),
+                                                0, 31, 62, 1),
                                             value: is25Selected,
                                             onChanged: (newBool) {
                                               setState(() {
@@ -1115,7 +1115,7 @@ class _MapPageState extends State<MapPage> {
                                           ),
                                           trailing: Checkbox(
                                             activeColor: const Color.fromRGBO(
-                                                40, 115, 115, 1),
+                                                0, 31, 62, 1),
                                             value: is50Selected,
                                             onChanged: (newBool) {
                                               setState(() {
@@ -1139,7 +1139,7 @@ class _MapPageState extends State<MapPage> {
                                           ),
                                           trailing: Checkbox(
                                             activeColor: const Color.fromRGBO(
-                                                40, 115, 115, 1),
+                                                0, 31, 62, 1),
                                             value: is75Selected,
                                             onChanged: (newBool) {
                                               setState(() {
@@ -1164,7 +1164,7 @@ class _MapPageState extends State<MapPage> {
                                           ),
                                           trailing: Checkbox(
                                             activeColor: const Color.fromRGBO(
-                                                40, 115, 115, 1),
+                                                0, 31, 62, 1),
                                             value: is100Selected,
                                             onChanged: (newBool) {
                                               setState(() {
@@ -1195,7 +1195,7 @@ class _MapPageState extends State<MapPage> {
                                   child: Padding(
                                     padding: const EdgeInsets.only(top: 60.0),
                                     child: CircularProgressIndicator(
-                                      color: Color.fromRGBO(0, 70, 67, 1),
+                                      color: Color.fromRGBO(0, 31, 62, 1),
                                     ),
                                   ),
                                 );

@@ -19,7 +19,7 @@ class MButtons extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         margin: const EdgeInsets.symmetric(horizontal: 50),
         decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 10, 63, 63),
+            color: const Color.fromRGBO(0, 31, 62, 1),
             borderRadius: BorderRadius.circular(30)),
         child: Center(
           child: Text(

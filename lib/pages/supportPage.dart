@@ -16,62 +16,66 @@ class SupportPage extends StatelessWidget {
             backgroundColor: Colors.white,
             body: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: supportpageUi()),
+                child: supportpageUi(context)),
           ),
         ),
       ),
     );
   }
-}
 
-Widget supportpageUi() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.center,
-    children: [
-      const SizedBox(height: 74),
-      supportTitle(),
-      const SizedBox(height: 11),
-      supportImage(),
-      const SizedBox(height: 14),
-      supportWelcomeText(),
-      const SizedBox(height: 33),
-      chatButton(),
-      const SizedBox(height: 20),
-      FAQButton()
-    ],
-  );
-}
+  Widget supportpageUi(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const SizedBox(height: 74),
+        supportTitle(),
+        const SizedBox(height: 11),
+        supportImage(),
+        const SizedBox(height: 14),
+        supportWelcomeText(),
+        const SizedBox(height: 33),
+        chatButton(context),
+        const SizedBox(height: 20),
+        FAQButton()
+      ],
+    );
+  }
 
-Widget supportTitle() {
-  return Center(
-    child: Text(
-      'MY SUPPORT',
-      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-    ),
-  );
-}
+  Widget supportTitle() {
+    return Center(
+      child: Text(
+        'MY SUPPORT',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
 
-Widget supportImage() {
-  return Container(
-    child: Image.asset('assets/images/supportpage.png'),
-  );
-}
+  Widget supportImage() {
+    return Container(
+      child: Image.asset('assets/images/supportpage.png'),
+    );
+  }
 
-Widget supportWelcomeText() {
-  return SizedBox(
-    width: 312,
-    child: Text(
-      'Chat with our Customer service representative who is available 24/7 to attend to any complaints or questions',
-      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
-      textAlign: TextAlign.center,
-    ),
-  );
-}
+  Widget supportWelcomeText() {
+    return SizedBox(
+      width: 312,
+      child: Text(
+        'Chat with our Customer service representative who is available 24/7 to attend to any complaints or questions',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
 
-Widget chatButton() {
-  return MButtons(onTap: () {}, btnText: 'Start Chat');
-}
+  Widget chatButton(BuildContext context) {
+    return MButtons(
+        onTap: () {
+          Navigator.pushNamed(context, '/chatpage');
+        },
+        btnText: 'Start Chat');
+  }
 
-Widget FAQButton() {
-  return MOrangeButtons(onTap: () {}, btnText: 'View FAQ');
+  Widget FAQButton() {
+    return MOrangeButtons(onTap: () {}, btnText: 'View FAQ');
+  }
 }

@@ -19,7 +19,7 @@ class MOrangeButtons extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         margin: const EdgeInsets.symmetric(horizontal: 50),
         decoration: BoxDecoration(
-            color: const Color.fromRGBO(255, 133, 82, 1),
+            color: const Color.fromRGBO(126, 168, 82, 1),
             borderRadius: BorderRadius.circular(30)),
         child: Center(
           child: Text(

@@ -31,7 +31,7 @@ class CustomBottomNavBar extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.only(top: 12),
           child: BottomNavigationBar(
-            selectedItemColor: Color.fromRGBO(0, 70, 67, 1),
+            selectedItemColor: Color.fromRGBO(0, 31, 62, 1),
             currentIndex: context.watch<IndexProvider>().selectedIndex,
             backgroundColor: Colors.white,
             onTap: context.read<IndexProvider>().setSelectedIndex,

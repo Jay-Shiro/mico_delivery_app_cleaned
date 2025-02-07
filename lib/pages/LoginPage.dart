@@ -124,7 +124,7 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 80),
 
                   // Logo and App Name
                   Center(
@@ -132,18 +132,10 @@ class _LoginPageState extends State<LoginPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Image.asset(
-                          'assets/images/micollins_icon.png',
-                          height: 40,
+                          'assets/images/logo_mico.png',
+                          height: 50,
                         ),
                         const SizedBox(width: 10),
-                        Text(
-                          'MICO',
-                          style: TextStyle(
-                            color: const Color.fromRGBO(40, 115, 115, 1),
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -156,14 +148,19 @@ class _LoginPageState extends State<LoginPage> {
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: const Color.fromRGBO(40, 115, 115, 1),
+                        color: const Color.fromRGBO(0, 31, 62, 1),
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
 
                   // Email Address
-                  const Text('Email Address'),
+                  const Text(
+                    'Email Address',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 5),
                   TextFormField(
                     controller: emailController,
@@ -175,7 +172,12 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 15),
 
                   // Password
-                  const Text('Password'),
+                  const Text(
+                    'Password',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 5),
                   TextFormField(
                     controller: passwordController,
@@ -208,7 +210,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: Text(
                         'Forgot password?',
                         style: TextStyle(
-                          color: const Color.fromRGBO(40, 115, 115, 1),
+                          color: const Color.fromRGBO(0, 31, 62, 1),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -221,7 +223,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: _isLoading
                         ? CircularProgressIndicator(
                             valueColor: AlwaysStoppedAnimation(
-                              const Color.fromRGBO(40, 115, 115, 1),
+                              const Color.fromRGBO(0, 31, 62, 1),
                             ),
                           )
                         : MButtons(
@@ -230,6 +232,32 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                   ),
                   const SizedBox(height: 50),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 30),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).pushNamed('/signuppage');
+                        },
+                        child: Row(
+                          children: [
+                            Text("Don't have an account?"),
+                            const SizedBox(
+                              width: 4,
+                            ),
+                            Text(
+                              'Create Account',
+                              style: TextStyle(
+                                color: Color.fromRGBO(0, 31, 62, 1),
+                                fontWeight: FontWeight.w800,
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
                 ],
               ),
             ),

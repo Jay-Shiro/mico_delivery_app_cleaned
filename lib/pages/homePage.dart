@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:provider/provider.dart';
 
@@ -12,6 +13,35 @@ class Homepage extends StatefulWidget {
 
 class _HomepageState extends State<Homepage> {
   int _currentPage = 0;
+
+  String? _userLocation = 'Select Location';
+
+  Future<Position> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services are disabled.');
+    }
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
+    return await Geolocator.getCurrentPosition();
+  }
+
+  Future<void> _initializeLocation() async {
+    try {
+      Position _userLocation = await _determinePosition();
+    } catch (e) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +116,7 @@ class _HomepageState extends State<Homepage> {
               width: i == _currentPage ? 28 : 11,
               decoration: BoxDecoration(
                 color: i == _currentPage
-                    ? Color.fromRGBO(255, 133, 85, 1)
+                    ? Color.fromRGBO(0, 31, 62, 1)
                     : Color.fromRGBO(217, 217, 217, 1),
                 shape: BoxShape.rectangle,
                 borderRadius: BorderRadius.all(
@@ -117,19 +147,17 @@ class _HomepageState extends State<Homepage> {
                       //Select location
                       Icon(
                         Icons.place,
-                        color: Color.fromRGBO(255, 133, 82, 1),
+                        color: Color.fromRGBO(0, 31, 62, 1),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(left: 10),
-                        child: Text(
-                          'Select location',
-                          style: TextStyle(fontFamily: 'poppins', fontSize: 14),
-                        ),
-                      ),
+                          padding: const EdgeInsets.only(left: 10),
+                          child: Text(_userLocation!)),
                       Padding(
                         padding: const EdgeInsets.only(left: 10),
                         child: GestureDetector(
-                          onTap: () {},
+                          onTap: () {
+                            _initializeLocation();
+                          },
                           child: Image.asset(
                             'assets/images/drop_down_icon.png',
                             scale: 28.0,
@@ -210,13 +238,21 @@ class _HomepageState extends State<Homepage> {
                                       'Parcel Delivery',
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 16.0),
+                                          fontSize: 20.0),
                                     ),
                                     Padding(
                                       padding: const EdgeInsets.only(left: 10),
-                                      child: Image.asset(
-                                        'assets/images/pointer_r.png',
-                                        scale: 20,
+                                      child: CircleAvatar(
+                                        backgroundColor:
+                                            Color.fromRGBO(0, 31, 62, 1),
+                                        radius: 14,
+                                        child: Icon(
+                                          Icons.arrow_forward_ios,
+                                          size: 16,
+                                          color:
+                                              Color.fromRGBO(217, 217, 217, 1),
+                                          weight: 8,
+                                        ),
                                       ),
                                     )
                                   ],
@@ -244,9 +280,9 @@ class _HomepageState extends State<Homepage> {
                         child: Text(
                           'Recent Activity',
                           style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 20,
-                            color: Color.fromRGBO(0, 70, 67, 1),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 24,
+                            color: Color.fromRGBO(0, 31, 62, 1),
                           ),
                         ),
                       ),
