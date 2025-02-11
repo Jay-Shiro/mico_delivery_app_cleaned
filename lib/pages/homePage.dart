@@ -1,9 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:micollins_delivery_app/components/Deliveries.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:provider/provider.dart';
+
+import 'package:http/http.dart' as http;
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -19,9 +24,13 @@ class _HomepageState extends State<Homepage> {
     _initializeLocation();
   }
 
+  List<Delivery> _deliveries = [];
+  bool _isLoading = true;
+  bool _hasError = false;
+
   int _currentPage = 0;
 
-  late String? _userLocation = 'Select Location';
+  late String? _userLocation = 'Click button to get your Location';
 
   Future<Position> _determinePosition() async {
     bool serviceEnabled;
@@ -70,6 +79,30 @@ class _HomepageState extends State<Homepage> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> fetchRecentDeliveries() async {
+    const String apiUrl =
+        "https://deliveryapi-plum.vercel.app/deliveries/{delivery_id}";
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          _deliveries = data.map((json) => Delivery.fromJson(json)).toList();
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load deliveries');
+      }
+    } catch (error) {
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+      });
     }
   }
 
@@ -185,14 +218,10 @@ class _HomepageState extends State<Homepage> {
                       Padding(
                         padding: const EdgeInsets.only(left: 10),
                         child: GestureDetector(
-                          onTap: () {
-                            _initializeLocation();
-                          },
-                          child: Image.asset(
-                            'assets/images/drop_down_icon.png',
-                            scale: 28.0,
-                          ),
-                        ),
+                            onTap: () {
+                              _initializeLocation();
+                            },
+                            child: Icon(Icons.add)),
                       ),
                     ],
                   ),
@@ -302,47 +331,64 @@ class _HomepageState extends State<Homepage> {
 
                 //Recent Activity
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(right: 200),
-                        child: Text(
-                          'Recent Activity',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 24,
-                            color: Color.fromRGBO(0, 31, 62, 1),
-                          ),
+                      Text(
+                        'Recent Activity',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 24,
+                          color: Color.fromRGBO(0, 31, 62, 1),
                         ),
                       ),
-                      SizedBox(
-                        height: MediaQuery.sizeOf(context).width,
-                        width: MediaQuery.sizeOf(context).width,
-                        child: Center(
-                          child: Column(
-                            children: [
-                              const SizedBox(
-                                height: 80,
-                              ),
-                              Image.asset(
-                                'assets/images/no_user_history.png',
-                                scale: 5,
-                              ),
-                              Text(
-                                'No user History',
-                                style: TextStyle(
-                                  color: Color.fromRGBO(165, 175, 175, 1),
-                                  fontSize: 22,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
+                      const SizedBox(height: 80),
+                      _isLoading
+                          ? Center(
+                              child: CircularProgressIndicator(
+                              color: Color.fromRGBO(0, 31, 62, 1),
+                            )) // Show loading indicator
+                          : _hasError
+                              ? Center(
+                                  child: Text(
+                                      'Failed to load deliveries')) // Show error message
+                              : _deliveries.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                          'No recent deliveries found')) // Show empty state
+                                  : SizedBox(
+                                      height:
+                                          200, // Set a fixed height or use Expanded
+                                      child: ListView.builder(
+                                        itemCount: _deliveries.length,
+                                        shrinkWrap:
+                                            true, // Prevent infinite height issues
+                                        physics:
+                                            AlwaysScrollableScrollPhysics(),
+                                        itemBuilder: (context, index) {
+                                          final delivery = _deliveries[index];
+                                          return Card(
+                                            elevation: 2,
+                                            margin: EdgeInsets.symmetric(
+                                                vertical: 8),
+                                            child: ListTile(
+                                              leading: Icon(
+                                                  Icons.local_shipping,
+                                                  color: Colors.blue),
+                                              title: Text(
+                                                  'Delivery ID: ${delivery.id}'),
+                                              subtitle: Text(
+                                                  'Status: ${delivery.status} • Cost: \$${delivery.cost}'),
+                                              trailing: Text(delivery.date),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
                     ],
                   ),
-                )
+                ),
               ],
             ),
           ),
