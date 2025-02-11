@@ -22,6 +22,7 @@ class _HomepageState extends State<Homepage> {
   void initState() {
     super.initState();
     _initializeLocation();
+    fetchRecentDeliveries(); // Call API when the screen loads
   }
 
   List<Delivery> _deliveries = [];
@@ -84,7 +85,7 @@ class _HomepageState extends State<Homepage> {
 
   Future<void> fetchRecentDeliveries() async {
     const String apiUrl =
-        "https://deliveryapi-plum.vercel.app/deliveries/{delivery_id}";
+        "https://deliveryapi-plum.vercel.app/deliveries"; // FIXED URL
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -94,6 +95,7 @@ class _HomepageState extends State<Homepage> {
         setState(() {
           _deliveries = data.map((json) => Delivery.fromJson(json)).toList();
           _isLoading = false;
+          _hasError = false;
         });
       } else {
         throw Exception('Failed to load deliveries');
