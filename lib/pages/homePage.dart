@@ -39,6 +39,7 @@ class _HomepageState extends State<Homepage> {
 
   Future<void> _initializeLocation() async {
     try {
+      // ignore: unused_local_variable
       Position _userLocation = await _determinePosition();
     } catch (e) {}
   }

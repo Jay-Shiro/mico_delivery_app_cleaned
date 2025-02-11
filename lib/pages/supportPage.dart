@@ -36,7 +36,7 @@ class SupportPage extends StatelessWidget {
         const SizedBox(height: 33),
         chatButton(context),
         const SizedBox(height: 20),
-        FAQButton()
+        FAQButton(),
       ],
     );
   }
@@ -68,11 +68,7 @@ class SupportPage extends StatelessWidget {
   }
 
   Widget chatButton(BuildContext context) {
-    return MButtons(
-        onTap: () {
-          Navigator.pushNamed(context, '/chatpage');
-        },
-        btnText: 'Start Chat');
+    return MButtons(onTap: () {}, btnText: 'Start Chat');
   }
 
   Widget FAQButton() {

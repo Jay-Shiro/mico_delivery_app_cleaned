@@ -252,7 +252,9 @@ class _SignUpPageState extends State<SignUpPage> {
                   // Create Account Button
                   Center(
                     child: _isLoading
-                        ? CircularProgressIndicator() // Show progress indicator
+                        ? CircularProgressIndicator(
+                            color: const Color.fromRGBO(0, 31, 62, 1),
+                          ) // Show progress indicator
                         : MButtons(
                             btnText: 'Create Account',
                             onTap: _signup,

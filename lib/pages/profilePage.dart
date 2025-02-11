@@ -12,77 +12,14 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  String? userEmail;
   String? firstName;
   String? lastName;
+  String? userEmail;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
-  }
-
-  Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userString = prefs.getString('user');
-
-    if (userString != null) {
-      final userData = json.decode(userString);
-      setState(() {
-        userEmail = userData['email'];
-        firstName = userData['firstname'];
-        lastName = userData['lastname'];
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: SafeArea(
-        child: SizedBox(
-          height: MediaQuery.of(context).size.height * 0.9,
-          width: MediaQuery.of(context).size.width,
-          child: Scaffold(
-            backgroundColor: Colors.white,
-            body: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Column(
-                  children: [
-                    Text(
-                      'MY PROFILE',
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 18),
-                    ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Color.fromRGBO(227, 223, 214, 1),
-                        radius: 32,
-                        child: Image.asset('assets/images/profilepic.png'),
-                      ),
-                      title: Text(
-                        '${firstName ?? ''} ${lastName ?? ''}',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Text(
-                        userEmail ?? '',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w400),
-                      ),
-                    )
-                  ],
-                ),
-                mainsection(),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   Widget mainsection() {
@@ -196,6 +133,72 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userString = prefs.getString('user');
+
+    if (userString != null) {
+      final userData = json.decode(userString);
+      setState(() {
+        userEmail = userData['email'];
+        firstName = userData['firstname'];
+        lastName = userData['lastname'];
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: SafeArea(
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.9,
+          width: MediaQuery.of(context).size.width,
+          child: Scaffold(
+            backgroundColor: Colors.white,
+            body: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Column(
+                  children: [
+                    const SizedBox(
+                      height: 70,
+                    ),
+                    Text(
+                      'MY PROFILE',
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 18),
+                    ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Color.fromRGBO(227, 223, 214, 1),
+                        radius: 32,
+                        child: Image.asset('assets/images/profilepic.png'),
+                      ),
+                      title: Text(
+                        '${firstName ?? ''} ${lastName ?? ''}',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        userEmail ?? '',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w400),
+                      ),
+                    )
+                  ],
+                ),
+                mainsection(),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

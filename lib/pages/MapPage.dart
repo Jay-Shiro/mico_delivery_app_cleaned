@@ -313,8 +313,8 @@ class _MapPageState extends State<MapPage> {
           roundDistanceKM = double.parse(finalDistance.toStringAsFixed(1));
 
           // Calculate costs based on distance
-          expressCost = (roundDistanceKM / 1.2) * 1200;
-          standardCost = (roundDistanceKM / 1.6) * 1200;
+          expressCost = (roundDistanceKM / 1.2) * 800;
+          standardCost = (roundDistanceKM / 1.6) * 800;
 
           // Update formatted values
           standardFormatted = formatMoney(standardCost);
@@ -348,7 +348,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   double _getDeliveryCost() {
-    return isExpressSelected == true ? expressCost : standardCost;
+    return isExpressSelected! ? expressCost : standardCost;
   }
 
   double _getPackagePrice() {
@@ -1111,7 +1111,7 @@ class _MapPageState extends State<MapPage> {
                                                 fontWeight: FontWeight.w600),
                                           ),
                                           subtitle: Text(
-                                            size25Formatted?.symbolOnLeft ?? '',
+                                            size50Formatted?.symbolOnLeft ?? '',
                                           ),
                                           trailing: Checkbox(
                                             activeColor: const Color.fromRGBO(

@@ -242,7 +242,12 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         child: Row(
                           children: [
-                            Text("Don't have an account?"),
+                            Text(
+                              "Don't have an account?",
+                              style: TextStyle(
+                                fontSize: 12,
+                              ),
+                            ),
                             const SizedBox(
                               width: 4,
                             ),
@@ -251,6 +256,7 @@ class _LoginPageState extends State<LoginPage> {
                               style: TextStyle(
                                 color: Color.fromRGBO(0, 31, 62, 1),
                                 fontWeight: FontWeight.w800,
+                                fontSize: 14,
                               ),
                             )
                           ],
