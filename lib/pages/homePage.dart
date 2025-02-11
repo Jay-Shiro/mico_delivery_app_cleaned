@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:provider/provider.dart';
@@ -12,9 +13,15 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
+  @override
+  void initState() {
+    super.initState();
+    _initializeLocation();
+  }
+
   int _currentPage = 0;
 
-  String? _userLocation = 'Select Location';
+  late String? _userLocation = 'Select Location';
 
   Future<Position> _determinePosition() async {
     bool serviceEnabled;
@@ -40,8 +47,30 @@ class _HomepageState extends State<Homepage> {
   Future<void> _initializeLocation() async {
     try {
       // ignore: unused_local_variable
-      Position _userLocation = await _determinePosition();
-    } catch (e) {}
+      Position location = await _determinePosition();
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        location.latitude,
+        location.longitude,
+      );
+      setState(() {
+        String address = [
+          placemarks.first.street,
+          placemarks.first.subLocality,
+          placemarks.first.locality,
+        ].where((element) => element != null && element.isNotEmpty).join(', ');
+
+        _userLocation = address;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error getting location: $e'),
+            backgroundColor: const Color.fromRGBO(255, 91, 82, 1),
+          ),
+        );
+      }
+    }
   }
 
   @override

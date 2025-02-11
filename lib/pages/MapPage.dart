@@ -363,7 +363,7 @@ class _MapPageState extends State<MapPage> {
     } else if (is100Selected) {
       packagePrice = packageSize100Price;
     }
-
+    print(packagePrice);
     return packagePrice;
   }
 
