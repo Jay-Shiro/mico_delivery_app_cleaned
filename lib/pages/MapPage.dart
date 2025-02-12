@@ -984,7 +984,7 @@ class _MapPageState extends State<MapPage> {
                                                     const EdgeInsets.all(6.0),
                                                 child: Image.asset(
                                                   'assets/images/bike.png',
-                                                  scale: 12,
+                                                  scale: 2,
                                                 ),
                                               )),
                                           title: Text(
@@ -1029,7 +1029,7 @@ class _MapPageState extends State<MapPage> {
                                                     const EdgeInsets.all(6.0),
                                                 child: Image.asset(
                                                   'assets/images/bike.png',
-                                                  scale: 12,
+                                                  scale: 2,
                                                 ),
                                               )),
                                           title: Text(

@@ -134,7 +134,7 @@ class _HomepageState extends State<Homepage> {
           width: double.maxFinite,
           height: double.maxFinite,
           decoration: BoxDecoration(
-            color: Color.fromRGBO(0, 70, 67, 1),
+            color: Color.fromRGBO(0, 31, 62, 1),
             borderRadius: BorderRadius.circular(15),
           ),
           child: Image.asset('assets/images/advert_two.png'),
@@ -151,7 +151,7 @@ class _HomepageState extends State<Homepage> {
             color: Color.fromRGBO(70, 0, 61, 1),
             borderRadius: BorderRadius.circular(15),
           ),
-          child: Image.asset('assets/images/advert_two.png'),
+          child: Image.asset('assets/images/advert_1.png'),
         ),
       ),
       GestureDetector(
@@ -216,7 +216,12 @@ class _HomepageState extends State<Homepage> {
                       ),
                       Padding(
                           padding: const EdgeInsets.only(left: 10),
-                          child: Text(_userLocation!)),
+                          child: Text(
+                            _userLocation!,
+                            style: TextStyle(
+                              fontSize: 12,
+                            ),
+                          )),
                       Padding(
                         padding: const EdgeInsets.only(left: 10),
                         child: GestureDetector(
@@ -280,12 +285,16 @@ class _HomepageState extends State<Homepage> {
                         borderRadius: BorderRadius.circular(15),
                       ),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           Column(
                             children: [
+                              const SizedBox(
+                                height: 10,
+                              ),
                               Image.asset(
                                 'assets/images/lumber_man_2.png',
-                                scale: 11,
+                                scale: 1.8,
                               ),
                             ],
                           ),
@@ -294,12 +303,15 @@ class _HomepageState extends State<Homepage> {
                               Padding(
                                 padding: const EdgeInsets.only(top: 140),
                                 child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
                                       'Parcel Delivery',
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 20.0),
+                                          fontSize: 16.0),
                                     ),
                                     Padding(
                                       padding: const EdgeInsets.only(left: 10),
@@ -348,8 +360,20 @@ class _HomepageState extends State<Homepage> {
                       const SizedBox(height: 80),
                       _isLoading
                           ? Center(
-                              child: CircularProgressIndicator(
-                              color: Color.fromRGBO(0, 31, 62, 1),
+                              child: Column(
+                              children: [
+                                Image.asset(
+                                  'assets/images/no_user_history.png',
+                                  scale: 5,
+                                ),
+                                Text(
+                                  'No user History',
+                                  style: TextStyle(
+                                    color: Color.fromRGBO(165, 175, 175, 1),
+                                    fontSize: 22,
+                                  ),
+                                ),
+                              ],
                             )) // Show loading indicator
                           : _hasError
                               ? Center(

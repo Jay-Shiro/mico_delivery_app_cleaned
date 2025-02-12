@@ -128,15 +128,18 @@ class _LoginPageState extends State<LoginPage> {
 
                   // Logo and App Name
                   Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.asset(
-                          'assets/images/logo_mico.png',
-                          height: 50,
-                        ),
-                        const SizedBox(width: 10),
-                      ],
+                    child: Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Image.asset(
+                            'assets/images/logo_mico_resized.png',
+                            height: 50,
+                            width: 101.9,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
