@@ -383,8 +383,7 @@ class _MapPageState extends State<MapPage> {
             return AlertDialog(
               backgroundColor: Colors.white,
               content: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10.0, vertical: 20.0),
+                padding: const EdgeInsets.symmetric(vertical: 20.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -397,7 +396,7 @@ class _MapPageState extends State<MapPage> {
                     ),
                     const SizedBox(height: 4.0),
                     _buildPaymentOption(
-                      title: 'Cash or Transfer',
+                      title: 'Cash',
                       value: dialogIsCashorTransfer,
                       onChanged: (newBool) {
                         setDialogState(() {

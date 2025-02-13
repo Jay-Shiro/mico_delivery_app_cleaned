@@ -26,7 +26,7 @@ class MButtons extends StatelessWidget {
             btnText,
             style: TextStyle(
               color: Colors.white,
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w400,
             ),
           ),

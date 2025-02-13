@@ -25,7 +25,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget mainsection() {
     return Container(
       width: 390,
-      height: 580,
+      height: 420,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadiusDirectional.all(
@@ -33,7 +33,8 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisSize: MainAxisSize.min,
         children: [
           GestureDetector(
             onTap: () {
@@ -53,9 +54,6 @@ class _ProfilePageState extends State<ProfilePage> {
               trailing: Icon(Icons.arrow_forward_ios, size: 18),
             ),
           ),
-          const SizedBox(
-            height: 25,
-          ),
           MicoListTiles(
             leading: Image.asset(
               'assets/images/notification.png',
@@ -66,9 +64,6 @@ class _ProfilePageState extends State<ProfilePage> {
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
             trailing: Icon(Icons.arrow_forward_ios, size: 18),
-          ),
-          const SizedBox(
-            height: 25,
           ),
           MicoListTiles(
             leading: Image.asset(
@@ -81,9 +76,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             trailing: Icon(Icons.arrow_forward_ios, size: 18),
           ),
-          const SizedBox(
-            height: 25,
-          ),
           MicoListTiles(
             leading: Image.asset(
               'assets/images/security.png',
@@ -95,9 +87,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             trailing: Icon(Icons.arrow_forward_ios, size: 18),
           ),
-          const SizedBox(
-            height: 25,
-          ),
           MicoListTiles(
             leading: Image.asset(
               'assets/images/invite.png',
@@ -108,9 +97,6 @@ class _ProfilePageState extends State<ProfilePage> {
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
             trailing: Icon(Icons.arrow_forward_ios, size: 18),
-          ),
-          const SizedBox(
-            height: 25,
           ),
           GestureDetector(
             onTap: () {
@@ -161,20 +147,19 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Scaffold(
             backgroundColor: Colors.white,
             body: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Column(
                   children: [
                     const SizedBox(
-                      height: 70,
+                      height: 90,
                     ),
                     Text(
                       'MY PROFILE',
                       style:
                           TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 15),
                     ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Color.fromRGBO(227, 223, 214, 1),
@@ -191,8 +176,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         style: TextStyle(
                             fontSize: 14, fontWeight: FontWeight.w400),
                       ),
-                    )
+                    ),
                   ],
+                ),
+                const SizedBox(
+                  height: 20,
                 ),
                 mainsection(),
               ],

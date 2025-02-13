@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:micollins_delivery_app/components/chat_bubble.dart';
 import 'package:micollins_delivery_app/components/toggle_bar.dart';
 import 'package:flutter/services.dart';
 
@@ -263,7 +262,6 @@ class _OrdersPageState extends State<OrdersPage> {
     return Container(
       child: Column(
         children: [
-          floatingChatButton(context),
           const SizedBox(
             height: 20,
           ),
@@ -299,44 +297,6 @@ class _OrdersPageState extends State<OrdersPage> {
                 iconSize: 22,
               ),
               suffixIconColor: Colors.grey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget floatingChatButton(BuildContext context) {
-    return Align(
-      alignment: Alignment.topRight,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ClipPath(
-            clipper: ChatBubbleClipper(),
-            child: Container(
-              height: 40,
-              width: 110,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color.fromRGBO(0, 31, 62, 1)),
-              ),
-              alignment: Alignment.center,
-              child: const Text(
-                'Chat with Rider',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          CircleAvatar(
-            radius: 25,
-            backgroundColor: const Color.fromRGBO(0, 31, 62, 1),
-            child: IconButton(
-              onPressed: () => Navigator.pushNamed(context, '/chatpage'),
-              icon: const Icon(Icons.message_rounded, color: Colors.white),
             ),
           ),
         ],
