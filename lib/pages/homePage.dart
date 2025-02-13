@@ -56,22 +56,24 @@ class _HomepageState extends State<Homepage> {
 
   Future<void> _initializeLocation() async {
     try {
-      // ignore: unused_local_variable
       Position location = await _determinePosition();
       List<Placemark> placemarks = await placemarkFromCoordinates(
         location.latitude,
         location.longitude,
       );
-      setState(() {
-        String address = [
-          placemarks.first.street,
-          placemarks.first.subLocality,
-          placemarks.first.locality,
-        ].where((element) => element != null && element.isNotEmpty).join(', ');
 
-        _userLocation = address;
+      setState(() {
+        _userLocation = [
+          placemarks.first.street ?? '',
+          placemarks.first.subLocality ?? '',
+          placemarks.first.locality ?? '',
+        ].where((element) => element.isNotEmpty).join(', ');
+
+        _userLocation =
+            _userLocation!.isNotEmpty ? _userLocation : 'Unknown location';
       });
     } catch (e) {
+      print('Location error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -98,9 +100,10 @@ class _HomepageState extends State<Homepage> {
           _hasError = false;
         });
       } else {
-        throw Exception('Failed to load deliveries');
+        throw Exception('API Error: ${response.statusCode} ${response.body}');
       }
     } catch (error) {
+      print('Error fetching deliveries: $error');
       setState(() {
         _isLoading = false;
         _hasError = true;
@@ -383,30 +386,52 @@ class _HomepageState extends State<Homepage> {
                                   ? Center(
                                       child: Text(
                                           'No recent deliveries found')) // Show empty state
-                                  : SizedBox(
-                                      height:
-                                          200, // Set a fixed height or use Expanded
+                                  : Expanded(
                                       child: ListView.builder(
                                         itemCount: _deliveries.length,
                                         shrinkWrap:
-                                            true, // Prevent infinite height issues
+                                            true, // Prevents infinite height issues
                                         physics:
-                                            AlwaysScrollableScrollPhysics(),
+                                            BouncingScrollPhysics(), // Smooth scrolling effect
                                         itemBuilder: (context, index) {
                                           final delivery = _deliveries[index];
                                           return Card(
                                             elevation: 2,
                                             margin: EdgeInsets.symmetric(
-                                                vertical: 8),
+                                                vertical: 8, horizontal: 12),
                                             child: ListTile(
                                               leading: Icon(
                                                   Icons.local_shipping,
                                                   color: Colors.blue),
                                               title: Text(
-                                                  'Delivery ID: ${delivery.id}'),
-                                              subtitle: Text(
-                                                  'Status: ${delivery.status} • Cost: \$${delivery.cost}'),
-                                              trailing: Text(delivery.date),
+                                                'User ID: ${delivery.userId}',
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              subtitle: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                      'Status: ${delivery.status}'),
+                                                  Text(
+                                                      'Cost: ₦${delivery.price}'),
+                                                  Text(
+                                                      'Distance: ${delivery.distance} km'),
+                                                  Text(
+                                                      'From: ${delivery.startPoint} → To: ${delivery.endPoint}'),
+                                                ],
+                                              ),
+                                              trailing: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(Icons.local_mall,
+                                                      color: Colors.grey),
+                                                  Text(delivery.packageSize),
+                                                ],
+                                              ),
                                             ),
                                           );
                                         },
