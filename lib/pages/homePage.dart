@@ -21,7 +21,6 @@ class _HomepageState extends State<Homepage> {
   @override
   void initState() {
     super.initState();
-    _initializeLocation();
     fetchRecentDeliveries(); // Call API when the screen loads
   }
 
