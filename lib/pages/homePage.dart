@@ -385,56 +385,65 @@ class _HomepageState extends State<Homepage> {
                                   ? Center(
                                       child: Text(
                                           'No recent deliveries found')) // Show empty state
-                                  : Expanded(
-                                      child: ListView.builder(
-                                        itemCount: _deliveries.length,
-                                        shrinkWrap:
-                                            true, // Prevents infinite height issues
-                                        physics:
-                                            BouncingScrollPhysics(), // Smooth scrolling effect
-                                        itemBuilder: (context, index) {
-                                          final delivery = _deliveries[index];
-                                          return Card(
-                                            elevation: 2,
-                                            margin: EdgeInsets.symmetric(
-                                                vertical: 8, horizontal: 12),
-                                            child: ListTile(
-                                              leading: Icon(
-                                                  Icons.local_shipping,
-                                                  color: Colors.blue),
-                                              title: Text(
-                                                'User ID: ${delivery.userId}',
-                                                style: TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              ),
-                                              subtitle: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                      'Status: ${delivery.status}'),
-                                                  Text(
-                                                      'Cost: ₦${delivery.price}'),
-                                                  Text(
-                                                      'Distance: ${delivery.distance} km'),
-                                                  Text(
-                                                      'From: ${delivery.startPoint} → To: ${delivery.endPoint}'),
-                                                ],
-                                              ),
-                                              trailing: Column(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(Icons.local_mall,
-                                                      color: Colors.grey),
-                                                  Text(delivery.packageSize),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
+                                  : Column(
+                                      children: [
+                                        Expanded(
+                                          child: ListView.builder(
+                                            itemCount: _deliveries.length,
+                                            shrinkWrap:
+                                                true, // Prevents infinite height issues
+                                            physics:
+                                                BouncingScrollPhysics(), // Smooth scrolling effect
+                                            itemBuilder: (context, index) {
+                                              final delivery =
+                                                  _deliveries[index];
+                                              return Card(
+                                                elevation: 2,
+                                                margin: EdgeInsets.symmetric(
+                                                    vertical: 8,
+                                                    horizontal: 12),
+                                                child: ListTile(
+                                                  leading: Icon(
+                                                      Icons.local_shipping,
+                                                      color: Colors.blue),
+                                                  title: Text(
+                                                    'User ID: ${delivery.userId}',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                  subtitle: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                          'Status: ${delivery.status}'),
+                                                      Text(
+                                                          'Cost: ₦${delivery.price}'),
+                                                      Text(
+                                                          'Distance: ${delivery.distance} km'),
+                                                      Text(
+                                                          'From: ${delivery.startPoint} → To: ${delivery.endPoint}'),
+                                                    ],
+                                                  ),
+                                                  trailing: Column(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Icon(Icons.local_mall,
+                                                          color: Colors.grey),
+                                                      Text(
+                                                          delivery.packageSize),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ],
                                     ),
                     ],
                   ),
