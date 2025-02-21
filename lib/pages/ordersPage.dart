@@ -274,6 +274,7 @@ class _OrdersPageState extends State<OrdersPage> {
           ),
           const SizedBox(height: 30),
           TextField(
+            autofocus: false,
             decoration: InputDecoration(
               filled: true,
               fillColor: Colors.white,

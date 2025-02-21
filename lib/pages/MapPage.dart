@@ -458,6 +458,7 @@ class _MapPageState extends State<MapPage> {
 
   void _processPayment() async {
     if (isCashorTransfer == true && isOnlinePayment == false) {
+      FocusManager.instance.primaryFocus?.unfocus();
       Provider.of<IndexProvider>(context, listen: false).setSelectedIndex(2);
       Navigator.of(context).pop();
     } else if (isOnlinePayment == true && isCashorTransfer == false) {
@@ -498,6 +499,7 @@ class _MapPageState extends State<MapPage> {
                 backgroundColor: Color.fromRGBO(0, 31, 62, 1),
               ),
             );
+            FocusManager.instance.primaryFocus?.unfocus();
             Provider.of<IndexProvider>(context, listen: false)
                 .setSelectedIndex(2);
             Navigator.of(context).pop();

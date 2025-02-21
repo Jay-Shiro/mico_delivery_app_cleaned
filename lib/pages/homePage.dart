@@ -253,7 +253,7 @@ class _HomepageState extends State<Homepage> {
                           enableInfiniteScroll: true,
                           viewportFraction: 0.9,
                           autoPlayAnimationDuration: Duration(
-                            microseconds: 800,
+                            microseconds: 2000,
                           ),
                           onPageChanged: (value, _) {
                             setState(() {
