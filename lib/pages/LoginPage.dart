@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
+import 'package:micollins_delivery_app/components/user_cache.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:micollins_delivery_app/components/m_buttons.dart';
 
@@ -77,6 +78,8 @@ class _LoginPageState extends State<LoginPage> {
           backgroundColor: Colors.green,
           textColor: Colors.white,
         );
+
+        await AuthService.saveLoginState(true);
 
         // Save user data to shared preferences
         await prefs.setString('user', json.encode(data['user']));

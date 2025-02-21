@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:micollins_delivery_app/components/mico_list_tiles.dart';
+import 'package:micollins_delivery_app/components/user_cache.dart';
 import 'package:micollins_delivery_app/pages/profile_edit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -99,7 +100,8 @@ class _ProfilePageState extends State<ProfilePage> {
             trailing: Icon(Icons.arrow_forward_ios, size: 18),
           ),
           GestureDetector(
-            onTap: () {
+            onTap: () async {
+              await AuthService.logout();
               Navigator.of(context).pushNamed('/loginpage');
             },
             child: MicoListTiles(

@@ -9,21 +9,32 @@ import 'package:micollins_delivery_app/pages/homePage.dart';
 import 'package:micollins_delivery_app/pages/profilePage.dart';
 import 'package:micollins_delivery_app/pages/supportPage.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(ChangeNotifierProvider(
-      create: (context) => IndexProvider(), child: const MyApp()));
+
+  // Check if the user is logged in
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  bool isLoggedIn = prefs.getBool("isLoggedIn") ?? false;
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => IndexProvider(),
+      child: MyApp(isLoggedIn: isLoggedIn),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isLoggedIn;
+  const MyApp({super.key, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: LoginPage(),
+      home: isLoggedIn ? Homepage() : LoginPage(),
       routes: {
         '/loginpage': (context) => LoginPage(),
         '/signuppage': (context) => SignUpPage(),
