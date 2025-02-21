@@ -4,11 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:micollins_delivery_app/components/Deliveries.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:provider/provider.dart';
-
-import 'package:http/http.dart' as http;
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -18,28 +17,43 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
+  List<Delivery> _deliveries = [];
+  bool _isLoadingLoc = false;
+  bool _isLoading = true;
+  bool _hasError = false;
+  int _currentPage = 0;
+  late String? _userLocation = 'Click button to get your Location';
+
+  final List<String> carouselImages = [
+    'assets/images/advert_1.png',
+    'assets/images/advert_1.png',
+    'assets/images/advert_1.png',
+    'assets/images/advert_1.png',
+  ];
+
+  final List<Color> carouselColors = [
+    Color.fromRGBO(70, 14, 0, 1),
+    Color.fromRGBO(0, 31, 62, 1),
+    Color.fromRGBO(70, 0, 61, 1),
+    Color.fromRGBO(0, 49, 58, 1),
+  ];
+
   @override
   void initState() {
     super.initState();
-    fetchRecentDeliveries(); // Call API when the screen loads
+    fetchRecentDeliveries();
   }
 
-  List<Delivery> _deliveries = [];
-  bool _isLoading = true;
-  bool _hasError = false;
-
-  int _currentPage = 0;
-
-  late String? _userLocation = 'Click button to get your Location';
+  // Function to navigate to a specific index on the navbar
+  void navigateToIndex(int index) {
+    context.read<IndexProvider>().setSelectedIndex(index);
+  }
 
   Future<Position> _determinePosition() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return Future.error('Location services are disabled.');
-    }
-    permission = await Geolocator.checkPermission();
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return Future.error('Location services are disabled.');
+
+    LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
@@ -47,13 +61,14 @@ class _HomepageState extends State<Homepage> {
       }
     }
     if (permission == LocationPermission.deniedForever) {
-      return Future.error(
-          'Location permissions are permanently denied, we cannot request permissions.');
+      return Future.error('Location permissions are permanently denied.');
     }
     return await Geolocator.getCurrentPosition();
   }
 
   Future<void> _initializeLocation() async {
+    setState(() => _isLoadingLoc = true);
+
     try {
       Position location = await _determinePosition();
       List<Placemark> placemarks = await placemarkFromCoordinates(
@@ -72,21 +87,20 @@ class _HomepageState extends State<Homepage> {
             _userLocation!.isNotEmpty ? _userLocation : 'Unknown location';
       });
     } catch (e) {
-      print('Location error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error getting location: $e'),
-            backgroundColor: const Color.fromRGBO(255, 91, 82, 1),
-          ),
+              content: Text('Error getting location: $e'),
+              backgroundColor: Colors.red),
         );
       }
+    } finally {
+      setState(() => _isLoadingLoc = false);
     }
   }
 
   Future<void> fetchRecentDeliveries() async {
-    const String apiUrl =
-        "https://deliveryapi-plum.vercel.app/deliveries"; // FIXED URL
+    const String apiUrl = "https://deliveryapi-plum.vercel.app/deliveries";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -102,7 +116,6 @@ class _HomepageState extends State<Homepage> {
         throw Exception('API Error: ${response.statusCode} ${response.body}');
       }
     } catch (error) {
-      print('Error fetching deliveries: $error');
       setState(() {
         _isLoading = false;
         _hasError = true;
@@ -110,348 +123,240 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
+  Widget _buildCarouselIndicator(int itemCount) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(
+        itemCount,
+        (index) => Container(
+          width: _currentPage == index ? 28 : 11,
+          height: 6,
+          margin: EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            shape: BoxShape.rectangle,
+            borderRadius: BorderRadius.circular(4),
+            color: _currentPage == index
+                ? Color.fromRGBO(0, 31, 62, 1)
+                : Colors.grey,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    //adverts
-    List<Widget> carouselItems = [
-      GestureDetector(
-        onTap: () {
-          context.read<IndexProvider>().setSelectedIndex(1);
-        },
+    List<Widget> carouselItems = List.generate(
+      4,
+      (index) => GestureDetector(
+        onTap: () => navigateToIndex(1),
         child: Container(
-          width: double.maxFinite,
-          height: double.maxFinite,
+          width: double.infinity,
+          height: double.infinity,
           decoration: BoxDecoration(
-            color: Color.fromRGBO(70, 14, 0, 1),
+            color: carouselColors[index],
             borderRadius: BorderRadius.circular(15),
           ),
-          child: Image.asset('assets/images/advert_1.png'),
+          child: Image.asset(carouselImages[index], fit: BoxFit.cover),
         ),
       ),
-      GestureDetector(
-        onTap: () {
-          context.read<IndexProvider>().setSelectedIndex(1);
-        },
-        child: Container(
-          width: double.maxFinite,
-          height: double.maxFinite,
-          decoration: BoxDecoration(
-            color: Color.fromRGBO(0, 31, 62, 1),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Image.asset('assets/images/advert_1.png'),
-        ),
-      ),
-      GestureDetector(
-        onTap: () {
-          context.read<IndexProvider>().setSelectedIndex(1);
-        },
-        child: Container(
-          width: double.maxFinite,
-          height: double.maxFinite,
-          decoration: BoxDecoration(
-            color: Color.fromRGBO(70, 0, 61, 1),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Image.asset('assets/images/advert_1.png'),
-        ),
-      ),
-      GestureDetector(
-        onTap: () {
-          context.read<IndexProvider>().setSelectedIndex(1);
-        },
-        child: Container(
-          width: double.maxFinite,
-          height: double.maxFinite,
-          decoration: BoxDecoration(
-            color: Color.fromRGBO(28, 70, 0, 1),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Image.asset('assets/images/advert_1.png'),
-        ),
-      ),
-    ];
-
-    buildCarouselIndicator() {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          for (int i = 0; i < carouselItems.length; i++)
-            Container(
-              margin: EdgeInsets.all(2),
-              height: 6,
-              width: i == _currentPage ? 28 : 11,
-              decoration: BoxDecoration(
-                color: i == _currentPage
-                    ? Color.fromRGBO(0, 31, 62, 1)
-                    : Color.fromRGBO(217, 217, 217, 1),
-                shape: BoxShape.rectangle,
-                borderRadius: BorderRadius.all(
-                  Radius.circular(4),
-                ),
-              ),
-            )
-        ],
-      );
-    }
+    );
 
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 254, 255, 254),
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: SafeArea(
-            child: Center(
-          child: Padding(
-            padding: const EdgeInsets.only(
-              top: 40.0,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Row(
-                    children: [
-                      //Select location
-                      Icon(
-                        Icons.place,
-                        color: Color.fromRGBO(0, 31, 62, 1),
-                      ),
-                      Padding(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 40.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Location Row
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.place, color: Color.fromRGBO(0, 31, 62, 1)),
+                        Padding(
                           padding: const EdgeInsets.only(left: 10),
-                          child: Text(
-                            _userLocation!,
-                            style: TextStyle(
-                              fontSize: 12,
-                            ),
-                          )),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 10),
-                        child: GestureDetector(
-                            onTap: () {
-                              _initializeLocation();
-                            },
-                            child: Icon(Icons.add)),
-                      ),
-                    ],
+                          child: _isLoadingLoc
+                              ? SizedBox(
+                                  width: 15,
+                                  height: 15,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color.fromRGBO(0, 31, 62, 1),
+                                  ))
+                              : Text(_userLocation ?? 'Unknown location',
+                                  style: TextStyle(fontSize: 12)),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 10),
+                          child: GestureDetector(
+                            onTap: _isLoadingLoc ? null : _initializeLocation,
+                            child: Icon(Icons.add),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  SizedBox(height: 10),
 
-                const SizedBox(
-                  height: 10,
-                ),
-
-                //first advert slider
-                Column(
-                  children: [
-                    CarouselSlider(
-                      items: carouselItems,
-                      options: CarouselOptions(
+                  // Carousel Slider
+                  Column(
+                    children: [
+                      CarouselSlider(
+                        items: carouselItems,
+                        options: CarouselOptions(
                           height: 192,
-                          enlargeFactor: 0.8,
                           enlargeCenterPage: true,
                           autoPlay: true,
-                          enableInfiniteScroll: true,
                           viewportFraction: 0.9,
-                          autoPlayAnimationDuration: Duration(
-                            microseconds: 2000,
-                          ),
-                          onPageChanged: (value, _) {
-                            setState(() {
-                              _currentPage = value;
-                            });
-                          }),
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    buildCarouselIndicator()
-                  ],
-                ),
-
-                const SizedBox(
-                  height: 20,
-                ),
-
-                //Parcel Delivery
-                GestureDetector(
-                  onTap: () {
-                    context.read<IndexProvider>().setSelectedIndex(1);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Container(
-                      width: 390,
-                      height: 192,
-                      decoration: BoxDecoration(
-                        color: Color.fromRGBO(217, 217, 217, 1),
-                        borderRadius: BorderRadius.circular(15),
+                          onPageChanged: (value, _) =>
+                              setState(() => _currentPage = value),
+                        ),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Column(
-                            children: [
-                              const SizedBox(
-                                height: 24,
-                              ),
-                              Image.asset(
-                                'assets/images/lumber_man_2.png',
-                                scale: 2.2,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(
-                            width: 1,
-                          ),
-                          Column(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(top: 140),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      'Parcel Delivery',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14.0),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 10),
-                                      child: CircleAvatar(
-                                        backgroundColor:
-                                            Color.fromRGBO(0, 31, 62, 1),
-                                        radius: 14,
-                                        child: Icon(
-                                          Icons.arrow_forward_ios,
-                                          size: 16,
-                                          color:
-                                              Color.fromRGBO(217, 217, 217, 1),
-                                          weight: 8,
-                                        ),
-                                      ),
-                                    )
-                                  ],
+                      SizedBox(height: 10),
+                      _buildCarouselIndicator(carouselItems.length),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+
+                  //Parcel Delivery
+                  GestureDetector(
+                    onTap: () {
+                      context.read<IndexProvider>().setSelectedIndex(1);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Container(
+                        width: 390,
+                        height: 192,
+                        decoration: BoxDecoration(
+                          color: Color.fromRGBO(217, 217, 217, 1),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Column(
+                              children: [
+                                const SizedBox(
+                                  height: 24,
                                 ),
-                              )
-                            ],
-                          ),
-                        ],
+                                Image.asset(
+                                  'assets/images/lumber_man_2.png',
+                                  scale: 2.2,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(
+                              width: 1,
+                            ),
+                            Column(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 140),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        'Parcel Delivery',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14.0),
+                                      ),
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(left: 10),
+                                        child: CircleAvatar(
+                                          backgroundColor:
+                                              Color.fromRGBO(0, 31, 62, 1),
+                                          radius: 14,
+                                          child: Icon(
+                                            Icons.arrow_forward_ios,
+                                            size: 16,
+                                            color: Color.fromRGBO(
+                                                217, 217, 217, 1),
+                                            weight: 8,
+                                          ),
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                )
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
+                  SizedBox(height: 20),
 
-                const SizedBox(
-                  height: 30,
-                ),
-
-                //Recent Activity
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Recent Activity',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 24,
-                          color: Color.fromRGBO(0, 31, 62, 1),
-                        ),
-                      ),
-                      const SizedBox(height: 80),
-                      _isLoading
-                          ? Center(
-                              child: Column(
-                              children: [
-                                Image.asset(
-                                  'assets/images/no_user_history.png',
-                                  scale: 5,
-                                ),
-                                Text(
-                                  'No user History',
-                                  style: TextStyle(
-                                    color: Color.fromRGBO(165, 175, 175, 1),
-                                    fontSize: 22,
-                                  ),
-                                ),
-                              ],
-                            )) // Show loading indicator
-                          : _hasError
-                              ? Center(
-                                  child: Text(
-                                      'Failed to load deliveries')) // Show error message
-                              : _deliveries.isEmpty
-                                  ? Center(
-                                      child: Text(
-                                          'No recent deliveries found')) // Show empty state
-                                  : Column(
-                                      children: [
-                                        Expanded(
-                                          child: ListView.builder(
-                                            itemCount: _deliveries.length,
-                                            shrinkWrap:
-                                                true, // Prevents infinite height issues
-                                            physics:
-                                                BouncingScrollPhysics(), // Smooth scrolling effect
-                                            itemBuilder: (context, index) {
-                                              final delivery =
-                                                  _deliveries[index];
-                                              return Card(
-                                                elevation: 2,
-                                                margin: EdgeInsets.symmetric(
-                                                    vertical: 8,
-                                                    horizontal: 12),
-                                                child: ListTile(
-                                                  leading: Icon(
-                                                      Icons.local_shipping,
-                                                      color: Colors.blue),
-                                                  title: Text(
+                  // Recent Activity
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Text('Recent Activity',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 24,
+                                color: Color.fromRGBO(0, 31, 62, 1))),
+                        SizedBox(height: 20),
+                        _isLoading
+                            ? Center(
+                                child: CircularProgressIndicator(
+                                color: Color.fromRGBO(0, 31, 62, 1),
+                              ))
+                            : _hasError
+                                ? Center(
+                                    child: Text('Failed to load deliveries'))
+                                : _deliveries.isEmpty
+                                    ? Center(
+                                        child:
+                                            Text('No recent deliveries found'))
+                                    : ListView.builder(
+                                        itemCount: _deliveries.length,
+                                        shrinkWrap: true,
+                                        physics: BouncingScrollPhysics(),
+                                        itemBuilder: (context, index) {
+                                          final delivery = _deliveries[index];
+                                          return GestureDetector(
+                                            onTap: () => navigateToIndex(1),
+                                            child: Card(
+                                              elevation: 2,
+                                              margin: EdgeInsets.symmetric(
+                                                  vertical: 8, horizontal: 12),
+                                              child: ListTile(
+                                                leading: Icon(
+                                                    Icons.local_shipping,
+                                                    color: Color.fromRGBO(
+                                                        0, 31, 62, 1)),
+                                                title: Text(
                                                     'User ID: ${delivery.userId}',
                                                     style: TextStyle(
                                                         fontWeight:
-                                                            FontWeight.bold),
-                                                  ),
-                                                  subtitle: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                          'Status: ${delivery.status}'),
-                                                      Text(
-                                                          'Cost: ₦${delivery.price}'),
-                                                      Text(
-                                                          'Distance: ${delivery.distance} km'),
-                                                      Text(
-                                                          'From: ${delivery.startPoint} → To: ${delivery.endPoint}'),
-                                                    ],
-                                                  ),
-                                                  trailing: Column(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      Icon(Icons.local_mall,
-                                                          color: Colors.grey),
-                                                      Text(
-                                                          delivery.packageSize),
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                    ],
+                                                            FontWeight.bold)),
+                                                subtitle: Text(
+                                                    'Status: ${delivery.status}'),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
-        )),
+        ),
       ),
     );
   }
