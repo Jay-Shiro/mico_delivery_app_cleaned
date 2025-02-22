@@ -313,23 +313,26 @@ class _MapPageState extends State<MapPage> {
 
           // Calculate costs based on distance thresholds
           if (roundDistanceKM <= 5) {
-            expressCost = 2000;
-            standardCost = 1500;
+            expressCost = (roundDistanceKM / 1.2) * 589.74;
+            standardCost = (roundDistanceKM / 1.6) * 389.74;
+          } else if (roundDistanceKM <= 10) {
+            expressCost = (roundDistanceKM / 1.2) * 376.24;
+            standardCost = (roundDistanceKM / 1.6) * 276.74;
           } else if (roundDistanceKM <= 15) {
-            expressCost = 4000;
-            standardCost = 3000;
+            expressCost = (roundDistanceKM / 1.2) * 376.24;
+            standardCost = (roundDistanceKM / 1.6) * 276.74;
           } else if (roundDistanceKM <= 20) {
-            expressCost = 6000;
-            standardCost = 4500;
+            expressCost = (roundDistanceKM / 1.2) * 345.45;
+            standardCost = (roundDistanceKM / 1.6) * 245.74;
           } else if (roundDistanceKM <= 25) {
-            expressCost = 8000;
-            standardCost = 6000;
+            expressCost = (roundDistanceKM / 1.2) * 320.24;
+            standardCost = (roundDistanceKM / 1.6) * 200;
           } else if (roundDistanceKM <= 30) {
-            expressCost = 10000;
-            standardCost = 7500;
+            expressCost = (roundDistanceKM / 1.2) * 300;
+            standardCost = (roundDistanceKM / 1.6) * 180;
           } else {
-            expressCost = (roundDistanceKM / 1.2) * 800;
-            standardCost = (roundDistanceKM / 1.6) * 800;
+            expressCost = (roundDistanceKM / 1.2) * 200;
+            standardCost = (roundDistanceKM / 1.6) * 150;
           }
 
           // Update formatted values
