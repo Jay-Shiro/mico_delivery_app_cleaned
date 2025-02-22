@@ -335,6 +335,11 @@ class _MapPageState extends State<MapPage> {
           // Update formatted values
           standardFormatted = formatMoney(standardCost);
           expressFormatted = formatMoney(expressCost);
+
+          // Update size-related formatted values
+          size50Formatted = formatMoney(packageSize50Price);
+          size75Formatted = formatMoney(packageSize75Price);
+          size100Formatted = formatMoney(packageSize100Price);
         });
       }
     } catch (e) {
