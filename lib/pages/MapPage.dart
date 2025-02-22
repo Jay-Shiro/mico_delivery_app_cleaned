@@ -297,10 +297,9 @@ class _MapPageState extends State<MapPage> {
   }
 
   Future<void> _calculateDeliveryDetails(
-      List<LatLng> polylineCordinates) async {
+      List<LatLng> polylineCoordinates) async {
     try {
       if (_userCurrentLocation != null && _userDestinationLatLng != null) {
-        // Calculate direct distance between points
         double totalDistance = Geolocator.distanceBetween(
           _userCurrentLocation!.latitude,
           _userCurrentLocation!.longitude,
@@ -312,19 +311,30 @@ class _MapPageState extends State<MapPage> {
           finalDistance = totalDistance / 1000; // Convert to kilometers
           roundDistanceKM = double.parse(finalDistance.toStringAsFixed(1));
 
-          // Calculate costs based on distance
-          expressCost = (roundDistanceKM / 1.2) * 800;
-          standardCost = (roundDistanceKM / 1.6) * 800;
+          // Calculate costs based on distance thresholds
+          if (roundDistanceKM <= 5) {
+            expressCost = 2000;
+            standardCost = 1500;
+          } else if (roundDistanceKM <= 15) {
+            expressCost = 4000;
+            standardCost = 3000;
+          } else if (roundDistanceKM <= 20) {
+            expressCost = 6000;
+            standardCost = 4500;
+          } else if (roundDistanceKM <= 25) {
+            expressCost = 8000;
+            standardCost = 6000;
+          } else if (roundDistanceKM <= 30) {
+            expressCost = 10000;
+            standardCost = 7500;
+          } else {
+            expressCost = (roundDistanceKM / 1.2) * 800;
+            standardCost = (roundDistanceKM / 1.6) * 800;
+          }
 
           // Update formatted values
           standardFormatted = formatMoney(standardCost);
           expressFormatted = formatMoney(expressCost);
-
-          // Update size-related formatted values
-          size25Formatted = formatMoney(packageSize25Price);
-          size50Formatted = formatMoney(packageSize50Price);
-          size75Formatted = formatMoney(packageSize75Price);
-          size100Formatted = formatMoney(packageSize100Price);
         });
       }
     } catch (e) {
@@ -540,10 +550,10 @@ class _MapPageState extends State<MapPage> {
   bool is75Selected = false;
   bool is100Selected = false;
 
-  double packageSize25Price = 1250;
-  double packageSize50Price = 2500;
-  double packageSize75Price = 3750;
-  double packageSize100Price = 5000;
+  double packageSize25Price = 0;
+  double packageSize50Price = 250;
+  double packageSize75Price = 500;
+  double packageSize100Price = 750;
 
   double expressCost = 0;
   double standardCost = 0;
@@ -1083,12 +1093,13 @@ class _MapPageState extends State<MapPage> {
                                         ),
                                         ListTile(
                                           title: Text(
-                                            'Quarter the Box',
+                                            'Quarter the Box & Below',
                                             style: TextStyle(
                                                 fontWeight: FontWeight.w600),
                                           ),
                                           subtitle: Text(
-                                            size25Formatted?.symbolOnLeft ?? '',
+                                            size25Formatted?.symbolOnLeft ??
+                                                'Free',
                                           ),
                                           trailing: Checkbox(
                                             activeColor: const Color.fromRGBO(
@@ -1107,7 +1118,7 @@ class _MapPageState extends State<MapPage> {
                                         ),
                                         ListTile(
                                           title: Text(
-                                            'Half the Box',
+                                            'Half the Box & Below',
                                             style: TextStyle(
                                                 fontWeight: FontWeight.w600),
                                           ),
@@ -1131,7 +1142,7 @@ class _MapPageState extends State<MapPage> {
                                         ),
                                         ListTile(
                                           title: Text(
-                                            'One quarter the Box',
+                                            '3 quarter the Box & Below',
                                             style: TextStyle(
                                                 fontWeight: FontWeight.w600),
                                           ),
@@ -1155,7 +1166,7 @@ class _MapPageState extends State<MapPage> {
                                         ),
                                         ListTile(
                                           title: Text(
-                                            'Full Box',
+                                            'Full Box & Below',
                                             style: TextStyle(
                                                 fontWeight: FontWeight.w600),
                                           ),
