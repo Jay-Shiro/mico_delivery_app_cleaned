@@ -314,25 +314,25 @@ class _MapPageState extends State<MapPage> {
           // Calculate costs based on distance thresholds
           if (roundDistanceKM <= 5) {
             expressCost = (roundDistanceKM / 1.2) * 589.74;
-            standardCost = (roundDistanceKM / 1.6) * 389.74;
+            standardCost = (roundDistanceKM / 1.6) * 589.74;
           } else if (roundDistanceKM <= 10) {
-            expressCost = (roundDistanceKM / 1.2) * 376.24;
-            standardCost = (roundDistanceKM / 1.6) * 276.74;
+            expressCost = (roundDistanceKM / 1.2) * 476.24;
+            standardCost = (roundDistanceKM / 1.6) * 476.74;
           } else if (roundDistanceKM <= 15) {
             expressCost = (roundDistanceKM / 1.2) * 376.24;
-            standardCost = (roundDistanceKM / 1.6) * 276.74;
+            standardCost = (roundDistanceKM / 1.6) * 376.74;
           } else if (roundDistanceKM <= 20) {
             expressCost = (roundDistanceKM / 1.2) * 345.45;
-            standardCost = (roundDistanceKM / 1.6) * 245.74;
+            standardCost = (roundDistanceKM / 1.6) * 345.74;
           } else if (roundDistanceKM <= 25) {
             expressCost = (roundDistanceKM / 1.2) * 320.24;
-            standardCost = (roundDistanceKM / 1.6) * 200;
+            standardCost = (roundDistanceKM / 1.6) * 300;
           } else if (roundDistanceKM <= 30) {
             expressCost = (roundDistanceKM / 1.2) * 300;
-            standardCost = (roundDistanceKM / 1.6) * 180;
+            standardCost = (roundDistanceKM / 1.6) * 280;
           } else {
             expressCost = (roundDistanceKM / 1.2) * 200;
-            standardCost = (roundDistanceKM / 1.6) * 150;
+            standardCost = (roundDistanceKM / 1.6) * 190;
           }
 
           // Update formatted values
@@ -479,6 +479,9 @@ class _MapPageState extends State<MapPage> {
       FocusManager.instance.primaryFocus?.unfocus();
       Provider.of<IndexProvider>(context, listen: false).setSelectedIndex(2);
       Navigator.of(context).pop();
+
+      // Show pop-up for cash payment
+      _showRiderNotification();
     } else if (isOnlinePayment == true && isCashorTransfer == false) {
       if (userEmail == null || userEmail!.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -521,6 +524,9 @@ class _MapPageState extends State<MapPage> {
             Provider.of<IndexProvider>(context, listen: false)
                 .setSelectedIndex(2);
             Navigator.of(context).pop();
+
+            // Show pop-up for successful online payment
+            _showRiderNotification();
           },
           onCancelled: (paystackCallback) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -543,6 +549,26 @@ class _MapPageState extends State<MapPage> {
         ),
       );
     }
+  }
+
+  void _showRiderNotification() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Order Confirmed"),
+          content: Text("A rider will reach out to you shortly."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   var finalDistance;
