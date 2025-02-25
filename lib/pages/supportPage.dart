@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:micollins_delivery_app/components/m_buttons.dart';
 import 'package:micollins_delivery_app/components/m_orange_buttons.dart';
+import 'package:micollins_delivery_app/pages/FAQ_screen.dart';
 import 'package:micollins_delivery_app/pages/chat_screen.dart';
 
 class SupportPage extends StatelessWidget {
@@ -37,7 +38,7 @@ class SupportPage extends StatelessWidget {
         const SizedBox(height: 33),
         chatButton(context),
         const SizedBox(height: 20),
-        FAQButton(),
+        FAQButton(context),
       ],
     );
   }
@@ -80,7 +81,15 @@ class SupportPage extends StatelessWidget {
         btnText: 'Start Chat');
   }
 
-  Widget FAQButton() {
-    return MOrangeButtons(onTap: () {}, btnText: 'View FAQ');
+  Widget FAQButton(BuildContext context) {
+    return MOrangeButtons(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FAQScreen()),
+        );
+      },
+      btnText: 'View FAQ',
+    );
   }
 }
