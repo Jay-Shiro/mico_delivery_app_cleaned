@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -16,12 +17,22 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _sendMessage({String? text, File? image}) {
     if (text == null && image == null) return;
+    String timestamp =
+        DateFormat('hh:mm a • MMM d, yyyy').format(DateTime.now());
     setState(() {
-      _messages.add({'text': text, 'image': image, 'isUser': true});
       _messages.add({
-        'text': 'Customer Care: Thank you for reaching out.',
+        'text': text,
+        'image': image,
+        'isUser': true,
+        'timestamp': timestamp,
+        'sender': 'You'
+      });
+      _messages.add({
+        'text': 'Thank you for reaching out.',
         'image': null,
-        'isUser': false
+        'isUser': false,
+        'timestamp': timestamp,
+        'sender': 'Customer Care'
       });
     });
     _messageController.clear();
@@ -37,75 +48,154 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    String currentDateTime =
+        DateFormat('EEEE . hh:mm a').format(DateTime.now());
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Customer Care Chat")),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              reverse: true,
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[_messages.length - 1 - index];
-                return Align(
-                  alignment: message['isUser']
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    margin:
-                        const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: message['isUser']
-                          ? Colors.blue[200]
-                          : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (message['text'] != null)
-                          Text(
-                            message['text'],
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        if (message['image'] != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 5),
-                            child: Image.file(message['image'], height: 150),
-                          ),
-                      ],
-                    ),
+      body: Padding(
+        padding: const EdgeInsets.only(bottom: 20, left: 15, right: 15),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Column(
+                children: [
+                  const SizedBox(
+                    height: 90,
                   ),
-                );
-              },
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            color: Colors.white,
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.image),
-                  onPressed: _sendImage,
-                ),
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration:
-                        const InputDecoration(hintText: "Type a message..."),
+                  const Text(
+                    "MY SUPPORT",
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.send, color: Colors.blue),
-                  onPressed: () =>
-                      _sendMessage(text: _messageController.text.trim()),
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  Text(
+                    currentDateTime,
+                    style: const TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            const Divider(
+              thickness: 1,
+            ),
+            Expanded(
+              child: ListView.builder(
+                reverse: true,
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final message = _messages[_messages.length - 1 - index];
+                  return Column(
+                    crossAxisAlignment: message['isUser']
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        child: Text(
+                          message['sender'],
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ),
+                      Align(
+                        alignment: message['isUser']
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 10),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: message['isUser']
+                                ? Color.fromRGBO(0, 31, 62, 1)
+                                : Color.fromRGBO(126, 168, 82, 1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (message['text'] != null)
+                                Text(
+                                  message['text'],
+                                  style: const TextStyle(
+                                      fontSize: 16, color: Colors.white),
+                                ),
+                              if (message['image'] != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 5),
+                                  child:
+                                      Image.file(message['image'], height: 150),
+                                ),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 5),
+                                child: Text(
+                                  message['timestamp'],
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.white70),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            Positioned(
+              top: 10,
+              bottom: 10,
+              left: 10,
+              right: 10,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.image),
+                      color: Color.fromRGBO(0, 31, 62, 1),
+                      onPressed: _sendImage,
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        decoration: const InputDecoration(
+                            hintText: "Type a message...",
+                            border: InputBorder.none),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.send_rounded,
+                        color: Color.fromRGBO(126, 168, 82, 1),
+                      ),
+                      onPressed: () =>
+                          _sendMessage(text: _messageController.text.trim()),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
