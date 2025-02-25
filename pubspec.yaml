@@ -50,6 +50,7 @@ dependencies:
   money_formatter: ^0.0.6
   path: ^1.9.0
   shared_preferences: ^2.3.5
+  image_picker: 
  
   
 

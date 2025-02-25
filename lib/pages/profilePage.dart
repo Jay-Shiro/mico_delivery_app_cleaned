@@ -4,6 +4,7 @@ import 'package:micollins_delivery_app/components/mico_list_tiles.dart';
 import 'package:micollins_delivery_app/components/user_cache.dart';
 import 'package:micollins_delivery_app/pages/notification_page.dart';
 import 'package:micollins_delivery_app/pages/profile_edit.dart';
+import 'package:micollins_delivery_app/pages/security_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -93,32 +94,90 @@ class _ProfilePageState extends State<ProfilePage> {
               trailing: Icon(Icons.arrow_forward_ios, size: 18),
             ),
           ),
-          MicoListTiles(
-            leading: Image.asset(
-              'assets/images/security.png',
-              scale: 20,
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => SecuritySettings()),
+              );
+            },
+            child: MicoListTiles(
+              leading: Image.asset(
+                'assets/images/security.png',
+                scale: 20,
+              ),
+              title: Text(
+                'Security',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              trailing: Icon(Icons.arrow_forward_ios, size: 18),
             ),
-            title: Text(
-              'Security',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            trailing: Icon(Icons.arrow_forward_ios, size: 18),
           ),
-          MicoListTiles(
-            leading: Image.asset(
-              'assets/images/invite.png',
-              scale: 20,
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => ComingSoon()),
+              );
+            },
+            child: MicoListTiles(
+              leading: Image.asset(
+                'assets/images/invite.png',
+                scale: 20,
+              ),
+              title: Text(
+                'Invite friends',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              trailing: Icon(Icons.arrow_forward_ios, size: 18),
             ),
-            title: Text(
-              'Invite friends',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            trailing: Icon(Icons.arrow_forward_ios, size: 18),
           ),
           GestureDetector(
             onTap: () async {
-              await AuthService.logout();
-              Navigator.of(context).pushNamed('/loginpage');
+              bool confirmLogout = await showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text(
+                      "Logout Confirmation",
+                      style: TextStyle(
+                        color: Color.fromRGBO(0, 31, 62, 1),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    content: const Text("Are you sure you want to log out?"),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(false); // User chose "No"
+                        },
+                        child: const Text(
+                          "No",
+                          style: TextStyle(
+                            color: Color.fromRGBO(0, 31, 62, 1),
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(true); // User chose "Yes"
+                        },
+                        child: const Text(
+                          "Yes",
+                          style: TextStyle(
+                            color: Color.fromRGBO(0, 31, 62, 1),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+
+              if (confirmLogout == true) {
+                await AuthService.logout();
+                Navigator.of(context)
+                    .pushNamedAndRemoveUntil('/loginpage', (route) => false);
+              }
             },
             child: MicoListTiles(
               leading: Image.asset(

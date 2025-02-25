@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:micollins_delivery_app/components/m_buttons.dart';
 import 'package:micollins_delivery_app/components/m_orange_buttons.dart';
+import 'package:micollins_delivery_app/pages/chat_screen.dart';
 
 class SupportPage extends StatelessWidget {
   const SupportPage({super.key});
@@ -68,7 +69,15 @@ class SupportPage extends StatelessWidget {
   }
 
   Widget chatButton(BuildContext context) {
-    return MButtons(onTap: () {}, btnText: 'Start Chat');
+    return MButtons(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(),
+            ),
+          );
+        },
+        btnText: 'Start Chat');
   }
 
   Widget FAQButton() {
