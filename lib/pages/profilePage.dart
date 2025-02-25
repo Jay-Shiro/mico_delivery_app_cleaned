@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:micollins_delivery_app/components/coming_soon.dart';
 import 'package:micollins_delivery_app/components/mico_list_tiles.dart';
 import 'package:micollins_delivery_app/components/user_cache.dart';
+import 'package:micollins_delivery_app/pages/notification_page.dart';
 import 'package:micollins_delivery_app/pages/profile_edit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -55,27 +57,41 @@ class _ProfilePageState extends State<ProfilePage> {
               trailing: Icon(Icons.arrow_forward_ios, size: 18),
             ),
           ),
-          MicoListTiles(
-            leading: Image.asset(
-              'assets/images/notification.png',
-              scale: 20,
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => NotificationSettings()),
+              );
+            },
+            child: MicoListTiles(
+              leading: Image.asset(
+                'assets/images/notification.png',
+                scale: 20,
+              ),
+              title: Text(
+                'Notification',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              trailing: Icon(Icons.arrow_forward_ios, size: 18),
             ),
-            title: Text(
-              'Notification',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            trailing: Icon(Icons.arrow_forward_ios, size: 18),
           ),
-          MicoListTiles(
-            leading: Image.asset(
-              'assets/images/payment.png',
-              scale: 20,
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => ComingSoon()),
+              );
+            },
+            child: MicoListTiles(
+              leading: Image.asset(
+                'assets/images/payment.png',
+                scale: 20,
+              ),
+              title: Text(
+                'Payment',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              trailing: Icon(Icons.arrow_forward_ios, size: 18),
             ),
-            title: Text(
-              'Payment',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            trailing: Icon(Icons.arrow_forward_ios, size: 18),
           ),
           MicoListTiles(
             leading: Image.asset(

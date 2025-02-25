@@ -5,18 +5,10 @@ class ComingSoon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: SafeArea(
-          child: Scaffold(
+    return Scaffold(
         backgroundColor: Colors.white,
-        body: Column(
-          children: [
-            SizedBox(
-              height: MediaQuery.sizeOf(context).height * 0.5,
-            )
-          ],
-        ),
-      )),
-    );
+        body: SafeArea(
+          child: SingleChildScrollView(),
+        ));
   }
 }
