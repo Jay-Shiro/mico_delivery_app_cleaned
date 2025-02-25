@@ -311,28 +311,86 @@ class _MapPageState extends State<MapPage> {
           finalDistance = totalDistance / 1000; // Convert to kilometers
           roundDistanceKM = double.parse(finalDistance.toStringAsFixed(1));
 
-          // Calculate costs based on distance thresholds
-          if (roundDistanceKM <= 5) {
-            expressCost = (roundDistanceKM / 1.2) * 589.74;
-            standardCost = (roundDistanceKM / 1.6) * 589.74;
-          } else if (roundDistanceKM <= 10) {
-            expressCost = (roundDistanceKM / 1.2) * 476.24;
-            standardCost = (roundDistanceKM / 1.6) * 476.74;
-          } else if (roundDistanceKM <= 15) {
-            expressCost = (roundDistanceKM / 1.2) * 376.24;
-            standardCost = (roundDistanceKM / 1.6) * 376.74;
-          } else if (roundDistanceKM <= 20) {
-            expressCost = (roundDistanceKM / 1.2) * 345.45;
-            standardCost = (roundDistanceKM / 1.6) * 345.74;
-          } else if (roundDistanceKM <= 25) {
-            expressCost = (roundDistanceKM / 1.2) * 320.24;
-            standardCost = (roundDistanceKM / 1.6) * 300;
-          } else if (roundDistanceKM <= 30) {
-            expressCost = (roundDistanceKM / 1.2) * 300;
-            standardCost = (roundDistanceKM / 1.6) * 280;
+          // Determine if the route is from the Island to the Mainland
+          bool isIslandToMainland = _isIslandToMainland(
+            _userCurrentLocation!.latitude,
+            _userCurrentLocation!.longitude,
+            _userDestinationLatLng!.latitude,
+            _userDestinationLatLng!.longitude,
+          );
+
+          // Use different pricing if the delivery is from the Island to the Mainland
+          if (isIslandToMainland) {
+            if (roundDistanceKM <= 5) {
+              expressCost = (roundDistanceKM / 0.8) * 345.60;
+              standardCost = (roundDistanceKM / 1.6) * 345.60;
+            } else if (roundDistanceKM <= 10) {
+              expressCost = (roundDistanceKM / 0.8) * 317.12;
+              standardCost = (roundDistanceKM / 1.6) * 317.12;
+            } else if (roundDistanceKM <= 15) {
+              expressCost = (roundDistanceKM / 0.8) * 259.60;
+              standardCost = (roundDistanceKM / 1.6) * 259.60;
+            } else if (roundDistanceKM <= 20) {
+              expressCost = (roundDistanceKM / 0.8) * 283.74;
+              standardCost = (roundDistanceKM / 1.6) * 283.74;
+            } else if (roundDistanceKM <= 25) {
+              expressCost = (roundDistanceKM / 0.8) * 256.31;
+              standardCost = (roundDistanceKM / 1.6) * 256.31;
+            } else if (roundDistanceKM <= 30) {
+              expressCost = (roundDistanceKM / 0.8) * 242.88;
+              standardCost = (roundDistanceKM / 1.6) * 242.88;
+            } else if (roundDistanceKM <= 35) {
+              expressCost = (roundDistanceKM / 0.8) * 236.03;
+              standardCost = (roundDistanceKM / 1.6) * 236.03;
+            } else if (roundDistanceKM <= 40) {
+              expressCost = (roundDistanceKM / 0.8) * 250.06;
+              standardCost = (roundDistanceKM / 1.6) * 250.06;
+            } else if (roundDistanceKM <= 45) {
+              expressCost = (roundDistanceKM / 0.8) * 268.75;
+              standardCost = (roundDistanceKM / 1.6) * 268.75;
+            } else if (roundDistanceKM <= 50) {
+              expressCost = (roundDistanceKM / 0.8) * 255.49;
+              standardCost = (roundDistanceKM / 1.6) * 255.49;
+            } else {
+              expressCost = (roundDistanceKM / 0.8) * 200;
+              standardCost = (roundDistanceKM / 1.6) * 200;
+            }
           } else {
-            expressCost = (roundDistanceKM / 1.2) * 200;
-            standardCost = (roundDistanceKM / 1.6) * 190;
+            // Default pricing tiers
+            if (roundDistanceKM <= 5) {
+              expressCost = (roundDistanceKM / 0.8) * 302.46;
+              standardCost = (roundDistanceKM / 1.6) * 302.46;
+            } else if (roundDistanceKM <= 10) {
+              expressCost = (roundDistanceKM / 0.8) * 232.34;
+              standardCost = (roundDistanceKM / 1.6) * 232.34;
+            } else if (roundDistanceKM <= 15) {
+              expressCost = (roundDistanceKM / 0.8) * 222.52;
+              standardCost = (roundDistanceKM / 1.6) * 222.52;
+            } else if (roundDistanceKM <= 20) {
+              expressCost = (roundDistanceKM / 0.8) * 205.06;
+              standardCost = (roundDistanceKM / 1.6) * 205.06;
+            } else if (roundDistanceKM <= 25) {
+              expressCost = (roundDistanceKM / 0.8) * 240.78;
+              standardCost = (roundDistanceKM / 1.6) * 240.78;
+            } else if (roundDistanceKM <= 30) {
+              expressCost = (roundDistanceKM / 0.8) * 189.83;
+              standardCost = (roundDistanceKM / 1.6) * 189.83;
+            } else if (roundDistanceKM <= 35) {
+              expressCost = (roundDistanceKM / 0.8) * 182.98;
+              standardCost = (roundDistanceKM / 1.6) * 182.98;
+            } else if (roundDistanceKM <= 40) {
+              expressCost = (roundDistanceKM / 0.8) * 172.43;
+              standardCost = (roundDistanceKM / 1.6) * 172.43;
+            } else if (roundDistanceKM <= 45) {
+              expressCost = (roundDistanceKM / 0.8) * 169.03;
+              standardCost = (roundDistanceKM / 1.6) * 169.03;
+            } else if (roundDistanceKM <= 50) {
+              expressCost = (roundDistanceKM / 0.8) * 192.86;
+              standardCost = (roundDistanceKM / 1.6) * 192.86;
+            } else {
+              expressCost = (roundDistanceKM / 0.8) * 160;
+              standardCost = (roundDistanceKM / 1.6) * 160;
+            }
           }
 
           // Update formatted values
@@ -348,6 +406,22 @@ class _MapPageState extends State<MapPage> {
     } catch (e) {
       debugPrint('Error calculating delivery details: $e');
     }
+  }
+
+  /// Function to check if a delivery is from the Island to the Mainland
+  bool _isIslandToMainland(
+      double startLat, double startLng, double endLat, double endLng) {
+    // Rough coordinates defining Lagos Island region
+    bool isStartOnIsland = startLat >= 6.41 &&
+        startLat <= 6.46 &&
+        startLng >= 3.39 &&
+        startLng <= 3.44;
+
+    // Rough coordinates defining Mainland region
+    bool isEndOnMainland =
+        endLat >= 6.50 && endLat <= 6.60 && endLng >= 3.30 && endLng <= 3.40;
+
+    return isStartOnIsland && isEndOnMainland;
   }
 
   // Utility function to format the money values
@@ -555,17 +629,21 @@ class _MapPageState extends State<MapPage> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Order Confirmed"),
-          content: Text("A rider will reach out to you shortly."),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text("OK"),
-            ),
-          ],
+        return Center(
+          child: AlertDialog(
+            elevation: 2,
+            title: Text("Order Confirmed"),
+            content: Text("A rider will reach out to you shortly."),
+            actions: [
+              MButtons(
+                onTap: () {
+                  Navigator.of(context).pop();
+                  FocusManager.instance.primaryFocus?.unfocus();
+                },
+                btnText: "OK",
+              ),
+            ],
+          ),
         );
       },
     );
