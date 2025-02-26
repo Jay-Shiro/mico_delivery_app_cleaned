@@ -50,18 +50,6 @@ class _MapPageState extends State<MapPage> {
       if (mounted) {
         setState(() {
           _userCurrentLocation = LatLng(position.latitude, position.longitude);
-<<<<<<< HEAD
-          if (_userCurrentLocation != null) {
-            _userMarkers.add(
-              Marker(
-                markerId: const MarkerId('user_location'),
-                position: _userCurrentLocation!,
-                icon: BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueGreen),
-              ),
-            );
-          }
-=======
           _userMarkers.add(
             Marker(
               markerId: const MarkerId('user_location'),
@@ -72,7 +60,6 @@ class _MapPageState extends State<MapPage> {
           );
           _mapController.animateCamera(CameraUpdate.newCameraPosition(
               CameraPosition(target: _userCurrentLocation!, zoom: 15)));
->>>>>>> e870c05f6f9d7c94f6f824baeeea8daf7fc7f903
         });
 
         // Get address for the location
@@ -170,20 +157,10 @@ class _MapPageState extends State<MapPage> {
   void _userDesToMarker(Prediction pCoordinates) {
     try {
       // First check if we have valid coordinates
-<<<<<<< HEAD
-      if (pCoordinates.lat == null ||
-          pCoordinates.lng == null ||
-          pCoordinates.lat!.isEmpty ||
-          pCoordinates.lng!.isEmpty) {
-        debugPrint('Invalid coordinates in prediction');
-        return;
-      }
-=======
       //if (pCoordinates.lat == null || pCoordinates.lng == null) {
       //debugPrint('Invalid coordinates in prediction');
       //return;
       //}
->>>>>>> e870c05f6f9d7c94f6f824baeeea8daf7fc7f903
 
       // Validate coordinate format
       _userDestinationLatDEC = double.tryParse(pCoordinates.lat!) ?? 0;
@@ -217,17 +194,6 @@ class _MapPageState extends State<MapPage> {
         // Wait for state update
         Future.delayed(Duration(milliseconds: 100), () {
           if (_userCurrentLocation != null && _userDestinationLatLng != null) {
-<<<<<<< HEAD
-            _mapController
-                .animateCamera(
-              CameraUpdate.newLatLngZoom(_userDestinationLatLng!, 15),
-            )
-                .then((_) {
-              getPolylinePoints().then(
-                (coordinates) => generatePolylineFromPoints(coordinates),
-              );
-            });
-=======
             // Update map and calculate route
             _mapController.animateCamera(
               CameraUpdate.newLatLngZoom(_userDestinationLatLng!, 15),
@@ -235,7 +201,6 @@ class _MapPageState extends State<MapPage> {
           } else {
             debugPrint('Current location: $_userCurrentLocation');
             debugPrint('Destination location: $_userDestinationLatLng');
->>>>>>> e870c05f6f9d7c94f6f824baeeea8daf7fc7f903
           }
         });
       }
@@ -463,25 +428,43 @@ class _MapPageState extends State<MapPage> {
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: Colors.white,
-              content: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10.0, vertical: 20.0),
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16.0),
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Select Payment Method',
+                          style: TextStyle(
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          color: Colors.grey,
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4.0),
-                    _buildPaymentOption(
+                    const Divider(thickness: 1.2),
+                    const SizedBox(height: 12.0),
+                    _buildModernPaymentOption(
                       title: 'Cash or Transfer',
                       value: dialogIsCashorTransfer,
+                      icon: Icons.account_balance_wallet,
                       onChanged: (newBool) {
                         setDialogState(() {
                           dialogIsCashorTransfer = newBool!;
@@ -489,10 +472,11 @@ class _MapPageState extends State<MapPage> {
                         });
                       },
                     ),
-                    const SizedBox(height: 2.0),
-                    _buildPaymentOption(
+                    const SizedBox(height: 12.0),
+                    _buildModernPaymentOption(
                       title: 'Pay Online',
                       value: dialogIsOnlinePayment,
+                      icon: Icons.payment,
                       onChanged: (newBool) {
                         setDialogState(() {
                           dialogIsOnlinePayment = newBool!;
@@ -500,16 +484,34 @@ class _MapPageState extends State<MapPage> {
                         });
                       },
                     ),
-                    const SizedBox(height: 8.0),
-                    MButtons(
-                      onTap: () {
+                    const SizedBox(height: 24.0),
+                    ElevatedButton(
+                      onPressed: () {
                         setState(() {
                           isCashorTransfer = dialogIsCashorTransfer;
                           isOnlinePayment = dialogIsOnlinePayment;
                         });
+                        Navigator.of(context).pop(); // Close the dialog
                         _processPayment();
                       },
-                      btnText: 'Process Order',
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Color.fromRGBO(40, 115, 115, 1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14.0,
+                          horizontal: 24.0,
+                        ),
+                      ),
+                      child: Text(
+                        'Process Order',
+                        style: TextStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -518,6 +520,36 @@ class _MapPageState extends State<MapPage> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildModernPaymentOption({
+    required String title,
+    required bool value,
+    required IconData icon,
+    required ValueChanged<bool?> onChanged,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 28.0, color: Color.fromRGBO(40, 115, 115, 1)),
+        const SizedBox(width: 12.0),
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 16.0,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        Switch(
+          value: value,
+          onChanged: onChanged,
+          activeColor: Color.fromRGBO(40, 115, 115, 1),
+          inactiveTrackColor: Colors.grey[300],
+        ),
+      ],
     );
   }
 

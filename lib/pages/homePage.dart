@@ -240,7 +240,7 @@ class _HomepageState extends State<Homepage> {
                   child: Column(
                     children: [
                       Padding(
-                        padding: const EdgeInsets.only(right: 200),
+                        padding: const EdgeInsets.only(right: 180),
                         child: Text(
                           'Recent Activity',
                           style: TextStyle(
@@ -261,7 +261,7 @@ class _HomepageState extends State<Homepage> {
                               ),
                               Image.asset(
                                 'assets/images/no_user_history.png',
-                                scale: 5,
+                                scale: 10,
                               ),
                               Text(
                                 'No user History',
