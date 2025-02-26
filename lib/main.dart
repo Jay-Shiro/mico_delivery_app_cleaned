@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:micollins_delivery_app/components/noti_service.dart';
 import 'package:micollins_delivery_app/pages/LoginPage.dart';
 import 'package:micollins_delivery_app/pages/MapPage.dart';
 import 'package:micollins_delivery_app/pages/RecoverPassword.dart';
@@ -13,6 +14,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Init notifications
+  final notiService = NotiService();
+  notiService.initNotification();
 
   // Check if the user is logged in
   SharedPreferences prefs = await SharedPreferences.getInstance();

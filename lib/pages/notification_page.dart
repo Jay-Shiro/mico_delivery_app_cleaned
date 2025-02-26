@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:micollins_delivery_app/components/m_orange_buttons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,6 +15,9 @@ class NotificationSettings extends StatefulWidget {
 class _NotificationSettingsState extends State<NotificationSettings> {
   bool isNotificationsEnabled = false;
   bool isUpdatesEnabled = false;
+
+  final FlutterLocalNotificationsPlugin _notificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
@@ -34,28 +38,47 @@ class _NotificationSettingsState extends State<NotificationSettings> {
     await prefs.setBool('notificationsEnabled', isNotificationsEnabled);
     await prefs.setBool('updatesEnabled', isUpdatesEnabled);
 
+    // Manage notification permissions
+    if (isNotificationsEnabled) {
+      _enableNotifications();
+    } else {
+      _disableNotifications();
+    }
+
     final url = Uri.parse("YOUR_API_ENDPOINT"); // Replace with your API URL
     final response = await http.post(
       url,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer YOUR_ACCESS_TOKEN",
-      },
       body: jsonEncode({
         "notifications_enabled": isNotificationsEnabled,
         "updates_enabled": isUpdatesEnabled,
       }),
     );
 
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Settings updated successfully!")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to update settings.")),
-      );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          response.statusCode == 200
+              ? "Settings updated successfully!"
+              : "Failed to update settings.",
+        ),
+        backgroundColor: response.statusCode == 200 ? Colors.green : Colors.red,
+      ),
+    );
+  }
+
+  Future<void> _enableNotifications() async {
+    final AndroidFlutterLocalNotificationsPlugin? androidSettings =
+        _notificationsPlugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+
+    if (androidSettings != null) {
+      await androidSettings.requestNotificationsPermission();
     }
+  }
+
+  Future<void> _disableNotifications() async {
+    await _notificationsPlugin
+        .cancelAll(); // Cancels all scheduled notifications
   }
 
   @override
@@ -105,7 +128,7 @@ class _NotificationSettingsState extends State<NotificationSettings> {
     return Column(
       children: [
         SwitchListTile(
-          activeTrackColor: Color.fromRGBO(126, 168, 82, 1),
+          activeTrackColor: const Color.fromRGBO(126, 168, 82, 1),
           title: const Text("Enable Notifications"),
           subtitle: const Text("Turn on/off notifications on this device"),
           value: isNotificationsEnabled,
@@ -116,7 +139,7 @@ class _NotificationSettingsState extends State<NotificationSettings> {
           },
         ),
         SwitchListTile(
-          activeTrackColor: Color.fromRGBO(126, 168, 82, 1),
+          activeTrackColor: const Color.fromRGBO(126, 168, 82, 1),
           title: const Text("Receive Updates via Email & Phone"),
           subtitle:
               const Text("Receive delivery updates through email and phone"),
