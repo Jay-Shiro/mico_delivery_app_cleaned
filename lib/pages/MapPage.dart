@@ -9,6 +9,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import 'package:micollins_delivery_app/components/bike_delivery_options_prompt.dart';
+import 'package:micollins_delivery_app/components/m_buttons%20copy.dart';
 import 'package:micollins_delivery_app/components/m_buttons.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:money_formatter/money_formatter.dart';
@@ -462,83 +463,132 @@ class _MapPageState extends State<MapPage> {
   }
 
   void confirmOrder(BuildContext ctx) {
-    if ((isExpressSelected == true || isStandardSelected == true) &&
-        (is25Selected == true ||
-            is50Selected == true ||
-            is75Selected == true ||
-            is100Selected == true)) {
-      _modeOfPayment();
-    } else {
-      showModalBottomSheet(
-        context: ctx,
-        isScrollControlled: true,
-        builder: (context) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: bikeDeliveryOptionsPrompt(
-              isStandardSelected: isStandardSelected ?? false,
-              isExpressSelected: isExpressSelected ?? false,
-              is25Selected: is25Selected,
-              is50Selected: is50Selected,
-              is75Selected: is75Selected,
-              is100Selected: is100Selected,
-              onStandardSelected: (newValue) {
-                setState(() {
-                  isStandardSelected = newValue ?? false;
-                  isExpressSelected = false;
-                });
-              },
-              onExpressSelected: (newValue) {
-                setState(() {
-                  isExpressSelected = newValue ?? false;
-                  isStandardSelected = false;
-                });
-              },
-              on25Selected: (newValue) {
-                setState(() {
-                  is25Selected = newValue ?? false;
-                  is50Selected = false;
-                  is75Selected = false;
-                  is100Selected = false;
-                });
-              },
-              on50Selected: (newValue) {
-                setState(() {
-                  is25Selected = false;
-                  is50Selected = newValue ?? false;
-                  is75Selected = false;
-                  is100Selected = false;
-                });
-              },
-              on75Selected: (newValue) {
-                setState(() {
-                  is25Selected = false;
-                  is50Selected = false;
-                  is75Selected = newValue ?? false;
-                  is100Selected = false;
-                });
-              },
-              on100Selected: (newValue) {
-                setState(() {
-                  is25Selected = false;
-                  is50Selected = false;
-                  is75Selected = false;
-                  is100Selected = newValue ?? false;
-                });
-              },
-              standardFormatted: standardFormatted?.symbolOnLeft,
-              expressFormatted: expressFormatted?.symbolOnLeft,
-              size25Formatted: size25Formatted?.symbolOnLeft,
-              size50Formatted: size50Formatted?.symbolOnLeft,
-              size75Formatted: size75Formatted?.symbolOnLeft,
-              size100Formatted: size100Formatted?.symbolOnLeft,
-            ),
-          );
-        },
-      );
-    }
+    showModalBottomSheet(
+      context: ctx,
+      isScrollControlled: true,
+      builder: (context) {
+        bool isriderLoading = false; // Track loading state
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Select Delivery Type
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: const Text(
+                      "Delivery Options",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Color.fromRGBO(0, 31, 62, 1),
+                      ),
+                    ),
+                  ),
+
+                  // Select Box Size
+                  bikeDeliveryOptionsPrompt(
+                    isStandardSelected: isStandardSelected ?? false,
+                    isExpressSelected: isExpressSelected ?? false,
+                    is25Selected: is25Selected,
+                    is50Selected: is50Selected,
+                    is75Selected: is75Selected,
+                    is100Selected: is100Selected,
+                    onStandardSelected: (newValue) {
+                      setModalState(() {
+                        isStandardSelected = newValue ?? false;
+                        isExpressSelected = false;
+                      });
+                    },
+                    onExpressSelected: (newValue) {
+                      setModalState(() {
+                        isExpressSelected = newValue ?? false;
+                        isStandardSelected = false;
+                      });
+                    },
+                    on25Selected: (newValue) {
+                      setModalState(() {
+                        is25Selected = newValue ?? false;
+                        is50Selected = false;
+                        is75Selected = false;
+                        is100Selected = false;
+                      });
+                    },
+                    on50Selected: (newValue) {
+                      setModalState(() {
+                        is25Selected = false;
+                        is50Selected = newValue ?? false;
+                        is75Selected = false;
+                        is100Selected = false;
+                      });
+                    },
+                    on75Selected: (newValue) {
+                      setModalState(() {
+                        is25Selected = false;
+                        is50Selected = false;
+                        is75Selected = newValue ?? false;
+                        is100Selected = false;
+                      });
+                    },
+                    on100Selected: (newValue) {
+                      setModalState(() {
+                        is25Selected = false;
+                        is50Selected = false;
+                        is75Selected = false;
+                        is100Selected = newValue ?? false;
+                      });
+                    },
+                    standardFormatted: standardFormatted?.symbolOnLeft,
+                    expressFormatted: expressFormatted?.symbolOnLeft,
+                    size25Formatted: size25Formatted?.symbolOnLeft,
+                    size50Formatted: size50Formatted?.symbolOnLeft,
+                    size75Formatted: size75Formatted?.symbolOnLeft,
+                    size100Formatted: size100Formatted?.symbolOnLeft,
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Confirm Button with Loading Animation
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: MButtonsLoading(
+                      btnText: isriderLoading
+                          ? "Waiting for Rider..."
+                          : "Confirm Delivery",
+                      isLoading: isriderLoading,
+                      onTap: () {
+                        setModalState(() {
+                          isriderLoading = true;
+                        });
+
+                        // Simulate waiting for rider confirmation (e.g., API call)
+                        Future.delayed(Duration(seconds: 3), () {
+                          setModalState(() {
+                            isriderLoading = false;
+                          });
+
+                          Navigator.pop(ctx); // Close bottom sheet
+
+                          // Proceed to Payment Modal
+                          _modeOfPayment();
+                        });
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _modeOfPayment() {
@@ -1178,58 +1228,108 @@ class _MapPageState extends State<MapPage> {
                                         Padding(
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 20.0),
-                                          child: Container(
-                                            height: 60,
-                                            child:
-                                                DropdownButtonFormField<String>(
-                                              value: selectedDeliveryType,
-                                              decoration: InputDecoration(
-                                                labelText:
-                                                    "Select Delivery Type",
-                                                labelStyle: TextStyle(
-                                                  color: Color.fromRGBO(
-                                                      0, 31, 62, 1),
-                                                  fontSize: 22,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                                border: InputBorder
-                                                    .none, // Removes the border completely
-                                                enabledBorder: InputBorder
-                                                    .none, // No border when not focused
-                                                focusedBorder: InputBorder
-                                                    .none, // No border when focused
+                                          child:
+                                              DropdownButtonFormField<String>(
+                                            value: selectedDeliveryType,
+                                            decoration: InputDecoration(
+                                              labelText: "Select Delivery Type",
+                                              labelStyle: TextStyle(
+                                                color: Color.fromRGBO(
+                                                    0, 31, 62, 1),
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.w600,
                                               ),
-                                              items: ["Bike", "Car", "Bus"]
-                                                  .map((String type) {
-                                                return DropdownMenuItem<String>(
-                                                  value: type,
-                                                  child: Padding(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        vertical: 8.0),
-                                                    child: Text(type),
-                                                  ),
-                                                );
-                                              }).toList(),
-                                              onChanged: (String? newValue) {
-                                                if (newValue != null) {
-                                                  setState(() {
-                                                    selectedDeliveryType =
-                                                        newValue;
-                                                  });
-                                                }
-                                              },
+                                              border: InputBorder
+                                                  .none, // Removes the border completely
+                                              enabledBorder: InputBorder
+                                                  .none, // No border when not focused
+                                              focusedBorder: InputBorder
+                                                  .none, // No border when focused
                                             ),
+                                            isExpanded: true,
+                                            items: ["Bike", "Car", "Bus"]
+                                                .map((String type) {
+                                              return DropdownMenuItem<String>(
+                                                value: type,
+                                                child: Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(vertical: 5.0),
+                                                  child: Text(type),
+                                                ),
+                                              );
+                                            }).toList(),
+                                            onChanged: (String? newValue) {
+                                              if (newValue != null) {
+                                                setState(() {
+                                                  selectedDeliveryType =
+                                                      newValue;
+                                                });
+                                              }
+                                            },
                                           ),
                                         ),
                                         const SizedBox(
                                           height: 30,
                                         ),
                                         MButtons(
-                                            onTap: () {
+                                          onTap: () {
+                                            if (selectedDeliveryType ==
+                                                "Bike") {
                                               confirmOrder(context);
-                                            },
-                                            btnText: 'Process Order')
+                                            } else if (selectedDeliveryType ==
+                                                    "Car" ||
+                                                selectedDeliveryType == "Bus") {
+                                              showDialog(
+                                                context: context,
+                                                builder: (context) {
+                                                  return AlertDialog(
+                                                    content: Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Image.asset(
+                                                          "assets/images/coiming_soon.png",
+                                                          width: 250,
+                                                          height: 250,
+                                                          fit: BoxFit.contain,
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 20),
+                                                        const Text(
+                                                          "We are working on something amazing.\nStay tuned!",
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: TextStyle(
+                                                            fontSize: 16,
+                                                            color: Colors.black,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                context),
+                                                        child: const Text(
+                                                          "OK",
+                                                          style: TextStyle(
+                                                              color: Color
+                                                                  .fromRGBO(
+                                                                      0,
+                                                                      31,
+                                                                      62,
+                                                                      1)),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              );
+                                            }
+                                          },
+                                          btnText: 'Process Order',
+                                        ),
                                       ],
                                     ),
                                   ),
