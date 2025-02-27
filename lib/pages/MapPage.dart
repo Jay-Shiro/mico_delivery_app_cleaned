@@ -1,5 +1,6 @@
 // ignore: file_names
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geocoding/geocoding.dart';
@@ -7,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
+import 'package:micollins_delivery_app/components/bike_delivery_options_prompt.dart';
 import 'package:micollins_delivery_app/components/m_buttons.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:money_formatter/money_formatter.dart';
@@ -460,7 +462,83 @@ class _MapPageState extends State<MapPage> {
   }
 
   void confirmOrder(BuildContext ctx) {
-    _modeOfPayment();
+    if ((isExpressSelected == true || isStandardSelected == true) &&
+        (is25Selected == true ||
+            is50Selected == true ||
+            is75Selected == true ||
+            is100Selected == true)) {
+      _modeOfPayment();
+    } else {
+      showModalBottomSheet(
+        context: ctx,
+        isScrollControlled: true,
+        builder: (context) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: bikeDeliveryOptionsPrompt(
+              isStandardSelected: isStandardSelected ?? false,
+              isExpressSelected: isExpressSelected ?? false,
+              is25Selected: is25Selected,
+              is50Selected: is50Selected,
+              is75Selected: is75Selected,
+              is100Selected: is100Selected,
+              onStandardSelected: (newValue) {
+                setState(() {
+                  isStandardSelected = newValue ?? false;
+                  isExpressSelected = false;
+                });
+              },
+              onExpressSelected: (newValue) {
+                setState(() {
+                  isExpressSelected = newValue ?? false;
+                  isStandardSelected = false;
+                });
+              },
+              on25Selected: (newValue) {
+                setState(() {
+                  is25Selected = newValue ?? false;
+                  is50Selected = false;
+                  is75Selected = false;
+                  is100Selected = false;
+                });
+              },
+              on50Selected: (newValue) {
+                setState(() {
+                  is25Selected = false;
+                  is50Selected = newValue ?? false;
+                  is75Selected = false;
+                  is100Selected = false;
+                });
+              },
+              on75Selected: (newValue) {
+                setState(() {
+                  is25Selected = false;
+                  is50Selected = false;
+                  is75Selected = newValue ?? false;
+                  is100Selected = false;
+                });
+              },
+              on100Selected: (newValue) {
+                setState(() {
+                  is25Selected = false;
+                  is50Selected = false;
+                  is75Selected = false;
+                  is100Selected = newValue ?? false;
+                });
+              },
+              standardFormatted: standardFormatted?.symbolOnLeft,
+              expressFormatted: expressFormatted?.symbolOnLeft,
+              size25Formatted: size25Formatted?.symbolOnLeft,
+              size50Formatted: size50Formatted?.symbolOnLeft,
+              size75Formatted: size75Formatted?.symbolOnLeft,
+              size100Formatted: size100Formatted?.symbolOnLeft,
+            ),
+          );
+        },
+      );
+    }
   }
 
   void _modeOfPayment() {
@@ -676,6 +754,8 @@ class _MapPageState extends State<MapPage> {
   MoneyFormatterOutput? size50Formatted;
   MoneyFormatterOutput? size75Formatted;
   MoneyFormatterOutput? size100Formatted;
+
+  String selectedDeliveryType = "Bike";
 
   double get paymentAmt => _getDeliveryCost() + _getPackagePrice();
   String get formattedPaymentAmt => formatMoney(paymentAmt).symbolOnLeft;
@@ -1076,108 +1156,8 @@ class _MapPageState extends State<MapPage> {
                                           subtitle:
                                               Text(_destinationController.text),
                                         ),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 20.0),
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                  child: Divider(
-                                                thickness: 0.8,
-                                                color: Colors.grey,
-                                              ))
-                                            ],
-                                          ),
-                                        ),
                                         const SizedBox(
-                                          height: 10,
-                                        ),
-                                        ListTile(
-                                          leading: Container(
-                                              decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.all(
-                                                          Radius.circular(8)),
-                                                  color: Color.fromRGBO(
-                                                      0, 70, 67, 0.24)),
-                                              height: 80,
-                                              width: 60,
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.all(6.0),
-                                                child: Image.asset(
-                                                  'assets/images/bike.png',
-                                                  scale: 2,
-                                                ),
-                                              )),
-                                          title: Text(
-                                            'Same-Day Delivery',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          subtitle: Text(
-                                            standardFormatted?.symbolOnLeft ??
-                                                ''.toString(),
-                                            style: TextStyle(fontSize: 16),
-                                          ),
-                                          trailing: Checkbox(
-                                            activeColor: const Color.fromRGBO(
-                                                0, 31, 62, 1),
-                                            value: isStandardSelected,
-                                            onChanged: (newBool) {
-                                              setState(() {
-                                                isStandardSelected =
-                                                    newBool ?? false;
-                                                isExpressSelected = false;
-                                              });
-                                            },
-                                            checkColor: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(
-                                          height: 20,
-                                        ),
-                                        ListTile(
-                                          leading: Container(
-                                              decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.all(
-                                                          Radius.circular(8)),
-                                                  color: Color.fromRGBO(
-                                                      0, 70, 67, 0.24)),
-                                              height: 80,
-                                              width: 60,
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.all(6.0),
-                                                child: Image.asset(
-                                                  'assets/images/bike.png',
-                                                  scale: 2,
-                                                ),
-                                              )),
-                                          title: Text(
-                                            'Express Delivery',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          subtitle: Text(
-                                            expressFormatted?.symbolOnLeft ??
-                                                ''.toString(),
-                                            style: TextStyle(fontSize: 16),
-                                          ),
-                                          trailing: Checkbox(
-                                            activeColor: const Color.fromRGBO(
-                                                0, 31, 62, 1),
-                                            value: isExpressSelected,
-                                            onChanged: (newBool) {
-                                              setState(() {
-                                                isExpressSelected =
-                                                    newBool ?? false;
-                                                isStandardSelected = false;
-                                              });
-                                            },
-                                            checkColor: Colors.white,
-                                          ),
+                                          height: 30,
                                         ),
                                         Padding(
                                           padding: const EdgeInsets.symmetric(
@@ -1193,113 +1173,53 @@ class _MapPageState extends State<MapPage> {
                                           ),
                                         ),
                                         const SizedBox(
-                                          height: 10,
+                                          height: 15,
                                         ),
-                                        SizedBox(
-                                          width: 340,
-                                          child: Text(
-                                            'Our delivery boxes are 3.05 cubic feet, and thus we charge on the space your item takes. Select an option from below',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                        ),
-                                        ListTile(
-                                          title: Text(
-                                            'Quarter the Box & Below',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          subtitle: Text(
-                                            size25Formatted?.symbolOnLeft ??
-                                                'Free',
-                                          ),
-                                          trailing: Checkbox(
-                                            activeColor: const Color.fromRGBO(
-                                                0, 31, 62, 1),
-                                            value: is25Selected,
-                                            onChanged: (newBool) {
-                                              setState(() {
-                                                is25Selected = newBool ?? false;
-                                                is50Selected = false;
-                                                is75Selected = false;
-                                                is100Selected = false;
-                                              });
-                                            },
-                                            checkColor: Colors.white,
-                                          ),
-                                        ),
-                                        ListTile(
-                                          title: Text(
-                                            'Half the Box & Below',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          subtitle: Text(
-                                            size50Formatted?.symbolOnLeft ?? '',
-                                          ),
-                                          trailing: Checkbox(
-                                            activeColor: const Color.fromRGBO(
-                                                0, 31, 62, 1),
-                                            value: is50Selected,
-                                            onChanged: (newBool) {
-                                              setState(() {
-                                                is25Selected = false;
-                                                is50Selected = newBool ?? false;
-                                                is75Selected = false;
-                                                is100Selected = false;
-                                              });
-                                            },
-                                            checkColor: Colors.white,
-                                          ),
-                                        ),
-                                        ListTile(
-                                          title: Text(
-                                            '3 quarter the Box & Below',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          subtitle: Text(
-                                            size75Formatted?.symbolOnLeft ?? '',
-                                          ),
-                                          trailing: Checkbox(
-                                            activeColor: const Color.fromRGBO(
-                                                0, 31, 62, 1),
-                                            value: is75Selected,
-                                            onChanged: (newBool) {
-                                              setState(() {
-                                                is25Selected = false;
-                                                is50Selected = false;
-                                                is75Selected = newBool ?? false;
-                                                is100Selected = false;
-                                              });
-                                            },
-                                            checkColor: Colors.white,
-                                          ),
-                                        ),
-                                        ListTile(
-                                          title: Text(
-                                            'Full Box & Below',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          subtitle: Text(
-                                            size100Formatted?.symbolOnLeft ??
-                                                '',
-                                          ),
-                                          trailing: Checkbox(
-                                            activeColor: const Color.fromRGBO(
-                                                0, 31, 62, 1),
-                                            value: is100Selected,
-                                            onChanged: (newBool) {
-                                              setState(() {
-                                                is25Selected = false;
-                                                is50Selected = false;
-                                                is75Selected = false;
-                                                is100Selected =
-                                                    newBool ?? false;
-                                              });
-                                            },
-                                            checkColor: Colors.white,
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 20.0),
+                                          child: Container(
+                                            height: 60,
+                                            child:
+                                                DropdownButtonFormField<String>(
+                                              value: selectedDeliveryType,
+                                              decoration: InputDecoration(
+                                                labelText:
+                                                    "Select Delivery Type",
+                                                labelStyle: TextStyle(
+                                                  color: Color.fromRGBO(
+                                                      0, 31, 62, 1),
+                                                  fontSize: 22,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                                border: InputBorder
+                                                    .none, // Removes the border completely
+                                                enabledBorder: InputBorder
+                                                    .none, // No border when not focused
+                                                focusedBorder: InputBorder
+                                                    .none, // No border when focused
+                                              ),
+                                              items: ["Bike", "Car", "Bus"]
+                                                  .map((String type) {
+                                                return DropdownMenuItem<String>(
+                                                  value: type,
+                                                  child: Padding(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        vertical: 8.0),
+                                                    child: Text(type),
+                                                  ),
+                                                );
+                                              }).toList(),
+                                              onChanged: (String? newValue) {
+                                                if (newValue != null) {
+                                                  setState(() {
+                                                    selectedDeliveryType =
+                                                        newValue;
+                                                  });
+                                                }
+                                              },
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(
@@ -1309,7 +1229,7 @@ class _MapPageState extends State<MapPage> {
                                             onTap: () {
                                               confirmOrder(context);
                                             },
-                                            btnText: 'Confirm Order')
+                                            btnText: 'Process Order')
                                       ],
                                     ),
                                   ),
