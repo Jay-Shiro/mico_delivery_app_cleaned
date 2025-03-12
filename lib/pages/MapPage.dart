@@ -11,6 +11,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import 'package:micollins_delivery_app/components/bike_delivery_options_prompt.dart';
+import 'package:micollins_delivery_app/components/car_delivery_options_prompt.dart';
 import 'package:micollins_delivery_app/components/m_buttons.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:money_formatter/money_formatter.dart';
@@ -564,6 +565,64 @@ class _MapPageState extends State<MapPage> {
                         });
                       },
                       btnText: 'Confirm Delivery',
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void confirmCarOrder(BuildContext ctx) {
+    showModalBottomSheet(
+      context: ctx,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Select Delivery Type
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: const Text(
+                      "Car Delivery Options",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Color.fromRGBO(0, 31, 62, 1),
+                      ),
+                    ),
+                  ),
+
+                  // Delivery Options Prompt
+                  CarDeliveryOptionsPrompt(
+                    amountFormatted: standardFormatted?.symbolOnLeft,
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Confirm Button with Loading Animation
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: MButtons(
+                      onTap: () {
+                        Navigator.pop(ctx); // Close modal first
+                        Future.delayed(Duration(milliseconds: 200), () {
+                          _modeOfPayment(); // Proceed to payment
+                        });
+                      },
+                      btnText: 'Confirm Car Delivery',
                     ),
                   ),
 
@@ -1273,8 +1332,10 @@ class _MapPageState extends State<MapPage> {
                                                 "Bike") {
                                               confirmOrder(context);
                                             } else if (selectedDeliveryType ==
-                                                    "Car" ||
-                                                selectedDeliveryType == "Bus") {
+                                                "Car") {
+                                              confirmCarOrder(context);
+                                            } else if (selectedDeliveryType ==
+                                                "Bus") {
                                               showDialog(
                                                 context: context,
                                                 builder: (context) {
@@ -1323,6 +1384,7 @@ class _MapPageState extends State<MapPage> {
                                                 },
                                               );
                                             }
+                                            ;
                                           },
                                           btnText: 'Process Order',
                                         ),
