@@ -1,4 +1,6 @@
 // ignore: file_names
+// ignore_for_file: unused_local_variable
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -9,11 +11,9 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import 'package:micollins_delivery_app/components/bike_delivery_options_prompt.dart';
-import 'package:micollins_delivery_app/components/m_buttons%20copy.dart';
 import 'package:micollins_delivery_app/components/m_buttons.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:money_formatter/money_formatter.dart';
-import 'package:paystack_for_flutter/paystack_for_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -556,29 +556,12 @@ class _MapPageState extends State<MapPage> {
                   // Confirm Button with Loading Animation
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: MButtonsLoading(
-                      btnText: isriderLoading
-                          ? "Waiting for Rider..."
-                          : "Confirm Delivery",
-                      isLoading: isriderLoading,
-                      onTap: () {
-                        setModalState(() {
-                          isriderLoading = true;
-                        });
-
-                        // Simulate waiting for rider confirmation (e.g., API call)
-                        Future.delayed(Duration(seconds: 3), () {
-                          setModalState(() {
-                            isriderLoading = false;
-                          });
-
-                          Navigator.pop(ctx); // Close bottom sheet
-
-                          // Proceed to Payment Modal
+                    child: MButtons(
+                        onTap: () {
                           _modeOfPayment();
-                        });
-                      },
-                    ),
+                          Navigator.pop(context);
+                        },
+                        btnText: 'Confirm Delivery'),
                   ),
 
                   const SizedBox(height: 20),
@@ -677,73 +660,82 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _processPayment() async {
-    if (isCashorTransfer == true && isOnlinePayment == false) {
+    // Save payment method to SharedPreferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isCashorTransfer', isCashorTransfer);
+    await prefs.setBool('isOnlinePayment', isOnlinePayment);
+
+    if (isCashorTransfer == true || isOnlinePayment == false) {
       FocusManager.instance.primaryFocus?.unfocus();
       Provider.of<IndexProvider>(context, listen: false).setSelectedIndex(2);
       Navigator.of(context).pop();
 
       // Show pop-up for cash payment
       _showRiderNotification();
-    } else if (isOnlinePayment == true && isCashorTransfer == false) {
-      if (userEmail == null || userEmail!.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error: User email not found'),
-            backgroundColor: Color.fromRGBO(255, 91, 82, 1),
-          ),
-        );
-        return;
-      }
+    }
+    /* else if (isOnlinePayment == true && isCashorTransfer == false) {
+    if (userEmail == null || userEmail!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: User email not found'),
+          backgroundColor: Color.fromRGBO(255, 91, 82, 1),
+        ),
+      );
+      return;
+    }
 
-      try {
-        PaystackFlutter().pay(
-          context: context,
-          secretKey: 'sk_test_c69312cc47b0d93bd17d0407d4292f11ee38e2fb',
-          amount: paymentParameter * 100,
-          email: userEmail!,
-          callbackUrl: 'https://callback.com',
-          showProgressBar: true,
-          paymentOptions: [
-            PaymentOption.card,
-            PaymentOption.bankTransfer,
-            PaymentOption.mobileMoney,
-          ],
-          currency: Currency.NGN,
-          metaData: {
-            "start_point": _startPointController.text,
-            "end_point": _destinationController.text,
-            "delivery_price": paymentAmt,
-          },
-          onSuccess: (paystackCallback) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    'Transaction Successful: ${paystackCallback.reference}'),
-                backgroundColor: Color.fromRGBO(0, 31, 62, 1),
-              ),
-            );
-            FocusManager.instance.primaryFocus?.unfocus();
-            Provider.of<IndexProvider>(context, listen: false)
-                .setSelectedIndex(2);
-            Navigator.of(context).pop();
+    try {
+      PaystackFlutter().pay(
+        context: context,
+        secretKey: 'sk_test_c69312cc47b0d93bd17d0407d4292f11ee38e2fb',
+        amount: paymentParameter * 100,
+        email: userEmail!,
+        callbackUrl: 'https://callback.com',
+        showProgressBar: true,
+        paymentOptions: [
+          PaymentOption.card,
+          PaymentOption.bankTransfer,
+          PaymentOption.mobileMoney,
+        ],
+        currency: Currency.NGN,
+        metaData: {
+          "start_point": _startPointController.text,
+          "end_point": _destinationController.text,
+          "delivery_price": paymentAmt,
+        },
+        onSuccess: (paystackCallback) async {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Transaction Successful: ${paystackCallback.reference}'),
+              backgroundColor: Color.fromRGBO(0, 31, 62, 1),
+            ),
+          );
 
-            // Show pop-up for successful online payment
-            _showRiderNotification();
-          },
-          onCancelled: (paystackCallback) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content:
-                    Text('Transaction Failed: ${paystackCallback.reference}'),
-                backgroundColor: Color.fromRGBO(255, 91, 82, 1),
-              ),
-            );
-          },
-        );
-      } catch (e) {
-        debugPrint('Payment error: $e');
-      }
-    } else {
+          // Save payment method on successful payment
+          await prefs.setBool('isCashorTransfer', false);
+          await prefs.setBool('isOnlinePayment', true);
+
+          FocusManager.instance.primaryFocus?.unfocus();
+          Provider.of<IndexProvider>(context, listen: false).setSelectedIndex(2);
+          Navigator.of(context).pop();
+
+          // Show pop-up for successful online payment
+          _showRiderNotification();
+        },
+        onCancelled: (paystackCallback) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Transaction Failed: ${paystackCallback.reference}'),
+              backgroundColor: Color.fromRGBO(255, 91, 82, 1),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      debugPrint('Payment error: $e');
+    }
+  } */
+    else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a mode of Payment'),
@@ -761,7 +753,8 @@ class _MapPageState extends State<MapPage> {
           child: AlertDialog(
             elevation: 2,
             title: Text("Order Confirmed"),
-            content: Text("A rider will reach out to you shortly."),
+            content: Text(
+                "You will receive a notification as soon as a rider accepts your order."),
             actions: [
               MButtons(
                 onTap: () {

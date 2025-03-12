@@ -77,24 +77,28 @@ class bikeDeliveryOptionsPrompt extends StatelessWidget {
             price: size25Formatted,
             value: is25Selected,
             onChanged: on25Selected,
+            isFree: true, // Mark as free for size 25
           ),
           _buildSizeOption(
             title: 'Half the Box & Below',
             price: size50Formatted,
             value: is50Selected,
             onChanged: on50Selected,
+            isFree: false,
           ),
           _buildSizeOption(
             title: '3 quarter the Box & Below',
             price: size75Formatted,
             value: is75Selected,
             onChanged: on75Selected,
+            isFree: false,
           ),
           _buildSizeOption(
             title: 'Full Box & Below',
             price: size100Formatted,
             value: is100Selected,
             onChanged: on100Selected,
+            isFree: false,
           ),
         ],
       ),
@@ -136,10 +140,12 @@ class bikeDeliveryOptionsPrompt extends StatelessWidget {
     required String? price,
     required bool value,
     required Function(bool?) onChanged,
+    required bool isFree,
   }) {
     return ListTile(
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(price ?? 'Free'),
+      subtitle:
+          Text(price ?? (isFree ? 'Free' : '')), // Show "Free" only for size 25
       trailing: Checkbox(
         activeColor: const Color.fromRGBO(0, 31, 62, 1),
         value: value,

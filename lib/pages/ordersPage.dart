@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:micollins_delivery_app/components/toggle_bar.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
@@ -139,123 +140,160 @@ class _OrdersPageState extends State<OrdersPage> {
   }
 
   Widget orderCard(String trackingNumber, String status) {
-    String statusText = {
-          'pending': 'Pending',
-          'in_transit': 'In Transit',
-          'completed': 'Completed',
-        }[status] ??
-        'Unknown';
+    return FutureBuilder(
+      future: _getPaymentStatus(),
+      builder: (context, AsyncSnapshot<Map<String, bool>> snapshot) {
+        bool isCashorTransfer = snapshot.data?['isCashorTransfer'] ?? false;
+        bool isOnlinePayment = snapshot.data?['isOnlinePayment'] ?? false;
 
-    Color statusColor = {
-          'pending': Color.fromRGBO(184, 194, 43, 1),
-          'in_transit': Color.fromRGBO(0, 31, 62, 1),
-          'completed': Color.fromRGBO(76, 175, 80, 1),
-        }[status] ??
-        Colors.grey;
+        // Determine the correct button text based on status and payment method
+        String actionButtonText = 'Unknown';
+        if (status == 'completed') {
+          actionButtonText = 'View E-receipt';
+        } else if (isOnlinePayment) {
+          actionButtonText = 'Pay Online';
+        } else if (isCashorTransfer) {
+          actionButtonText = 'Waiting for Rider';
+        } else {
+          actionButtonText = 'Pay Online'; // Default case
+        }
 
-    return Container(
-      width: MediaQuery.of(context).size.width * 0.9,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
-            spreadRadius: 0,
-            blurRadius: 10,
-            offset: Offset(0, 4),
+        Color statusColor = {
+              'pending': Color.fromRGBO(184, 194, 43, 1),
+              'in_transit': Color.fromRGBO(0, 31, 62, 1),
+              'completed': Color.fromRGBO(76, 175, 80, 1),
+            }[status] ??
+            Colors.grey;
+
+        String statusText = {
+              'pending': 'Pending',
+              'in_transit': 'In Transit',
+              'completed': 'Completed',
+            }[status] ??
+            'Unknown';
+
+        return Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.08),
+                spreadRadius: 0,
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Order Details
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // Order Details
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Order Tracking Number',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Order Tracking Number',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          trackingNumber,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      trackingNumber,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        statusText,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    statusText,
-                    style: TextStyle(
-                      color: statusColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                SizedBox(height: 16),
+                Divider(color: Colors.grey[300]),
+                SizedBox(height: 16),
+                // Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          // Add functionality for Pay Online, Waiting for Rider, or E-receipt
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Color.fromRGBO(0, 31, 62, 1),
+                          side: BorderSide(
+                            color: Color.fromRGBO(0, 31, 62, 1),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: Text(actionButtonText),
+                      ),
                     ),
-                  ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Add functionality for tracking the order
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color.fromRGBO(0, 31, 62, 1),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: Text('Track'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            SizedBox(height: 16),
-            Divider(color: Colors.grey[300]),
-            SizedBox(height: 16),
-            // Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Color.fromRGBO(0, 31, 62, 1),
-                      side: BorderSide(
-                        color: Color.fromRGBO(0, 31, 62, 1),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: Text('View E-receipt'),
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color.fromRGBO(0, 31, 62, 1),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: Text('Track'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
+  }
+
+// Function to retrieve payment status from SharedPreferences
+  Future<Map<String, bool>> _getPaymentStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool isCashorTransfer = prefs.getBool('isCashorTransfer') ?? false;
+    bool isOnlinePayment = prefs.getBool('isOnlinePayment') ?? false;
+
+    return {
+      'isCashorTransfer': isCashorTransfer,
+      'isOnlinePayment': isOnlinePayment,
+    };
   }
 
   Widget orderSearchbar() {
