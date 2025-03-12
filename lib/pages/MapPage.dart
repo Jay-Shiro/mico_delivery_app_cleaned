@@ -328,78 +328,101 @@ class _MapPageState extends State<MapPage> {
             if (roundDistanceKM <= 5) {
               expressCost = (roundDistanceKM / 0.8) * 345.60;
               standardCost = (roundDistanceKM / 1.6) * 345.60;
+              carCost = (roundDistanceKM / 4.2) * 345.60;
             } else if (roundDistanceKM <= 10) {
               expressCost = (roundDistanceKM / 0.8) * 317.12;
               standardCost = (roundDistanceKM / 1.6) * 317.12;
+              carCost = (roundDistanceKM / 4.2) * 317.12;
             } else if (roundDistanceKM <= 15) {
               expressCost = (roundDistanceKM / 0.8) * 259.60;
               standardCost = (roundDistanceKM / 1.6) * 259.60;
+              carCost = (roundDistanceKM / 4.2) * 259.60;
             } else if (roundDistanceKM <= 20) {
               expressCost = (roundDistanceKM / 0.8) * 283.74;
               standardCost = (roundDistanceKM / 1.6) * 283.74;
+              carCost = (roundDistanceKM / 4.2) * 283.74;
             } else if (roundDistanceKM <= 25) {
               expressCost = (roundDistanceKM / 0.8) * 256.31;
               standardCost = (roundDistanceKM / 1.6) * 256.31;
+              carCost = (roundDistanceKM / 4.2) * 256.31;
             } else if (roundDistanceKM <= 30) {
               expressCost = (roundDistanceKM / 0.8) * 242.88;
               standardCost = (roundDistanceKM / 1.6) * 242.88;
+              carCost = (roundDistanceKM / 4.2) * 242.88;
             } else if (roundDistanceKM <= 35) {
               expressCost = (roundDistanceKM / 0.8) * 236.03;
               standardCost = (roundDistanceKM / 1.6) * 236.03;
+              carCost = (roundDistanceKM / 4.2) * 236.03;
             } else if (roundDistanceKM <= 40) {
               expressCost = (roundDistanceKM / 0.8) * 250.06;
               standardCost = (roundDistanceKM / 1.6) * 250.06;
+              carCost = (roundDistanceKM / 4.2) * 250.06;
             } else if (roundDistanceKM <= 45) {
               expressCost = (roundDistanceKM / 0.8) * 268.75;
               standardCost = (roundDistanceKM / 1.6) * 268.75;
+              carCost = (roundDistanceKM / 4.2) * 268.75;
             } else if (roundDistanceKM <= 50) {
               expressCost = (roundDistanceKM / 0.8) * 255.49;
               standardCost = (roundDistanceKM / 1.6) * 255.49;
+              carCost = (roundDistanceKM / 4.2) * 255.49;
             } else {
               expressCost = (roundDistanceKM / 0.8) * 200;
               standardCost = (roundDistanceKM / 1.6) * 200;
+              carCost = (roundDistanceKM / 4.2) * 200;
             }
           } else {
             // Default pricing tiers
             if (roundDistanceKM <= 5) {
               expressCost = (roundDistanceKM / 0.8) * 302.46;
               standardCost = (roundDistanceKM / 1.6) * 302.46;
+              carCost = (roundDistanceKM / 4.2) * 302.46;
             } else if (roundDistanceKM <= 10) {
               expressCost = (roundDistanceKM / 0.8) * 232.34;
               standardCost = (roundDistanceKM / 1.6) * 232.34;
+              carCost = (roundDistanceKM / 4.2) * 232.34;
             } else if (roundDistanceKM <= 15) {
               expressCost = (roundDistanceKM / 0.8) * 222.52;
               standardCost = (roundDistanceKM / 1.6) * 222.52;
+              carCost = (roundDistanceKM / 4.2) * 222.52;
             } else if (roundDistanceKM <= 20) {
               expressCost = (roundDistanceKM / 0.8) * 205.06;
               standardCost = (roundDistanceKM / 1.6) * 205.06;
+              carCost = (roundDistanceKM / 4.2) * 205.06;
             } else if (roundDistanceKM <= 25) {
               expressCost = (roundDistanceKM / 0.8) * 240.78;
               standardCost = (roundDistanceKM / 1.6) * 240.78;
+              carCost = (roundDistanceKM / 4.2) * 240.78;
             } else if (roundDistanceKM <= 30) {
               expressCost = (roundDistanceKM / 0.8) * 189.83;
               standardCost = (roundDistanceKM / 1.6) * 189.83;
+              carCost = (roundDistanceKM / 4.2) * 189.93;
             } else if (roundDistanceKM <= 35) {
               expressCost = (roundDistanceKM / 0.8) * 182.98;
               standardCost = (roundDistanceKM / 1.6) * 182.98;
+              carCost = (roundDistanceKM / 4.2) * 182.98;
             } else if (roundDistanceKM <= 40) {
               expressCost = (roundDistanceKM / 0.8) * 172.43;
               standardCost = (roundDistanceKM / 1.6) * 172.43;
+              carCost = (roundDistanceKM / 4.2) * 172.43;
             } else if (roundDistanceKM <= 45) {
               expressCost = (roundDistanceKM / 0.8) * 169.03;
               standardCost = (roundDistanceKM / 1.6) * 169.03;
+              carCost = (roundDistanceKM / 4.2) * 169.03;
             } else if (roundDistanceKM <= 50) {
               expressCost = (roundDistanceKM / 0.8) * 192.86;
               standardCost = (roundDistanceKM / 1.6) * 192.86;
+              carCost = (roundDistanceKM / 4.2) * 192.86;
             } else {
               expressCost = (roundDistanceKM / 0.8) * 160;
               standardCost = (roundDistanceKM / 1.6) * 160;
+              carCost = (roundDistanceKM / 4.2) * 160;
             }
           }
 
           // Update formatted values
           standardFormatted = formatMoney(standardCost);
           expressFormatted = formatMoney(expressCost);
+          carAmtFormatted = formatMoney(carCost);
 
           // Update size-related formatted values
           size50Formatted = formatMoney(packageSize50Price);
@@ -607,7 +630,7 @@ class _MapPageState extends State<MapPage> {
 
                   // Delivery Options Prompt
                   CarDeliveryOptionsPrompt(
-                    amountFormatted: standardFormatted?.symbolOnLeft,
+                    amountFormatted: carAmtFormatted?.symbolOnLeft,
                   ),
 
                   const SizedBox(height: 20),
@@ -858,9 +881,11 @@ class _MapPageState extends State<MapPage> {
 
   double expressCost = 0;
   double standardCost = 0;
+  double carCost = 0;
 
   MoneyFormatterOutput? standardFormatted;
   MoneyFormatterOutput? expressFormatted;
+  MoneyFormatterOutput? carAmtFormatted;
   MoneyFormatterOutput? size25Formatted;
   MoneyFormatterOutput? size50Formatted;
   MoneyFormatterOutput? size75Formatted;
