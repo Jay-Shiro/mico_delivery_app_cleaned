@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:micollins_delivery_app/components/toggle_bar.dart';
 import 'package:flutter/services.dart';
+import 'package:micollins_delivery_app/components/toggle_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class OrdersPage extends StatefulWidget {
@@ -15,18 +15,9 @@ class _OrdersPageState extends State<OrdersPage> {
 
   // Sample order data
   final List<Map<String, String>> orders = [
-    {
-      'number': '#MC123456789',
-      'status': 'pending',
-    },
-    {
-      'number': '#MC987654321',
-      'status': 'in_transit',
-    },
-    {
-      'number': '#MC456789123',
-      'status': 'completed',
-    },
+    {'number': '#MC123456789', 'status': 'pending'},
+    {'number': '#MC987654321', 'status': 'in_transit'},
+    {'number': '#MC456789123', 'status': 'completed'},
   ];
 
   // Get filtered orders based on status
@@ -51,29 +42,31 @@ class _OrdersPageState extends State<OrdersPage> {
             child: Column(
               children: [
                 const SizedBox(height: 74),
+
                 orderSearchbar(),
-                const SizedBox(height: 32),
-                ToggleBar(
-                  onStatusChanged: (status) {
-                    setState(() {
-                      switch (status) {
-                        case 0:
-                          currentStatus = 'all';
-                          break;
-                        case 1:
-                          currentStatus = 'pending';
-                          break;
-                        case 2:
-                          currentStatus = 'in_transit';
-                          break;
-                        case 3:
-                          currentStatus = 'completed';
-                          break;
-                      }
-                    });
-                  },
-                ),
+                const SizedBox(height: 40),
+
+                // Add ToggleBar
+                ToggleBar(onStatusChanged: (status) {
+                  setState(() {
+                    switch (status) {
+                      case 0:
+                        currentStatus = 'all';
+                        break;
+                      case 1:
+                        currentStatus = 'pending';
+                        break;
+                      case 2:
+                        currentStatus = 'in_transit';
+                        break;
+                      case 3:
+                        currentStatus = 'completed';
+                        break;
+                    }
+                  });
+                }),
                 const SizedBox(height: 20),
+
                 Expanded(
                   child: ListView.builder(
                     padding: EdgeInsets.only(bottom: 20),
@@ -95,50 +88,6 @@ class _OrdersPageState extends State<OrdersPage> {
     );
   }
 
-  Widget orderUi() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const SizedBox(height: 74),
-        orderSearchbar(),
-        const SizedBox(height: 32),
-        ToggleBar(
-          onStatusChanged: (status) {
-            setState(() {
-              switch (status) {
-                case 0:
-                  currentStatus = 'all';
-                  break;
-                case 1:
-                  currentStatus = 'pending';
-                  break;
-                case 2:
-                  currentStatus = 'in_transit';
-                  break;
-                case 3:
-                  currentStatus = 'completed';
-                  break;
-              }
-            });
-          },
-        ),
-        const SizedBox(height: 20),
-        Expanded(
-          child: ListView.builder(
-            itemCount: getFilteredOrders().length,
-            itemBuilder: (context, index) {
-              final order = getFilteredOrders()[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: orderCard(order['number']!, order['status']!),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget orderCard(String trackingNumber, String status) {
     return FutureBuilder(
       future: _getPaymentStatus(),
@@ -146,31 +95,24 @@ class _OrdersPageState extends State<OrdersPage> {
         bool isCashorTransfer = snapshot.data?['isCashorTransfer'] ?? false;
         bool isOnlinePayment = snapshot.data?['isOnlinePayment'] ?? false;
 
-        // Determine the correct button text based on status and payment method
         String actionButtonText = 'Unknown';
+        VoidCallback? actionButtonOnPressed;
+
         if (status == 'completed') {
           actionButtonText = 'View E-receipt';
+          actionButtonOnPressed =
+              () => _showReceiptPrompt(context, trackingNumber);
         } else if (isOnlinePayment) {
           actionButtonText = 'Pay Online';
+          actionButtonOnPressed = () {};
         } else if (isCashorTransfer) {
           actionButtonText = 'Waiting for Rider';
         } else {
-          actionButtonText = 'Pay Online'; // Default case
+          actionButtonText = 'Pay Online';
+          actionButtonOnPressed = () {};
         }
 
-        Color statusColor = {
-              'pending': Color.fromRGBO(184, 194, 43, 1),
-              'in_transit': Color.fromRGBO(0, 31, 62, 1),
-              'completed': Color.fromRGBO(76, 175, 80, 1),
-            }[status] ??
-            Colors.grey;
-
-        String statusText = {
-              'pending': 'Pending',
-              'in_transit': 'In Transit',
-              'completed': 'Completed',
-            }[status] ??
-            'Unknown';
+        bool canTrack = status == 'in_transit';
 
         return Container(
           width: MediaQuery.of(context).size.width * 0.9,
@@ -200,18 +142,14 @@ class _OrdersPageState extends State<OrdersPage> {
                       children: [
                         Text(
                           'Order Tracking Number',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                          ),
+                          style:
+                              TextStyle(color: Colors.grey[600], fontSize: 14),
                         ),
                         SizedBox(height: 4),
                         Text(
                           trackingNumber,
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                              fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                       ],
                     ),
@@ -219,13 +157,13 @@ class _OrdersPageState extends State<OrdersPage> {
                       padding:
                           EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
+                        color: _getStatusColor(status).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        statusText,
+                        _getStatusText(status),
                         style: TextStyle(
-                          color: statusColor,
+                          color: _getStatusColor(status),
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -236,19 +174,16 @@ class _OrdersPageState extends State<OrdersPage> {
                 SizedBox(height: 16),
                 Divider(color: Colors.grey[300]),
                 SizedBox(height: 16),
+
                 // Buttons
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {
-                          // Add functionality for Pay Online, Waiting for Rider, or E-receipt
-                        },
+                        onPressed: actionButtonOnPressed,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Color.fromRGBO(0, 31, 62, 1),
-                          side: BorderSide(
-                            color: Color.fromRGBO(0, 31, 62, 1),
-                          ),
+                          side: BorderSide(color: Color.fromRGBO(0, 31, 62, 1)),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -260,9 +195,8 @@ class _OrdersPageState extends State<OrdersPage> {
                     SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Add functionality for tracking the order
-                        },
+                        onPressed:
+                            canTrack ? () => _showTrackingSheet(context) : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color.fromRGBO(0, 31, 62, 1),
                           foregroundColor: Colors.white,
@@ -284,16 +218,126 @@ class _OrdersPageState extends State<OrdersPage> {
     );
   }
 
-// Function to retrieve payment status from SharedPreferences
-  Future<Map<String, bool>> _getPaymentStatus() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool isCashorTransfer = prefs.getBool('isCashorTransfer') ?? false;
-    bool isOnlinePayment = prefs.getBool('isOnlinePayment') ?? false;
+  // Function to display receipt prompt
+  void _showReceiptPrompt(BuildContext context, String trackingNumber) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('E-Receipt'),
+          content: Column(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Text('Receipt details for $trackingNumber'),
+              SizedBox(height: 10),
+              Text('Amount Paid: \₦50'),
+              Text('Payment Method: Online'),
+              Text('Delivery Date: 12th March 2025'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
-    return {
-      'isCashorTransfer': isCashorTransfer,
-      'isOnlinePayment': isOnlinePayment,
-    };
+  // Function to show tracking bottom sheet
+  void _showTrackingSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: EdgeInsets.all(16),
+            height: 380,
+            child: Column(
+              children: [
+                Text(
+                  "Rider on the way",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 20),
+                CircleAvatar(
+                    radius: 40,
+                    backgroundImage:
+                        AssetImage('assets/images/profilepic.png')),
+                SizedBox(height: 10),
+                Text("John Doe",
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                Text("+234 812 345 6789",
+                    style: TextStyle(fontSize: 14, color: Colors.grey)),
+                SizedBox(height: 20),
+                LinearProgressIndicator(
+                  value: 0.6,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Color.fromRGBO(0, 31, 62, 1),
+                  ),
+                ), // Progress simulation
+                SizedBox(height: 10),
+                Text("Estimated time: 10 minutes"),
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        // Call rider
+                      },
+                      style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.all(
+                          Color.fromRGBO(0, 31, 62, 1),
+                        ),
+                      ),
+                      icon: Icon(Icons.call, color: Colors.white),
+                      label: Text(
+                        "Call",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        // Chat with rider
+                      },
+                      style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.all(
+                            Color.fromRGBO(0, 31, 62, 1)),
+                      ),
+                      icon: Icon(Icons.chat, color: Colors.white),
+                      label: Text(
+                        "Chat",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ButtonStyle(
+                    backgroundColor:
+                        MaterialStateProperty.all(Color.fromRGBO(0, 31, 62, 1)),
+                  ),
+                  child: Text(
+                    "Close",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget orderSearchbar() {
@@ -342,4 +386,32 @@ class _OrdersPageState extends State<OrdersPage> {
       ),
     );
   }
+
+  Future<Map<String, bool>> _getPaymentStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return {
+      'isCashorTransfer': prefs.getBool('isCashorTransfer') ?? false,
+      'isOnlinePayment': prefs.getBool('isOnlinePayment') ?? false,
+    };
+  }
+}
+
+// Utility function to get status color
+Color _getStatusColor(String status) {
+  return {
+        'pending': Color.fromRGBO(184, 194, 43, 1),
+        'in_transit': Color.fromRGBO(0, 31, 62, 1),
+        'completed': Color.fromRGBO(76, 175, 80, 1),
+      }[status] ??
+      Colors.grey;
+}
+
+// Utility function to get status text
+String _getStatusText(String status) {
+  return {
+        'pending': 'Pending',
+        'in_transit': 'In Transit',
+        'completed': 'Completed',
+      }[status] ??
+      'Unknown';
 }
