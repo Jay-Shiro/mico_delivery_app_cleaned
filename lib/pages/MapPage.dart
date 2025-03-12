@@ -557,11 +557,14 @@ class _MapPageState extends State<MapPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: MButtons(
-                        onTap: () {
-                          _modeOfPayment();
-                          Navigator.pop(context);
-                        },
-                        btnText: 'Confirm Delivery'),
+                      onTap: () {
+                        Navigator.pop(ctx); // Close the modal first
+                        Future.delayed(Duration(milliseconds: 200), () {
+                          _modeOfPayment(); // Call the function after the modal closes
+                        });
+                      },
+                      btnText: 'Confirm Delivery',
+                    ),
                   ),
 
                   const SizedBox(height: 20),
@@ -664,8 +667,14 @@ class _MapPageState extends State<MapPage> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isCashorTransfer', isCashorTransfer);
     await prefs.setBool('isOnlinePayment', isOnlinePayment);
+    FocusManager.instance.primaryFocus?.unfocus();
+    Provider.of<IndexProvider>(context, listen: false).setSelectedIndex(2);
+    Navigator.of(context).pop();
 
-    if (isCashorTransfer == true || isOnlinePayment == false) {
+    // Show pop-up for cash payment
+    _showRiderNotification();
+
+    /* if (isCashorTransfer == true || isOnlinePayment == false) {
       FocusManager.instance.primaryFocus?.unfocus();
       Provider.of<IndexProvider>(context, listen: false).setSelectedIndex(2);
       Navigator.of(context).pop();
@@ -742,7 +751,7 @@ class _MapPageState extends State<MapPage> {
           backgroundColor: Colors.red,
         ),
       );
-    }
+    } */
   }
 
   void _showRiderNotification() {
@@ -1066,9 +1075,7 @@ class _MapPageState extends State<MapPage> {
                               ],
                             ),
                           ),
-                          const SizedBox(
-                            height: 20,
-                          ),
+
                           FutureBuilder(
                             future: getPolylinePoints(),
                             builder: (deliveryDetails, snapshot) {
@@ -1244,11 +1251,7 @@ class _MapPageState extends State<MapPage> {
                                                 .map((String type) {
                                               return DropdownMenuItem<String>(
                                                 value: type,
-                                                child: Padding(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(vertical: 5.0),
-                                                  child: Text(type),
-                                                ),
+                                                child: Text(type),
                                               );
                                             }).toList(),
                                             onChanged: (String? newValue) {
