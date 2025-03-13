@@ -16,8 +16,8 @@ class SplashScreen extends StatelessWidget {
         duration: 10000, // 10 seconds (in milliseconds)
         splash: Lottie.asset(
           'assets/animations/customerAppIntro.json',
-          fit: BoxFit.contain,
-          height: screenHeight * 0.5, // 50% of screen height
+          fit: BoxFit.cover,
+          height: screenHeight, // 50% of screen height
         ),
         nextScreen: const FirstPage(),
         splashTransition: SplashTransition.fadeTransition, // Smooth fade effect
