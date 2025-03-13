@@ -8,6 +8,7 @@ import 'package:micollins_delivery_app/pages/chat_screen.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:micollins_delivery_app/pages/homePage.dart';
 import 'package:micollins_delivery_app/pages/profilePage.dart';
+import 'package:micollins_delivery_app/pages/splash_screen.dart';
 import 'package:micollins_delivery_app/pages/supportPage.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,7 +40,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: isLoggedIn ? FirstPage() : LoginPage(),
+      home: isLoggedIn ? SplashScreen() : LoginPage(),
       routes: {
         '/loginpage': (context) => LoginPage(),
         '/signuppage': (context) => SignUpPage(),
