@@ -220,27 +220,51 @@ class _OrdersPageState extends State<OrdersPage> {
 
   // Function to display receipt prompt
   void _showReceiptPrompt(BuildContext context, String trackingNumber) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('E-Receipt'),
-          content: Column(
-            mainAxisSize: MainAxisSize.max,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+              const SizedBox(height: 8.0),
+              const Text(
+                'E-Receipt',
+                style: TextStyle(
+                  fontSize: 20.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12.0),
               Text('Receipt details for $trackingNumber'),
-              SizedBox(height: 10),
-              Text('Amount Paid: \₦50'),
-              Text('Payment Method: Online'),
-              Text('Delivery Date: 12th March 2025'),
+              const SizedBox(height: 10),
+              const Text('Amount Paid: \₦50'),
+              const Text('Payment Method: Online'),
+              const Text('Delivery Date: 12th March 2025'),
+              const SizedBox(height: 16.0),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Close',
+                  style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 16.0),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Close'),
-            ),
-          ],
         );
       },
     );

@@ -660,63 +660,67 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _modeOfPayment() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
       builder: (context) {
         bool dialogIsCashorTransfer = isCashorTransfer;
         bool dialogIsOnlinePayment = isOnlinePayment;
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: Colors.white,
-              content: Container(
-                padding: const EdgeInsets.symmetric(vertical: 20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
-                    const SizedBox(height: 4.0),
-                    _buildPaymentOption(
-                      title: 'Cash',
-                      value: dialogIsCashorTransfer,
-                      onChanged: (newBool) {
-                        setDialogState(() {
-                          dialogIsCashorTransfer = newBool!;
-                          dialogIsOnlinePayment = false;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 2.0),
-                    _buildPaymentOption(
-                      title: 'Pay Online',
-                      value: dialogIsOnlinePayment,
-                      onChanged: (newBool) {
-                        setDialogState(() {
-                          dialogIsOnlinePayment = newBool!;
-                          dialogIsCashorTransfer = false;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 8.0),
-                    MButtons(
-                      onTap: () {
-                        setState(() {
-                          isCashorTransfer = dialogIsCashorTransfer;
-                          isOnlinePayment = dialogIsOnlinePayment;
-                        });
-                        _processPayment();
-                      },
-                      btnText: 'Process Order',
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 4.0),
+                  _buildPaymentOption(
+                    title: 'Cash',
+                    value: dialogIsCashorTransfer,
+                    onChanged: (newBool) {
+                      setDialogState(() {
+                        dialogIsCashorTransfer = newBool!;
+                        dialogIsOnlinePayment = false;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 2.0),
+                  _buildPaymentOption(
+                    title: 'Pay Online',
+                    value: dialogIsOnlinePayment,
+                    onChanged: (newBool) {
+                      setDialogState(() {
+                        dialogIsOnlinePayment = newBool!;
+                        dialogIsCashorTransfer = false;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16.0),
+                  MButtons(
+                    onTap: () {
+                      setState(() {
+                        isCashorTransfer = dialogIsCashorTransfer;
+                        isOnlinePayment = dialogIsOnlinePayment;
+                      });
+                      _processPayment();
+                      Navigator.of(context).pop();
+                    },
+                    btnText: 'Process Order',
+                  ),
+                  const SizedBox(height: 16.0),
+                ],
               ),
             );
           },

@@ -20,7 +20,7 @@ class SplashScreen extends StatelessWidget {
           width: double.infinity, // Full width
           height: screenHeight, // Full height
           child: Lottie.asset(
-            'assets/animations/customerAppIntro.json',
+            'assets/animations/MicoIntro.json',
             fit: BoxFit.cover, // Ensures it fills the screen
           ),
         ),
