@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import '../pages/firstPage.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
@@ -7,103 +8,79 @@ class CustomBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Define navigation items with Eva icons
+    final List<({IconData icon, IconData activeIcon, String label})> navigationItems = const [
+      (
+        icon: EvaIcons.homeOutline,
+        activeIcon: EvaIcons.home,
+        label: 'Home',
+      ),
+      (
+        icon: EvaIcons.shoppingBagOutline,
+        activeIcon: EvaIcons.shoppingBag,
+        label: 'Deliveries',
+      ),
+      (
+        icon: EvaIcons.messageCircleOutline,
+        activeIcon: EvaIcons.messageCircle,
+        label: 'Chat',
+      ),
+      (
+        icon: EvaIcons.headphonesOutline,
+        activeIcon: EvaIcons.headphones,
+        label: 'Support',
+      ),
+      (
+        icon: EvaIcons.personOutline,
+        activeIcon: EvaIcons.person,
+        label: 'Profile',
+      ),
+    ];
+
     return Container(
-      height: 110,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(15),
-          topRight: Radius.circular(15),
-        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: Offset(0, -5),
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 15,
+            spreadRadius: 1,
+            offset: const Offset(0, -3),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(15),
-          topRight: Radius.circular(15),
+      child: Material(
+        elevation: 0,
+        color: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
+          ),
         ),
         child: Padding(
-          padding: EdgeInsets.only(top: 12),
+          padding: const EdgeInsets.only(top: 8),
           child: BottomNavigationBar(
-            selectedItemColor: Color.fromRGBO(0, 70, 67, 1),
+            selectedItemColor: const Color.fromRGBO(0, 31, 62, 1),
             currentIndex: context.watch<IndexProvider>().selectedIndex,
             backgroundColor: Colors.white,
             onTap: context.read<IndexProvider>().setSelectedIndex,
             unselectedItemColor: Colors.grey.shade400,
-            iconSize: 28,
+            iconSize: 24,
             showUnselectedLabels: true,
             type: BottomNavigationBarType.fixed,
-            selectedLabelStyle: TextStyle(
+            selectedLabelStyle: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
-            unselectedLabelStyle: TextStyle(
+            unselectedLabelStyle: const TextStyle(
               fontSize: 12,
             ),
             elevation: 0,
-            items: [
-              BottomNavigationBarItem(
-                icon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.home_outlined),
-                ),
-                label: 'Home',
-                activeIcon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.home),
-                ),
-              ),
-              BottomNavigationBarItem(
-                icon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.search_outlined),
-                ),
-                label: 'Search',
-                activeIcon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.search),
-                ),
-              ),
-              BottomNavigationBarItem(
-                icon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.shopping_cart_outlined),
-                ),
-                label: 'Orders',
-                activeIcon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.shopping_cart),
-                ),
-              ),
-              BottomNavigationBarItem(
-                icon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.chat_bubble_outline_outlined),
-                ),
-                label: 'Support',
-                activeIcon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.chat_bubble),
-                ),
-              ),
-              BottomNavigationBarItem(
-                icon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.person_2_outlined),
-                ),
-                label: 'Profile',
-                activeIcon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.person_2),
-                ),
-              ),
-            ],
+            items: navigationItems.map((item) => BottomNavigationBarItem(
+              icon: Icon(item.icon),
+              label: item.label,
+              activeIcon: Icon(item.activeIcon),
+            )).toList(),
           ),
         ),
       ),

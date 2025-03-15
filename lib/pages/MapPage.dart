@@ -1,5 +1,5 @@
-// ignore: file_names
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geocoding/geocoding.dart';
@@ -13,7 +13,6 @@ import 'package:money_formatter/money_formatter.dart';
 import 'package:paystack_for_flutter/paystack_for_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert'; // For JSON encoding and decoding
 import 'package:http/http.dart' as http;
 
 class MapPage extends StatefulWidget {
@@ -63,25 +62,23 @@ class _MapPageState extends State<MapPage> {
         });
 
         // Get address for the location
-        if (_userCurrentLocation != null) {
-          List<Placemark> placemarks = await placemarkFromCoordinates(
-            _userCurrentLocation!.latitude,
-            _userCurrentLocation!.longitude,
-          );
+        List<Placemark> placemarks = await placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
+        );
 
-          if (mounted && placemarks.isNotEmpty) {
-            setState(() {
-              String address = [
-                placemarks.first.street,
-                placemarks.first.subLocality,
-                placemarks.first.locality,
-              ]
-                  .where((element) => element != null && element.isNotEmpty)
-                  .join(', ');
+        if (mounted) {
+          setState(() {
+            String address = [
+              placemarks.first.street,
+              placemarks.first.subLocality,
+              placemarks.first.locality,
+            ]
+                .where((element) => element != null && element.isNotEmpty)
+                .join(', ');
 
-              _startPointController.text = address;
-            });
-          }
+            _startPointController.text = address;
+          });
         }
       }
     } catch (e) {
@@ -156,45 +153,27 @@ class _MapPageState extends State<MapPage> {
 
   void _userDesToMarker(Prediction pCoordinates) {
     try {
-      // First check if we have valid coordinates
-      //if (pCoordinates.lat == null || pCoordinates.lng == null) {
-      //debugPrint('Invalid coordinates in prediction');
-      //return;
-      //}
-
-      // Validate coordinate format
-      _userDestinationLatDEC = double.tryParse(pCoordinates.lat!) ?? 0;
-      _userDestinationLngDEC = double.tryParse(pCoordinates.lng!) ?? 0;
-
-      if (_userDestinationLatDEC == 0 || _userDestinationLngDEC == 0) {
-        debugPrint('Invalid coordinate values');
-        return;
-      }
+      _userDestinationLatDEC = double.parse(pCoordinates.lat!);
+      _userDestinationLngDEC = double.parse(pCoordinates.lng!);
 
       if (mounted) {
         setState(() {
           _destinationController.text = pCoordinates.description ?? '';
           _userDestinationLatLng =
               LatLng(_userDestinationLatDEC, _userDestinationLngDEC);
-
           _userMarkers
               .removeWhere((marker) => marker.markerId.value == 'destination');
-
-          if (_userDestinationLatLng != null) {
-            _userMarkers.add(
-              Marker(
-                markerId: const MarkerId('destination'),
-                position: _userDestinationLatLng!,
-                icon: BitmapDescriptor.defaultMarker,
-              ),
-            );
-          }
+          _userMarkers.add(
+            Marker(
+              markerId: const MarkerId('destination'),
+              position: _userDestinationLatLng!,
+              icon: BitmapDescriptor.defaultMarker,
+            ),
+          );
         });
 
-        // Wait for state update
         Future.delayed(Duration(milliseconds: 100), () {
           if (_userCurrentLocation != null && _userDestinationLatLng != null) {
-            // Update map and calculate route
             _mapController.animateCamera(
               CameraUpdate.newLatLngZoom(_userDestinationLatLng!, 15),
             );
@@ -218,7 +197,6 @@ class _MapPageState extends State<MapPage> {
         setState(() {
           _userCurrentLocation =
               LatLng(_userLocationLatDEC!, _userLocationLngDEC!);
-          // Clear previous pickup marker
           _userMarkers.removeWhere(
               (marker) => marker.markerId.value == 'user_location');
           _userMarkers.add(
@@ -242,73 +220,29 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  Future<void> setAddressCoordinates(String address, bool isPickup) async {
-    try {
-      // Call the Geocoding API with the entered address
-      String geocodeUrl =
-          'https://maps.googleapis.com/maps/api/geocode/json?address=${Uri.encodeComponent(address)}&key=$key';
-
-      final response = await http.get(Uri.parse(geocodeUrl));
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        if (data['results'] != null && data['results'].isNotEmpty) {
-          double lat = data['results'][0]['geometry']['location']['lat'];
-          double lng = data['results'][0]['geometry']['location']['lng'];
-
-          // Update state based on whether it's pickup or delivery
-          if (isPickup) {
-            setState(() {
-              _userCurrentLocation = LatLng(lat, lng);
-            });
-            debugPrint('Pickup location updated: $_userCurrentLocation');
-          } else {
-            setState(() {
-              _userDestinationLatLng = LatLng(lat, lng);
-            });
-            debugPrint('Destination location updated: $_userDestinationLatLng');
-          }
-        } else {
-          debugPrint('Invalid address: $address');
-        }
-      } else {
-        debugPrint('Failed to fetch coordinates: ${response.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('Error in geocoding: $e');
-    }
-  }
-
   Future<List<LatLng>> getPolylinePoints() async {
     List<LatLng> polylineCoordinates = [];
     try {
-      // Check if both locations are available
-      if (_userCurrentLocation == null) {
-        debugPrint('Current location is null');
-        return []; // Returning an empty list if the current location is null
-      }
-
-      if (_userDestinationLatLng == null) {
-        debugPrint('Destination location is null');
-        return []; // Returning an empty list if the destination location is null
+      if (_userCurrentLocation == null || _userDestinationLatLng == null) {
+        debugPrint('One or both locations are null');
+        return polylineCoordinates;
       }
 
       PolylinePoints polylinePoints = PolylinePoints();
-
-      // Create a PolylineRequest object
-      PolylineRequest request = PolylineRequest(
-        origin: PointLatLng(
-            _userCurrentLocation!.latitude, _userCurrentLocation!.longitude),
-        destination: PointLatLng(_userDestinationLatLng!.latitude,
-            _userDestinationLatLng!.longitude),
-        mode: TravelMode.driving, // Specify travel mode
-      );
-
-      // Pass the request object to the method
       PolylineResult lineResult =
           await polylinePoints.getRouteBetweenCoordinates(
-        googleApiKey: key, // Your API key
-        request: request, // Pass the request object
+        googleApiKey: key,
+        request: PolylineRequest(
+          origin: PointLatLng(
+            _userCurrentLocation!.latitude,
+            _userCurrentLocation!.longitude,
+          ),
+          destination: PointLatLng(
+            _userDestinationLatLng!.latitude,
+            _userDestinationLatLng!.longitude,
+          ),
+          mode: TravelMode.driving,
+        ),
       );
 
       if (lineResult.points.isNotEmpty) {
@@ -329,14 +263,14 @@ class _MapPageState extends State<MapPage> {
     return polylineCoordinates;
   }
 
-  void generatePolylineFromPoints(List<LatLng> polylineCoordinates) {
-    if (polylineCoordinates.isEmpty) return;
+  void generatePolylineFromPoints(List<LatLng> polylineCordinates) {
+    if (polylineCordinates.isEmpty) return;
 
     PolylineId id = const PolylineId('poly');
     Polyline polyline = Polyline(
       polylineId: id,
-      color: const Color.fromRGBO(0, 70, 67, 1),
-      points: polylineCoordinates,
+      color: Color.fromRGBO(0, 70, 67, 1),
+      points: polylineCordinates,
       width: 4,
     );
     setState(() {
@@ -345,10 +279,9 @@ class _MapPageState extends State<MapPage> {
   }
 
   Future<void> _calculateDeliveryDetails(
-      List<LatLng> polylineCordinates) async {
+      List<LatLng> polylineCoordinates) async {
     try {
       if (_userCurrentLocation != null && _userDestinationLatLng != null) {
-        // Calculate direct distance between points
         double totalDistance = Geolocator.distanceBetween(
           _userCurrentLocation!.latitude,
           _userCurrentLocation!.longitude,
@@ -357,19 +290,90 @@ class _MapPageState extends State<MapPage> {
         );
 
         setState(() {
-          finalDistance = totalDistance / 1000; // Convert to kilometers
+          finalDistance = totalDistance / 1000;
           roundDistanceKM = double.parse(finalDistance.toStringAsFixed(1));
 
-          // Calculate costs based on distance
-          expressCost = (roundDistanceKM / 1.2) * 1200;
-          standardCost = (roundDistanceKM / 1.6) * 1200;
+          bool isIslandToMainland = _isIslandToMainland(
+            _userCurrentLocation!.latitude,
+            _userCurrentLocation!.longitude,
+            _userDestinationLatLng!.latitude,
+            _userDestinationLatLng!.longitude,
+          );
 
-          // Update formatted values
+          if (isIslandToMainland) {
+            if (roundDistanceKM <= 5) {
+              expressCost = (roundDistanceKM / 0.8) * 345.60;
+              standardCost = (roundDistanceKM / 1.6) * 345.60;
+            } else if (roundDistanceKM <= 10) {
+              expressCost = (roundDistanceKM / 0.8) * 317.12;
+              standardCost = (roundDistanceKM / 1.6) * 317.12;
+            } else if (roundDistanceKM <= 15) {
+              expressCost = (roundDistanceKM / 0.8) * 259.60;
+              standardCost = (roundDistanceKM / 1.6) * 259.60;
+            } else if (roundDistanceKM <= 20) {
+              expressCost = (roundDistanceKM / 0.8) * 283.74;
+              standardCost = (roundDistanceKM / 1.6) * 283.74;
+            } else if (roundDistanceKM <= 25) {
+              expressCost = (roundDistanceKM / 0.8) * 256.31;
+              standardCost = (roundDistanceKM / 1.6) * 256.31;
+            } else if (roundDistanceKM <= 30) {
+              expressCost = (roundDistanceKM / 0.8) * 242.88;
+              standardCost = (roundDistanceKM / 1.6) * 242.88;
+            } else if (roundDistanceKM <= 35) {
+              expressCost = (roundDistanceKM / 0.8) * 236.03;
+              standardCost = (roundDistanceKM / 1.6) * 236.03;
+            } else if (roundDistanceKM <= 40) {
+              expressCost = (roundDistanceKM / 0.8) * 250.06;
+              standardCost = (roundDistanceKM / 1.6) * 250.06;
+            } else if (roundDistanceKM <= 45) {
+              expressCost = (roundDistanceKM / 0.8) * 268.75;
+              standardCost = (roundDistanceKM / 1.6) * 268.75;
+            } else if (roundDistanceKM <= 50) {
+              expressCost = (roundDistanceKM / 0.8) * 255.49;
+              standardCost = (roundDistanceKM / 1.6) * 255.49;
+            } else {
+              expressCost = (roundDistanceKM / 0.8) * 200;
+              standardCost = (roundDistanceKM / 1.6) * 200;
+            }
+          } else {
+            if (roundDistanceKM <= 5) {
+              expressCost = (roundDistanceKM / 0.8) * 302.46;
+              standardCost = (roundDistanceKM / 1.6) * 302.46;
+            } else if (roundDistanceKM <= 10) {
+              expressCost = (roundDistanceKM / 0.8) * 232.34;
+              standardCost = (roundDistanceKM / 1.6) * 232.34;
+            } else if (roundDistanceKM <= 15) {
+              expressCost = (roundDistanceKM / 0.8) * 222.52;
+              standardCost = (roundDistanceKM / 1.6) * 222.52;
+            } else if (roundDistanceKM <= 20) {
+              expressCost = (roundDistanceKM / 0.8) * 205.06;
+              standardCost = (roundDistanceKM / 1.6) * 205.06;
+            } else if (roundDistanceKM <= 25) {
+              expressCost = (roundDistanceKM / 0.8) * 240.78;
+              standardCost = (roundDistanceKM / 1.6) * 240.78;
+            } else if (roundDistanceKM <= 30) {
+              expressCost = (roundDistanceKM / 0.8) * 189.83;
+              standardCost = (roundDistanceKM / 1.6) * 189.83;
+            } else if (roundDistanceKM <= 35) {
+              expressCost = (roundDistanceKM / 0.8) * 182.98;
+              standardCost = (roundDistanceKM / 1.6) * 182.98;
+            } else if (roundDistanceKM <= 40) {
+              expressCost = (roundDistanceKM / 0.8) * 172.43;
+              standardCost = (roundDistanceKM / 1.6) * 172.43;
+            } else if (roundDistanceKM <= 45) {
+              expressCost = (roundDistanceKM / 0.8) * 169.03;
+              standardCost = (roundDistanceKM / 1.6) * 169.03;
+            } else if (roundDistanceKM <= 50) {
+              expressCost = (roundDistanceKM / 0.8) * 192.86;
+              standardCost = (roundDistanceKM / 1.6) * 192.86;
+            } else {
+              expressCost = (roundDistanceKM / 0.8) * 160;
+              standardCost = (roundDistanceKM / 1.6) * 160;
+            }
+          }
+
           standardFormatted = formatMoney(standardCost);
           expressFormatted = formatMoney(expressCost);
-
-          // Update size-related formatted values
-          size25Formatted = formatMoney(packageSize25Price);
           size50Formatted = formatMoney(packageSize50Price);
           size75Formatted = formatMoney(packageSize75Price);
           size100Formatted = formatMoney(packageSize100Price);
@@ -380,7 +384,19 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  // Utility function to format the money values
+  bool _isIslandToMainland(
+      double startLat, double startLng, double endLat, double endLng) {
+    bool isStartOnIsland = startLat >= 6.41 &&
+        startLat <= 6.46 &&
+        startLng >= 3.39 &&
+        startLng <= 3.44;
+
+    bool isEndOnMainland =
+        endLat >= 6.50 && endLat <= 6.60 && endLng >= 3.30 && endLng <= 3.40;
+
+    return isStartOnIsland && isEndOnMainland;
+  }
+
   MoneyFormatterOutput formatMoney(double amount) {
     return MoneyFormatter(
       amount: amount,
@@ -396,7 +412,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   double _getDeliveryCost() {
-    return isExpressSelected == true ? expressCost : standardCost;
+    return isExpressSelected! ? expressCost : standardCost;
   }
 
   double _getPackagePrice() {
@@ -411,7 +427,7 @@ class _MapPageState extends State<MapPage> {
     } else if (is100Selected) {
       packagePrice = packageSize100Price;
     }
-
+    print(packagePrice);
     return packagePrice;
   }
 
@@ -428,43 +444,24 @@ class _MapPageState extends State<MapPage> {
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16.0),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(20.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16.0),
-                ),
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              content: Container(
+                padding: const EdgeInsets.symmetric(vertical: 20.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Select Payment Method',
-                          style: TextStyle(
-                            fontSize: 18.0,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          color: Colors.grey,
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ],
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
                     ),
-                    const Divider(thickness: 1.2),
-                    const SizedBox(height: 12.0),
-                    _buildModernPaymentOption(
-                      title: 'Cash or Transfer',
+                    const SizedBox(height: 4.0),
+                    _buildPaymentOption(
+                      title: 'Cash',
                       value: dialogIsCashorTransfer,
-                      icon: Icons.account_balance_wallet,
                       onChanged: (newBool) {
                         setDialogState(() {
                           dialogIsCashorTransfer = newBool!;
@@ -472,11 +469,10 @@ class _MapPageState extends State<MapPage> {
                         });
                       },
                     ),
-                    const SizedBox(height: 12.0),
-                    _buildModernPaymentOption(
+                    const SizedBox(height: 2.0),
+                    _buildPaymentOption(
                       title: 'Pay Online',
                       value: dialogIsOnlinePayment,
-                      icon: Icons.payment,
                       onChanged: (newBool) {
                         setDialogState(() {
                           dialogIsOnlinePayment = newBool!;
@@ -484,34 +480,16 @@ class _MapPageState extends State<MapPage> {
                         });
                       },
                     ),
-                    const SizedBox(height: 24.0),
-                    ElevatedButton(
-                      onPressed: () {
+                    const SizedBox(height: 8.0),
+                    MButtons(
+                      onTap: () {
                         setState(() {
                           isCashorTransfer = dialogIsCashorTransfer;
                           isOnlinePayment = dialogIsOnlinePayment;
                         });
-                        Navigator.of(context).pop(); // Close the dialog
                         _processPayment();
                       },
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Color.fromRGBO(40, 115, 115, 1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.0),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 14.0,
-                          horizontal: 24.0,
-                        ),
-                      ),
-                      child: Text(
-                        'Process Order',
-                        style: TextStyle(
-                          fontSize: 16.0,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      btnText: 'Process Order',
                     ),
                   ],
                 ),
@@ -523,33 +501,52 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  Widget _buildModernPaymentOption({
-    required String title,
-    required bool value,
-    required IconData icon,
-    required ValueChanged<bool?> onChanged,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, size: 28.0, color: Color.fromRGBO(40, 115, 115, 1)),
-        const SizedBox(width: 12.0),
-        Expanded(
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 16.0,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
+  Widget _buildAdBanner(String imagePath, String title, String subtitle) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color.fromRGBO(0, 31, 62, 1), Color.fromRGBO(0, 70, 67, 1)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: EdgeInsets.all(12),
+      margin: EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          Image.asset(
+            imagePath,
+            width: 60,
+            height: 60,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeColor: Color.fromRGBO(40, 115, 115, 1),
-          inactiveTrackColor: Colors.grey[300],
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -564,7 +561,7 @@ class _MapPageState extends State<MapPage> {
         style: const TextStyle(fontWeight: FontWeight.w600),
       ),
       trailing: Checkbox(
-        activeColor: const Color.fromRGBO(40, 115, 115, 1),
+        activeColor: const Color.fromRGBO(0, 31, 62, 1),
         value: value,
         onChanged: onChanged,
         checkColor: Colors.white,
@@ -574,8 +571,15 @@ class _MapPageState extends State<MapPage> {
 
   void _processPayment() async {
     if (isCashorTransfer == true && isOnlinePayment == false) {
+      FocusManager.instance.primaryFocus?.unfocus();
       Provider.of<IndexProvider>(context, listen: false).setSelectedIndex(2);
       Navigator.of(context).pop();
+
+      // Show pop-up for cash payment
+      _showRiderNotification();
+
+      // Call submit delivery function for cash/transfer payments
+      _submitDelivery();
     } else if (isOnlinePayment == true && isCashorTransfer == false) {
       if (userEmail == null || userEmail!.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -611,12 +615,19 @@ class _MapPageState extends State<MapPage> {
               SnackBar(
                 content: Text(
                     'Transaction Successful: ${paystackCallback.reference}'),
-                backgroundColor: Color.fromRGBO(0, 70, 67, 1),
+                backgroundColor: Color.fromRGBO(0, 31, 62, 1),
               ),
             );
+            FocusManager.instance.primaryFocus?.unfocus();
             Provider.of<IndexProvider>(context, listen: false)
                 .setSelectedIndex(2);
             Navigator.of(context).pop();
+
+            // Show pop-up for successful online payment
+            _showRiderNotification();
+
+            // Call submit delivery function after successful payment
+            _submitDelivery();
           },
           onCancelled: (paystackCallback) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -641,6 +652,105 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
+  void _showRiderNotification() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Center(
+          child: AlertDialog(
+            elevation: 2,
+            title: Text("Order Confirmed"),
+            content: Text("A rider will reach out to you shortly."),
+            actions: [
+              MButtons(
+                onTap: () {
+                  Navigator.of(context).pop();
+                  FocusManager.instance.primaryFocus?.unfocus();
+                },
+                btnText: "OK",
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String selectedVehicleType = "bike"; // Default selection
+
+  Future<void> _submitDelivery() async {
+    try {
+      final response = await http.post(
+        Uri.parse('https://deliveryapi-plum.vercel.app/createdelivery'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String, dynamic>{
+          'user_id': userEmail, // Assuming userEmail is the user ID
+          'price': paymentAmt,
+          'distance': roundDistanceKM,
+          'startpoint': _startPointController.text,
+          'endpoint': _destinationController.text,
+          'deliverytype': isExpressSelected! ? 'express' : 'standard',
+          'transactiontype': isCashorTransfer ? 'cash' : 'online',
+          'packagesize': _getPackageSize(),
+          'vehicletype': selectedVehicleType, // Add vehicle type
+          'status': {
+            'status': 'pending',
+            'rider_id': null,
+            'rider_name': null,
+            'rider_phone': null,
+            'rider_location': null,
+            'rider_eta': null,
+          },
+        }),
+      );
+
+      // Rest of your method
+
+      debugPrint('Server Response Code: ${response.statusCode}');
+      debugPrint('Server Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Delivery created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create delivery: ${response.body}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error creating delivery: $e');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error creating delivery: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  String _getPackageSize() {
+    if (is25Selected) {
+      return '25';
+    } else if (is50Selected) {
+      return '50';
+    } else if (is75Selected) {
+      return '75';
+    } else if (is100Selected) {
+      return '100';
+    }
+    return '25';
+  }
+
   var finalDistance;
   var roundDistanceKM;
   bool? isExpressSelected = false;
@@ -654,10 +764,10 @@ class _MapPageState extends State<MapPage> {
   bool is75Selected = false;
   bool is100Selected = false;
 
-  double packageSize25Price = 1250;
-  double packageSize50Price = 2500;
-  double packageSize75Price = 3750;
-  double packageSize100Price = 5000;
+  double packageSize25Price = 0;
+  double packageSize50Price = 250;
+  double packageSize75Price = 500;
+  double packageSize100Price = 750;
 
   double expressCost = 0;
   double standardCost = 0;
@@ -673,7 +783,6 @@ class _MapPageState extends State<MapPage> {
   String get formattedPaymentAmt => formatMoney(paymentAmt).symbolOnLeft;
   int get paymentParameter => (paymentAmt).toInt();
 
-  // First, let's create a reusable method for the input field container
   Widget _buildInputField({
     required TextEditingController controller,
     required FocusNode focusNode,
@@ -728,7 +837,7 @@ class _MapPageState extends State<MapPage> {
             ),
             prefixIcon: Icon(
               Icons.location_on_rounded,
-              color: Color.fromRGBO(0, 70, 67, 1),
+              color: Color.fromRGBO(0, 31, 62, 1),
             ),
             suffixIcon: controller.text.isNotEmpty
                 ? IconButton(
@@ -762,7 +871,6 @@ class _MapPageState extends State<MapPage> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Map with rounded corners
           Padding(
             padding: EdgeInsets.fromLTRB(
                 12, 12, 12, MediaQuery.of(context).padding.bottom),
@@ -787,15 +895,13 @@ class _MapPageState extends State<MapPage> {
               ),
             ),
           ),
-
-          // Floating action buttons with unique hero tags
           Positioned(
             top: 60,
             right: 20,
             child: Column(
               children: [
                 FloatingActionButton.small(
-                  heroTag: 'location_button', // Add unique hero tag
+                  heroTag: 'location_button',
                   backgroundColor: Colors.white,
                   onPressed: () {
                     if (_userCurrentLocation != null) {
@@ -806,38 +912,36 @@ class _MapPageState extends State<MapPage> {
                   },
                   child: Icon(
                     Icons.my_location_rounded,
-                    color: Color.fromRGBO(0, 70, 67, 1),
+                    color: Color.fromRGBO(0, 31, 62, 1),
                   ),
                 ),
                 SizedBox(height: 8),
                 FloatingActionButton.small(
-                  heroTag: 'zoom_in_button', // Add unique hero tag
+                  heroTag: 'zoom_in_button',
                   backgroundColor: Colors.white,
                   onPressed: () {
                     _mapController.animateCamera(CameraUpdate.zoomIn());
                   },
                   child: Icon(
                     Icons.add,
-                    color: Color.fromRGBO(0, 70, 67, 1),
+                    color: Color.fromRGBO(0, 31, 62, 1),
                   ),
                 ),
                 SizedBox(height: 8),
                 FloatingActionButton.small(
-                  heroTag: 'zoom_out_button', // Add unique hero tag
+                  heroTag: 'zoom_out_button',
                   backgroundColor: Colors.white,
                   onPressed: () {
                     _mapController.animateCamera(CameraUpdate.zoomOut());
                   },
                   child: Icon(
                     Icons.remove,
-                    color: Color.fromRGBO(0, 70, 67, 1),
+                    color: Color.fromRGBO(0, 31, 62, 1),
                   ),
                 ),
               ],
             ),
           ),
-
-          // Bottom sheet with glass effect
           DraggableScrollableSheet(
             controller: _bottomSheetController,
             maxChildSize: 0.9,
@@ -846,11 +950,11 @@ class _MapPageState extends State<MapPage> {
             builder: (BuildContext context, scrollController) {
               return Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.95),
+                  color: Colors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withOpacity(0.1),
                       blurRadius: 20,
                       offset: Offset(0, -5),
                       spreadRadius: 5,
@@ -859,7 +963,7 @@ class _MapPageState extends State<MapPage> {
                 ),
                 child: Column(
                   children: [
-                    // Modern drag handle
+                    // Drag handle
                     Container(
                       margin: EdgeInsets.symmetric(vertical: 12),
                       height: 5,
@@ -869,14 +973,296 @@ class _MapPageState extends State<MapPage> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    // Scrollable content
+
+                    // Ad Carousel Banner with improved styling
+                    Container(
+                      height: 120,
+                      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: PageView.builder(
+                        itemCount: 3,
+                        itemBuilder: (context, index) {
+                          final adData = [
+                            {
+                              'image': 'assets/images/bike.png',
+                              'title': 'Express Delivery',
+                              'subtitle': 'Get 10% off your first order'
+                            },
+                            {
+                              'image': 'assets/images/bike.png',
+                              'title': 'Special Offer',
+                              'subtitle': 'Free delivery on orders over ₦5000'
+                            },
+                            {
+                              'image': 'assets/images/bike.png',
+                              'title': 'New Service',
+                              'subtitle': 'Try our premium delivery option'
+                            },
+                          ][index];
+
+                          return Container(
+                            margin: EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Color.fromRGBO(0, 31, 62, 1),
+                                  Color.fromRGBO(0, 70, 67, 0.9),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            padding: EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                Image.asset(
+                                  adData['image']!,
+                                  width: 70,
+                                  height: 70,
+                                ),
+                                SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        adData['title']!,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        adData['subtitle']!,
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.9),
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    // Vehicle Type Selection
+                    Container(
+                      margin:
+                          EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Select Vehicle Type",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color.fromRGBO(0, 31, 62, 1),
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      selectedVehicleType = "bike";
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: selectedVehicleType == "bike"
+                                          ? Color.fromRGBO(0, 31, 62, 1)
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: selectedVehicleType == "bike"
+                                            ? Color.fromRGBO(0, 31, 62, 1)
+                                            : Colors.grey.shade300,
+                                        width: 1.5,
+                                      ),
+                                      boxShadow: selectedVehicleType == "bike"
+                                          ? [
+                                              BoxShadow(
+                                                color: Color.fromRGBO(
+                                                    0, 31, 62, 0.3),
+                                                blurRadius: 8,
+                                                offset: Offset(0, 4),
+                                              )
+                                            ]
+                                          : [],
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          Icons.motorcycle,
+                                          color: selectedVehicleType == "bike"
+                                              ? Colors.white
+                                              : Colors.grey.shade700,
+                                          size: 28,
+                                        ),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          "Bike",
+                                          style: TextStyle(
+                                            color: selectedVehicleType == "bike"
+                                                ? Colors.white
+                                                : Colors.grey.shade700,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      selectedVehicleType = "car";
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: selectedVehicleType == "car"
+                                          ? Color.fromRGBO(0, 31, 62, 1)
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: selectedVehicleType == "car"
+                                            ? Color.fromRGBO(0, 31, 62, 1)
+                                            : Colors.grey.shade300,
+                                        width: 1.5,
+                                      ),
+                                      boxShadow: selectedVehicleType == "car"
+                                          ? [
+                                              BoxShadow(
+                                                color: Color.fromRGBO(
+                                                    0, 31, 62, 0.3),
+                                                blurRadius: 8,
+                                                offset: Offset(0, 4),
+                                              )
+                                            ]
+                                          : [],
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          Icons.directions_car,
+                                          color: selectedVehicleType == "car"
+                                              ? Colors.white
+                                              : Colors.grey.shade700,
+                                          size: 28,
+                                        ),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          "Car",
+                                          style: TextStyle(
+                                            color: selectedVehicleType == "car"
+                                                ? Colors.white
+                                                : Colors.grey.shade700,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.local_shipping,
+                                            color: Colors.grey.shade400,
+                                            size: 28,
+                                          ),
+                                          Positioned(
+                                            right: 0,
+                                            top: 0,
+                                            child: Container(
+                                              padding: EdgeInsets.all(2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Text(
+                                                "!",
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        "Truck",
+                                        style: TextStyle(
+                                          color: Colors.grey.shade400,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Text(
+                                        "Coming Soon",
+                                        style: TextStyle(
+                                          color: Colors.orange,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
                     Expanded(
                       child: ListView(
                         controller: scrollController,
                         padding: EdgeInsets.symmetric(horizontal: 20),
                         physics: BouncingScrollPhysics(),
                         children: [
-                          // Search fields styling
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Column(
@@ -976,7 +1362,7 @@ class _MapPageState extends State<MapPage> {
                                                       fontWeight:
                                                           FontWeight.w600,
                                                       color: Color.fromRGBO(
-                                                          0, 70, 67, 1),
+                                                          0, 31, 62, 1),
                                                     ),
                                                   ),
                                                 ],
@@ -1030,7 +1416,7 @@ class _MapPageState extends State<MapPage> {
                                               Icons.location_on,
                                               size: 40,
                                               color: const Color.fromRGBO(
-                                                  0, 70, 67, 1),
+                                                  0, 31, 62, 1),
                                             ),
                                           ),
                                           title: Text(
@@ -1057,7 +1443,7 @@ class _MapPageState extends State<MapPage> {
                                               Icons.location_on,
                                               size: 40,
                                               color: const Color.fromRGBO(
-                                                  0, 70, 67, 1),
+                                                  0, 31, 67, 1),
                                             ),
                                           ),
                                           title: Text(
@@ -1099,7 +1485,7 @@ class _MapPageState extends State<MapPage> {
                                                     const EdgeInsets.all(6.0),
                                                 child: Image.asset(
                                                   'assets/images/bike.png',
-                                                  scale: 12,
+                                                  scale: 2,
                                                 ),
                                               )),
                                           title: Text(
@@ -1114,7 +1500,7 @@ class _MapPageState extends State<MapPage> {
                                           ),
                                           trailing: Checkbox(
                                             activeColor: const Color.fromRGBO(
-                                                40, 115, 115, 1),
+                                                0, 31, 62, 1),
                                             value: isStandardSelected,
                                             onChanged: (newBool) {
                                               setState(() {
@@ -1144,7 +1530,7 @@ class _MapPageState extends State<MapPage> {
                                                     const EdgeInsets.all(6.0),
                                                 child: Image.asset(
                                                   'assets/images/bike.png',
-                                                  scale: 12,
+                                                  scale: 2,
                                                 ),
                                               )),
                                           title: Text(
@@ -1159,7 +1545,7 @@ class _MapPageState extends State<MapPage> {
                                           ),
                                           trailing: Checkbox(
                                             activeColor: const Color.fromRGBO(
-                                                40, 115, 115, 1),
+                                                0, 31, 62, 1),
                                             value: isExpressSelected,
                                             onChanged: (newBool) {
                                               setState(() {
@@ -1197,16 +1583,17 @@ class _MapPageState extends State<MapPage> {
                                         ),
                                         ListTile(
                                           title: Text(
-                                            'Quarter the Box',
+                                            'Quarter the Box & Below',
                                             style: TextStyle(
                                                 fontWeight: FontWeight.w600),
                                           ),
                                           subtitle: Text(
-                                            size25Formatted?.symbolOnLeft ?? '',
+                                            size25Formatted?.symbolOnLeft ??
+                                                'Free',
                                           ),
                                           trailing: Checkbox(
                                             activeColor: const Color.fromRGBO(
-                                                40, 115, 115, 1),
+                                                0, 31, 62, 1),
                                             value: is25Selected,
                                             onChanged: (newBool) {
                                               setState(() {
@@ -1221,16 +1608,16 @@ class _MapPageState extends State<MapPage> {
                                         ),
                                         ListTile(
                                           title: Text(
-                                            'Half the Box',
+                                            'Half the Box & Below',
                                             style: TextStyle(
                                                 fontWeight: FontWeight.w600),
                                           ),
                                           subtitle: Text(
-                                            size25Formatted?.symbolOnLeft ?? '',
+                                            size50Formatted?.symbolOnLeft ?? '',
                                           ),
                                           trailing: Checkbox(
                                             activeColor: const Color.fromRGBO(
-                                                40, 115, 115, 1),
+                                                0, 31, 62, 1),
                                             value: is50Selected,
                                             onChanged: (newBool) {
                                               setState(() {
@@ -1245,7 +1632,7 @@ class _MapPageState extends State<MapPage> {
                                         ),
                                         ListTile(
                                           title: Text(
-                                            'One quarter the Box',
+                                            '3 quarter the Box & Below',
                                             style: TextStyle(
                                                 fontWeight: FontWeight.w600),
                                           ),
@@ -1254,7 +1641,7 @@ class _MapPageState extends State<MapPage> {
                                           ),
                                           trailing: Checkbox(
                                             activeColor: const Color.fromRGBO(
-                                                40, 115, 115, 1),
+                                                0, 31, 62, 1),
                                             value: is75Selected,
                                             onChanged: (newBool) {
                                               setState(() {
@@ -1269,7 +1656,7 @@ class _MapPageState extends State<MapPage> {
                                         ),
                                         ListTile(
                                           title: Text(
-                                            'Full Box',
+                                            'Full Box & Below',
                                             style: TextStyle(
                                                 fontWeight: FontWeight.w600),
                                           ),
@@ -1279,7 +1666,7 @@ class _MapPageState extends State<MapPage> {
                                           ),
                                           trailing: Checkbox(
                                             activeColor: const Color.fromRGBO(
-                                                40, 115, 115, 1),
+                                                0, 31, 62, 1),
                                             value: is100Selected,
                                             onChanged: (newBool) {
                                               setState(() {
@@ -1310,7 +1697,7 @@ class _MapPageState extends State<MapPage> {
                                   child: Padding(
                                     padding: const EdgeInsets.only(top: 60.0),
                                     child: CircularProgressIndicator(
-                                      color: Color.fromRGBO(0, 70, 67, 1),
+                                      color: Color.fromRGBO(0, 31, 62, 1),
                                     ),
                                   ),
                                 );

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:micollins_delivery_app/components/bottom_nav_bar.dart';
 import 'package:micollins_delivery_app/pages/MapPage.dart';
-import 'package:micollins_delivery_app/pages/homePage.dart';
+import 'package:micollins_delivery_app/pages/chat_screen.dart';
 import 'package:micollins_delivery_app/pages/ordersPage.dart';
 import 'package:micollins_delivery_app/pages/profilePage.dart';
 import 'package:micollins_delivery_app/pages/supportPage.dart';
@@ -26,11 +26,11 @@ class IndexProvider extends ChangeNotifier {
 }
 
 final List<Widget> _pages = [
-  Homepage(),
-  MapPage(),
-  OrdersPage(),
-  SupportPage(),
-  ProfilePage(),
+  MapPage(),           // Home (Maps)
+  OrdersPage(),        // Deliveries
+  ChatScreen(),        // Chat
+  SupportPage(),       // Support
+  ProfilePage(),       // Profile
 ];
 
 class _FirstPageState extends State<FirstPage> {

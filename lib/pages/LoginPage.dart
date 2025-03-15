@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
+import 'package:micollins_delivery_app/components/user_cache.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:micollins_delivery_app/components/m_buttons.dart';
 
@@ -78,6 +79,8 @@ class _LoginPageState extends State<LoginPage> {
           textColor: Colors.white,
         );
 
+        await AuthService.saveLoginState(true);
+
         // Save user data to shared preferences
         await prefs.setString('user', json.encode(data['user']));
 
@@ -124,25 +127,18 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 80),
 
                   // Logo and App Name
                   Center(
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Image.asset(
-                          'assets/images/micollins_icon.png',
-                          height: 40,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'MICO',
-                          style: TextStyle(
-                            color: const Color.fromRGBO(40, 115, 115, 1),
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          'assets/images/logo_mico_resized.png',
+                          height: 50,
+                          width: 101.9,
                         ),
                       ],
                     ),
@@ -156,14 +152,19 @@ class _LoginPageState extends State<LoginPage> {
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: const Color.fromRGBO(40, 115, 115, 1),
+                        color: const Color.fromRGBO(0, 31, 62, 1),
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
 
                   // Email Address
-                  const Text('Email Address'),
+                  const Text(
+                    'Email Address',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 5),
                   TextFormField(
                     controller: emailController,
@@ -175,7 +176,12 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 15),
 
                   // Password
-                  const Text('Password'),
+                  const Text(
+                    'Password',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 5),
                   TextFormField(
                     controller: passwordController,
@@ -208,7 +214,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: Text(
                         'Forgot password?',
                         style: TextStyle(
-                          color: const Color.fromRGBO(40, 115, 115, 1),
+                          color: const Color.fromRGBO(0, 31, 62, 1),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -221,7 +227,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: _isLoading
                         ? CircularProgressIndicator(
                             valueColor: AlwaysStoppedAnimation(
-                              const Color.fromRGBO(40, 115, 115, 1),
+                              const Color.fromRGBO(0, 31, 62, 1),
                             ),
                           )
                         : MButtons(
@@ -230,6 +236,38 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                   ),
                   const SizedBox(height: 50),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 30),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).pushNamed('/signuppage');
+                        },
+                        child: Row(
+                          children: [
+                            Text(
+                              "Don't have an account?",
+                              style: TextStyle(
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(
+                              width: 4,
+                            ),
+                            Text(
+                              'Create Account',
+                              style: TextStyle(
+                                color: Color.fromRGBO(0, 31, 62, 1),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
                 ],
               ),
             ),

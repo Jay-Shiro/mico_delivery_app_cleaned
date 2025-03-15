@@ -20,31 +20,23 @@ class RecoverPassword extends StatelessWidget {
               padding: const EdgeInsets.only(top: 40.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.max,
                 children: [
                   //logo
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 110),
-                    child: Row(
-                      children: [
-                        Image.asset(
-                          'assets/images/micollins_icon.png',
-                          height: 100,
-                          scale: 2.5,
-                        ),
-                        Text('MICO',
-                            style: TextStyle(
-                              color: const Color.fromRGBO(40, 115, 115, 1),
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ))
-                      ],
+                    padding: const EdgeInsets.symmetric(horizontal: 170),
+                    child: Image.asset(
+                      'assets/images/logo_mico_resized.png',
                     ),
+                  ),
+                  const SizedBox(
+                    height: 40,
                   ),
                   //sign in prompt
                   Text(
                     'Reset your Password',
                     style: TextStyle(
-                      color: const Color.fromRGBO(40, 115, 115, 1),
+                      color: const Color.fromRGBO(0, 31, 62, 1),
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),

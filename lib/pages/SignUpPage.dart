@@ -110,23 +110,15 @@ class _SignUpPageState extends State<SignUpPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 80),
 
                   // Logo and App Name
                   Center(
                     child: Column(
                       children: [
                         Image.asset(
-                          'assets/images/micollins_icon.png',
+                          'assets/images/logo_mico.png',
                           height: 50,
-                        ),
-                        Text(
-                          'MICO',
-                          style: TextStyle(
-                            color: const Color.fromRGBO(40, 115, 115, 1),
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
                         ),
                       ],
                     ),
@@ -140,14 +132,19 @@ class _SignUpPageState extends State<SignUpPage> {
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: const Color.fromRGBO(40, 115, 115, 1),
+                        color: const Color.fromRGBO(0, 31, 62, 1),
                       ),
                     ),
                   ),
                   const SizedBox(height: 25),
 
                   // First Name
-                  const Text('First Name'),
+                  const Text(
+                    'First Name',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: firstNameController,
@@ -158,7 +155,10 @@ class _SignUpPageState extends State<SignUpPage> {
                   const SizedBox(height: 15),
 
                   // Last Name
-                  const Text('Last Name'),
+                  const Text('Last Name',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                      )),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: lastNameController,
@@ -169,7 +169,10 @@ class _SignUpPageState extends State<SignUpPage> {
                   const SizedBox(height: 15),
 
                   // Email Address
-                  const Text('Email Address'),
+                  const Text('Email Address',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                      )),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: emailController,
@@ -181,7 +184,10 @@ class _SignUpPageState extends State<SignUpPage> {
                   const SizedBox(height: 15),
 
                   // Phone Number
-                  const Text('Phone Number'),
+                  const Text('Phone Number',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                      )),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: phoneController,
@@ -193,7 +199,10 @@ class _SignUpPageState extends State<SignUpPage> {
                   const SizedBox(height: 15),
 
                   // Password
-                  const Text('Password'),
+                  const Text('Password',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                      )),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: passwordController,
@@ -220,7 +229,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   Row(
                     children: [
                       Checkbox(
-                        activeColor: const Color.fromRGBO(40, 115, 115, 1),
+                        activeColor: const Color.fromRGBO(0, 31, 62, 1),
                         value: isChecked,
                         onChanged: (newBool) {
                           setState(() {
@@ -243,7 +252,9 @@ class _SignUpPageState extends State<SignUpPage> {
                   // Create Account Button
                   Center(
                     child: _isLoading
-                        ? CircularProgressIndicator() // Show progress indicator
+                        ? CircularProgressIndicator(
+                            color: const Color.fromRGBO(0, 31, 62, 1),
+                          ) // Show progress indicator
                         : MButtons(
                             btnText: 'Create Account',
                             onTap: _signup,

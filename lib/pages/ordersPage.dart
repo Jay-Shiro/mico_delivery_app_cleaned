@@ -147,8 +147,8 @@ class _OrdersPageState extends State<OrdersPage> {
         'Unknown';
 
     Color statusColor = {
-          'pending': Color.fromRGBO(255, 191, 0, 1),
-          'in_transit': Color.fromRGBO(0, 70, 67, 1),
+          'pending': Color.fromRGBO(184, 194, 43, 1),
+          'in_transit': Color.fromRGBO(0, 31, 62, 1),
           'completed': Color.fromRGBO(76, 175, 80, 1),
         }[status] ??
         Colors.grey;
@@ -223,9 +223,9 @@ class _OrdersPageState extends State<OrdersPage> {
                   child: OutlinedButton(
                     onPressed: () {},
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Color.fromRGBO(0, 70, 67, 1),
+                      foregroundColor: Color.fromRGBO(0, 31, 62, 1),
                       side: BorderSide(
-                        color: Color.fromRGBO(0, 70, 67, 1),
+                        color: Color.fromRGBO(0, 31, 62, 1),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -240,7 +240,7 @@ class _OrdersPageState extends State<OrdersPage> {
                   child: ElevatedButton(
                     onPressed: () {},
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color.fromRGBO(0, 70, 67, 1),
+                      backgroundColor: Color.fromRGBO(0, 31, 62, 1),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -262,6 +262,9 @@ class _OrdersPageState extends State<OrdersPage> {
     return Container(
       child: Column(
         children: [
+          const SizedBox(
+            height: 20,
+          ),
           Text(
             'MY ORDER',
             style: TextStyle(
@@ -271,6 +274,7 @@ class _OrdersPageState extends State<OrdersPage> {
           ),
           const SizedBox(height: 30),
           TextField(
+            autofocus: false,
             decoration: InputDecoration(
               filled: true,
               fillColor: Colors.white,

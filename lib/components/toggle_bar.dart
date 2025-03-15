@@ -16,7 +16,7 @@ class _ToggleBarState extends State<ToggleBar> {
   Widget build(BuildContext context) {
     List<Color> mColors = [
       Colors.white,
-      Color.fromRGBO(0, 70, 67, 1),
+      Color.fromRGBO(0, 31, 62, 1),
     ];
 
     List<String> statusLabels = ['All', 'Pending', 'On Route', 'Complete'];
@@ -34,7 +34,7 @@ class _ToggleBarState extends State<ToggleBar> {
             decoration: BoxDecoration(
               color: mColors[index == selectedIndex ? 1 : 0],
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Color.fromRGBO(0, 70, 67, 1)),
+              border: Border.all(color: Color.fromRGBO(0, 31, 62, 1)),
             ),
             child: Center(
               child: Text(

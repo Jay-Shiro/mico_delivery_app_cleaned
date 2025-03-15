@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.0+5
 
 environment:
   sdk: ^3.5.4
@@ -30,15 +30,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
+  iconsax: ^0.0.8
   cupertino_icons: ^1.0.8
   provider: ^6.1.2
   fluttertoast: ^8.2.8
   carousel_slider: ^5.0.0
-  flutter_slidable: ^3.1.1
+  flutter_slidable: ^4.0.0
   build_runner: ^2.4.13
   flutter_polyline_points: ^2.1.0
   google_maps_flutter: ^2.9.0
@@ -48,20 +45,21 @@ dependencies:
   http: ^1.2.2
   paystack_for_flutter: ^1.0.2
   money_formatter: ^0.0.6
-  dash_chat_2: ^0.0.21
-  google_fonts: ^6.2.1
-  delightful_toast: ^1.1.0
-  get_it: ^8.0.2
   path: ^1.9.0
   shared_preferences: ^2.3.5
+  image_picker: 
+  flutter_local_notifications: ^18.0.1
+  eva_icons_flutter: ^3.1.0
  
   
 
   
 
 dev_dependencies:
+  flutter_launcher_icons: "^0.14.3"
   flutter_test:
     sdk: flutter
+    
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -69,6 +67,27 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/mico_logo.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+
+  web:
+    generate: true
+    image_path: "assets/images/mico_logo.png"
+    background_color: "#FFFFFF"
+    theme_color: "#FFFFFF"
+
+  windows:
+    generate: true
+    image_path: "assets/images/mico_logo.png"
+    icon_size: 48 # min:48, max:256, default: 48
+
+  macos:
+    generate: true
+    image_path: "assets/images/mico_logo.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

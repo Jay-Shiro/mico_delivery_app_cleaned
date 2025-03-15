@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:micollins_delivery_app/components/coming_soon.dart';
 import 'package:micollins_delivery_app/components/mico_list_tiles.dart';
+import 'package:micollins_delivery_app/components/user_cache.dart';
+import 'package:micollins_delivery_app/pages/notification_page.dart';
+import 'package:micollins_delivery_app/pages/profile_edit.dart';
+import 'package:micollins_delivery_app/pages/security_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -11,14 +16,188 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  String? userEmail;
   String? firstName;
   String? lastName;
+  String? userEmail;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+  }
+
+  Widget mainsection() {
+    return Container(
+      width: 390,
+      height: 420,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadiusDirectional.all(
+          Radius.circular(40),
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => ProfileEdit()),
+              );
+            },
+            child: MicoListTiles(
+              leading: Image.asset(
+                'assets/images/profile.png',
+                scale: 20,
+              ),
+              title: Text(
+                'Edit Profile',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              trailing: Icon(Icons.arrow_forward_ios, size: 18),
+            ),
+          ),
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => NotificationSettings()),
+              );
+            },
+            child: MicoListTiles(
+              leading: Image.asset(
+                'assets/images/notification.png',
+                scale: 20,
+              ),
+              title: Text(
+                'Notification',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              trailing: Icon(Icons.arrow_forward_ios, size: 18),
+            ),
+          ),
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => ComingSoon()),
+              );
+            },
+            child: MicoListTiles(
+              leading: Image.asset(
+                'assets/images/payment.png',
+                scale: 20,
+              ),
+              title: Text(
+                'Payment',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              trailing: Icon(Icons.arrow_forward_ios, size: 18),
+            ),
+          ),
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => SecuritySettings()),
+              );
+            },
+            child: MicoListTiles(
+              leading: Image.asset(
+                'assets/images/security.png',
+                scale: 20,
+              ),
+              title: Text(
+                'Security',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              trailing: Icon(Icons.arrow_forward_ios, size: 18),
+            ),
+          ),
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => ComingSoon()),
+              );
+            },
+            child: MicoListTiles(
+              leading: Image.asset(
+                'assets/images/invite.png',
+                scale: 20,
+              ),
+              title: Text(
+                'Invite friends',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              trailing: Icon(Icons.arrow_forward_ios, size: 18),
+            ),
+          ),
+          GestureDetector(
+            onTap: () async {
+              bool confirmLogout = await showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text(
+                      "Logout Confirmation",
+                      style: TextStyle(
+                        color: Color.fromRGBO(0, 31, 62, 1),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    content: const Text("Are you sure you want to log out?"),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(false); // User chose "No"
+                        },
+                        child: const Text(
+                          "No",
+                          style: TextStyle(
+                            color: Color.fromRGBO(0, 31, 62, 1),
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(true); // User chose "Yes"
+                        },
+                        child: const Text(
+                          "Yes",
+                          style: TextStyle(
+                            color: Color.fromRGBO(0, 31, 62, 1),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+
+              if (confirmLogout == true) {
+                await AuthService.logout();
+                Navigator.of(context)
+                    .pushNamedAndRemoveUntil('/loginpage', (route) => false);
+              }
+            },
+            child: MicoListTiles(
+              leading: Image.asset(
+                'assets/images/logout.png',
+                scale: 40,
+              ),
+              title: Text(
+                'Log out',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color.fromRGBO(126, 168, 82, 1),
+                ),
+              ),
+              trailing: Icon(Icons.arrow_forward_ios, size: 18),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadUserData() async {
@@ -45,17 +224,19 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Scaffold(
             backgroundColor: Colors.white,
             body: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Column(
                   children: [
+                    const SizedBox(
+                      height: 90,
+                    ),
                     Text(
                       'MY PROFILE',
                       style:
                           TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 15),
                     ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Color.fromRGBO(227, 223, 214, 1),
@@ -72,117 +253,17 @@ class _ProfilePageState extends State<ProfilePage> {
                         style: TextStyle(
                             fontSize: 14, fontWeight: FontWeight.w400),
                       ),
-                    )
+                    ),
                   ],
+                ),
+                const SizedBox(
+                  height: 20,
                 ),
                 mainsection(),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget mainsection() {
-    return Container(
-      width: 390,
-      height: 580,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadiusDirectional.all(
-          Radius.circular(40),
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          MicoListTiles(
-            leading: Image.asset(
-              'assets/images/profile.png',
-              scale: 20,
-            ),
-            title: Text(
-              'Edit Profile',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            trailing: Icon(Icons.arrow_forward),
-          ),
-          const SizedBox(
-            height: 25,
-          ),
-          MicoListTiles(
-            leading: Image.asset(
-              'assets/images/notification.png',
-              scale: 20,
-            ),
-            title: Text(
-              'Notification',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            trailing: Icon(Icons.arrow_forward),
-          ),
-          const SizedBox(
-            height: 25,
-          ),
-          MicoListTiles(
-            leading: Image.asset(
-              'assets/images/payment.png',
-              scale: 20,
-            ),
-            title: Text(
-              'Payment',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            trailing: Icon(Icons.arrow_forward),
-          ),
-          const SizedBox(
-            height: 25,
-          ),
-          MicoListTiles(
-            leading: Image.asset(
-              'assets/images/security.png',
-              scale: 20,
-            ),
-            title: Text(
-              'Security',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            trailing: Icon(Icons.arrow_forward),
-          ),
-          const SizedBox(
-            height: 25,
-          ),
-          MicoListTiles(
-            leading: Image.asset(
-              'assets/images/invite.png',
-              scale: 20,
-            ),
-            title: Text(
-              'Invite friends',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            trailing: Icon(Icons.arrow_forward),
-          ),
-          const SizedBox(
-            height: 25,
-          ),
-          MicoListTiles(
-            leading: Image.asset(
-              'assets/images/logout.png',
-              scale: 20,
-            ),
-            title: Text(
-              'Log out',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color.fromRGBO(255, 114, 0, 1),
-              ),
-            ),
-            trailing: Icon(Icons.arrow_forward),
-          ),
-        ],
       ),
     );
   }
