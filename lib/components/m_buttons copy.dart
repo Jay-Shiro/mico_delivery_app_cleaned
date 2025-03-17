@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 
-class MButtons extends StatelessWidget {
+class MButtonsLoading extends StatelessWidget {
   final String btnText;
 
   final Function()? onTap;
 
-  const MButtons({
+  final bool isLoading;
+
+  const MButtonsLoading({
     super.key,
     required this.onTap,
     required this.btnText,
+    required this.isLoading,
   });
 
   @override
@@ -20,7 +23,7 @@ class MButtons extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 50),
         decoration: BoxDecoration(
             color: const Color.fromRGBO(0, 31, 62, 1),
-            borderRadius: BorderRadius.circular(10)),
+            borderRadius: BorderRadius.circular(30)),
         child: Center(
           child: Text(
             btnText,

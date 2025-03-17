@@ -3,93 +3,226 @@ import 'package:micollins_delivery_app/components/m_buttons.dart';
 import 'package:micollins_delivery_app/components/m_orange_buttons.dart';
 import 'package:micollins_delivery_app/pages/FAQ_screen.dart';
 import 'package:micollins_delivery_app/pages/chat_screen.dart';
+import 'package:micollins_delivery_app/pages/webview_screen.dart'; // Add this import
+import 'package:shared_preferences/shared_preferences.dart';
 
-class SupportPage extends StatelessWidget {
+class SupportPage extends StatefulWidget {
   const SupportPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: SafeArea(
-        child: SizedBox(
-          height: MediaQuery.sizeOf(context).height * 0.9,
-          width: MediaQuery.sizeOf(context).width,
-          child: Scaffold(
-            backgroundColor: Colors.white,
-            body: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: supportpageUi(context)),
-          ),
+  State<SupportPage> createState() => _SupportPageState();
+}
+
+class _SupportPageState extends State<SupportPage> {
+  String? userEmail;
+  String? userName;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userEmail = prefs.getString('email') ?? '';
+      userName = prefs.getString('name') ?? 'User';
+      isLoading = false;
+    });
+  }
+  
+  // Updated function to open chat in WebView
+  void _openTawkChat() {
+    print("Opening Tawk.to chat in WebView");
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WebViewScreen(
+          url: 'https://tawk.to/chat/67d5de5f842dae190d221409/1imdmp9qo',
+          title: 'Live Chat Support',
         ),
       ),
     );
   }
 
-  Widget supportpageUi(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const SizedBox(height: 74),
-        supportTitle(),
-        const SizedBox(height: 11),
-        supportImage(),
-        const SizedBox(height: 14),
-        supportWelcomeText(),
-        const SizedBox(height: 33),
-        chatButton(context),
-        const SizedBox(height: 20),
-        FAQButton(context),
-      ],
-    );
-  }
-
-  Widget supportTitle() {
-    return Center(
-      child: Text(
-        'MY SUPPORT',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'SUPPORT',
+          style: TextStyle(
+            color: Color.fromRGBO(0, 31, 62, 1),
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        iconTheme: const IconThemeData(
+          color: Color.fromRGBO(0, 31, 62, 1),
+        ),
       ),
-    );
-  }
-
-  Widget supportImage() {
-    return Container(
-      child: Image.asset('assets/images/supportpage.png'),
-    );
-  }
-
-  Widget supportWelcomeText() {
-    return SizedBox(
-      width: 312,
-      child: Text(
-        'Chat with our Customer service representative who is available 24/7 to attend to any complaints or questions',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-
-  Widget chatButton(BuildContext context) {
-    return MButtons(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => ChatScreen(),
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Color.fromRGBO(0, 31, 62, 1),
+              ),
+            )
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    // Support illustration
+                    Container(
+                      height: 200,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color.fromRGBO(0, 31, 62, 0.05),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.support_agent,
+                          size: 120,
+                          color: const Color.fromRGBO(0, 31, 62, 0.7),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // Welcome text
+                    const Text(
+                      'How can we help you today?',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromRGBO(0, 31, 62, 1),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Our support team is available 24/7 to assist you with any questions or issues you may have.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    // Support options
+                    _buildSupportOption(
+                      icon: Icons.chat_bubble_outline,
+                      title: 'Live Chat',
+                      description: 'Talk to our support team in real-time',
+                      onTap: _openTawkChat, // Use the new function here
+                    ),
+                    const SizedBox(height: 16),
+                    _buildSupportOption(
+                      icon: Icons.question_answer_outlined,
+                      title: 'FAQ',
+                      description: 'Find answers to common questions',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const FAQScreen(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildSupportOption(
+                      icon: Icons.email_outlined,
+                      title: 'Email Support',
+                      description: 'Send us an email at support@micollins.com',
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Email support@micollins.com'),
+                            backgroundColor: Color.fromRGBO(0, 31, 62, 1),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              ),
             ),
-          );
-        },
-        btnText: 'Start Chat');
+    );
   }
 
-  Widget FAQButton(BuildContext context) {
-    return MOrangeButtons(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const FAQScreen()),
-        );
-      },
-      btnText: 'View FAQ',
+  Widget _buildSupportOption({
+    required IconData icon,
+    required String title,
+    required String description,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color.fromRGBO(0, 31, 62, 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: const Color.fromRGBO(0, 31, 62, 1),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color.fromRGBO(0, 31, 62, 1),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Color.fromRGBO(0, 31, 62, 1),
+              size: 16,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

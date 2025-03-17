@@ -9,7 +9,8 @@ class CustomBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Define navigation items with Eva icons
-    final List<({IconData icon, IconData activeIcon, String label})> navigationItems = const [
+    final List<({IconData icon, IconData activeIcon, String label})>
+        navigationItems = const [
       (
         icon: EvaIcons.homeOutline,
         activeIcon: EvaIcons.home,
@@ -19,11 +20,6 @@ class CustomBottomNavBar extends StatelessWidget {
         icon: EvaIcons.shoppingBagOutline,
         activeIcon: EvaIcons.shoppingBag,
         label: 'Deliveries',
-      ),
-      (
-        icon: EvaIcons.messageCircleOutline,
-        activeIcon: EvaIcons.messageCircle,
-        label: 'Chat',
       ),
       (
         icon: EvaIcons.headphonesOutline,
@@ -76,11 +72,13 @@ class CustomBottomNavBar extends StatelessWidget {
               fontSize: 12,
             ),
             elevation: 0,
-            items: navigationItems.map((item) => BottomNavigationBarItem(
-              icon: Icon(item.icon),
-              label: item.label,
-              activeIcon: Icon(item.activeIcon),
-            )).toList(),
+            items: navigationItems
+                .map((item) => BottomNavigationBarItem(
+                      icon: Icon(item.icon),
+                      label: item.label,
+                      activeIcon: Icon(item.activeIcon),
+                    ))
+                .toList(),
           ),
         ),
       ),

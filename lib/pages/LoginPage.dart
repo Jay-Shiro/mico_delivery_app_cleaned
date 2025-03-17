@@ -24,13 +24,30 @@ class _LoginPageState extends State<LoginPage> {
   InputDecoration customInputDecoration(String hintText) {
     return InputDecoration(
       hintText: hintText,
+      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
       filled: true,
-      fillColor: Colors.grey[200],
+      fillColor: Colors.grey[100],
       contentPadding:
-          const EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
+          const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15.0),
         borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15.0),
+        borderSide: BorderSide(color: Colors.grey[200]!, width: 1.0),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15.0),
+        borderSide: BorderSide(color: Color.fromRGBO(0, 31, 62, 1), width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15.0),
+        borderSide: BorderSide(color: Colors.red, width: 1.0),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15.0),
+        borderSide: BorderSide(color: Colors.red, width: 1.5),
       ),
     );
   }
@@ -65,12 +82,14 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString('email', userData['email']?.toString() ?? '');
         await prefs.setString('name', userData['name']?.toString() ?? '');
         await prefs.setString('phone', userData['phone']?.toString() ?? '');
+        await prefs.setString('user_id', userData['_id']?.toString() ?? '');
 
         // Log the saved data
         debugPrint('Saved User Data:');
         debugPrint('Email: ${userData['email']}');
         debugPrint('Name: ${userData['name']}');
         debugPrint('Phone: ${userData['phone']}');
+        debugPrint('userid: ${userData['_id']}');
         debugPrint('Full User Object: ${json.encode(userData)}');
 
         Fluttertoast.showToast(
@@ -131,66 +150,109 @@ class _LoginPageState extends State<LoginPage> {
 
                   // Logo and App Name
                   Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.asset(
-                          'assets/images/logo_mico_resized.png',
-                          height: 50,
-                          width: 101.9,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.2),
+                            spreadRadius: 2,
+                            blurRadius: 5,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Image.asset(
+                            'assets/images/logo_mico_resized.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 30),
 
                   // Page Title
                   Center(
                     child: Text(
-                      'Sign into Your Account',
+                      'Welcome Back',
                       style: TextStyle(
-                        fontSize: 22,
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
                         color: const Color.fromRGBO(0, 31, 62, 1),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
+
+                  // Subtitle
+                  Center(
+                    child: Text(
+                      'Sign in to continue',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
 
                   // Email Address
                   const Text(
                     'Email Address',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Color.fromRGBO(0, 31, 62, 1),
                     ),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
                     decoration:
-                        customInputDecoration('Enter your email address'),
-                    validator: (value) =>
-                        value == null || value.isEmpty ? 'Required' : null,
+                        customInputDecoration('Enter your email address')
+                            .copyWith(
+                      prefixIcon: Icon(Icons.email_outlined,
+                          color: Colors.grey[500], size: 20),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Email is required';
+                      }
+                      return null;
+                    },
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 20),
 
                   // Password
                   const Text(
                     'Password',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Color.fromRGBO(0, 31, 62, 1),
                     ),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: passwordController,
                     obscureText: _isObscured,
                     decoration:
                         customInputDecoration('Enter your password').copyWith(
+                      prefixIcon: Icon(Icons.lock_outline,
+                          color: Colors.grey[500], size: 20),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _isObscured ? Icons.visibility_off : Icons.visibility,
+                          color: Colors.grey[500],
+                          size: 20,
                         ),
                         onPressed: () {
                           setState(() {
@@ -199,10 +261,11 @@ class _LoginPageState extends State<LoginPage> {
                         },
                       ),
                     ),
-                    validator: (value) =>
-                        value == null || value.isEmpty ? 'Required' : null,
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Password is required'
+                        : null,
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 15),
 
                   // Forgot Password Link
                   Align(
@@ -215,12 +278,13 @@ class _LoginPageState extends State<LoginPage> {
                         'Forgot password?',
                         style: TextStyle(
                           color: const Color.fromRGBO(0, 31, 62, 1),
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 40),
 
                   // Sign In Button
                   Center(
@@ -230,41 +294,81 @@ class _LoginPageState extends State<LoginPage> {
                               const Color.fromRGBO(0, 31, 62, 1),
                             ),
                           )
-                        : MButtons(
-                            btnText: 'Sign In',
-                            onTap: _signIn,
+                        : Container(
+                            width: double.infinity,
+                            height: 55,
+                            child: ElevatedButton(
+                              onPressed: _signIn,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    const Color.fromRGBO(0, 31, 62, 1),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                              ),
+                              child: Text(
+                                'Sign In',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
                           ),
                   ),
-                  const SizedBox(height: 50),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30),
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).pushNamed('/signuppage');
-                        },
-                        child: Row(
-                          children: [
-                            Text(
-                              "Don't have an account?",
-                              style: TextStyle(
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(
-                              width: 4,
-                            ),
-                            Text(
-                              'Create Account',
-                              style: TextStyle(
-                                color: Color.fromRGBO(0, 31, 62, 1),
-                                fontWeight: FontWeight.w800,
-                                fontSize: 14,
-                              ),
-                            )
-                          ],
+                  const SizedBox(height: 30),
+
+                  // Or continue with
+                  Row(
+                    children: [
+                      Expanded(
+                          child:
+                              Divider(color: Colors.grey[300], thickness: 1)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 15),
+                        child: Text(
+                          'OR',
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
+                      ),
+                      Expanded(
+                          child:
+                              Divider(color: Colors.grey[300], thickness: 1)),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+
+                  // Create Account
+                  Center(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).pushNamed('/signuppage');
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Don't have an account? ",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          Text(
+                            'Create Account',
+                            style: TextStyle(
+                              color: Color.fromRGBO(0, 31, 62, 1),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          )
+                        ],
                       ),
                     ),
                   )

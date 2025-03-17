@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
+import 'package:provider/provider.dart';
 import 'package:micollins_delivery_app/components/bottom_nav_bar.dart';
+import 'package:micollins_delivery_app/pages/homePage.dart';
+import 'package:micollins_delivery_app/pages/ordersPage.dart';
+import 'package:micollins_delivery_app/pages/supportPage.dart'; // Make sure this is imported
+import 'package:micollins_delivery_app/pages/profilePage.dart';
 import 'package:micollins_delivery_app/pages/MapPage.dart';
 import 'package:micollins_delivery_app/pages/chat_screen.dart';
 import 'package:micollins_delivery_app/pages/ordersPage.dart';
 import 'package:micollins_delivery_app/pages/profilePage.dart';
 import 'package:micollins_delivery_app/pages/supportPage.dart';
-import 'package:provider/provider.dart';
 
 class FirstPage extends StatefulWidget {
   const FirstPage({super.key});
@@ -26,38 +31,39 @@ class IndexProvider extends ChangeNotifier {
 }
 
 final List<Widget> _pages = [
-  MapPage(),           // Home (Maps)
-  OrdersPage(),        // Deliveries
-  ChatScreen(),        // Chat
-  SupportPage(),       // Support
-  ProfilePage(),       // Profile
+  MapPage(), // Home (Maps)
+  OrdersPage(), // Deliveries
+  UserChatScreen(), // Chat
+  SupportPage(), // Support
+  ProfilePage(), // Profile
 ];
 
 class _FirstPageState extends State<FirstPage> {
+  // Inside your FirstPage class
   @override
   Widget build(BuildContext context) {
+    // Get the current selected index from the provider
+    final selectedIndex = context.watch<IndexProvider>().selectedIndex;
+
+    // Return the correct page based on the selected index
+    Widget getPage() {
+      switch (selectedIndex) {
+        case 0:
+          return const MapPage(); // Home tab
+        case 1:
+          return const OrdersPage(); // Deliveries tab
+        case 2:
+          return const SupportPage(); // Support tab - make sure this is SupportPage, not ChatScreen
+        case 3:
+          return const ProfilePage(); // Profile tab
+        default:
+          return const MapPage();
+      }
+    }
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        bottom: false,
-        child: MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => IndexProvider()),
-          ],
-          child: Consumer<IndexProvider>(
-            builder: (context, indexProvider, child) {
-              return Scaffold(
-                backgroundColor: Colors.white,
-                body: IndexedStack(
-                  index: indexProvider.selectedIndex,
-                  children: _pages,
-                ),
-                bottomNavigationBar: CustomBottomNavBar(),
-              );
-            },
-          ),
-        ),
-      ),
+      body: getPage(),
+      bottomNavigationBar: const CustomBottomNavBar(),
     );
   }
 }

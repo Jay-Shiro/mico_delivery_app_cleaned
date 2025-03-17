@@ -1,31 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:micollins_delivery_app/components/noti_service.dart';
 import 'package:micollins_delivery_app/pages/LoginPage.dart';
 import 'package:micollins_delivery_app/pages/MapPage.dart';
 import 'package:micollins_delivery_app/pages/RecoverPassword.dart';
 import 'package:micollins_delivery_app/pages/SignUpPage.dart';
 import 'package:micollins_delivery_app/pages/chat_screen.dart';
-import 'package:micollins_delivery_app/pages/firstPage.dart';
+import 'package:micollins_delivery_app/pages/firstPage.dart'; // Import FirstPage to access IndexProvider
 import 'package:micollins_delivery_app/pages/ordersPage.dart';
 import 'package:micollins_delivery_app/pages/profilePage.dart';
+import 'package:micollins_delivery_app/pages/splash_screen.dart';
 import 'package:micollins_delivery_app/pages/supportPage.dart';
+import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Init notifications
-  final notiService = NotiService();
-  notiService.initNotification();
+  final prefs = await SharedPreferences.getInstance();
+  final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
 
-  // Check if the user is logged in
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  bool isLoggedIn = prefs.getBool("isLoggedIn") ?? false;
-
+  // Wrap the app with ChangeNotifierProvider for IndexProvider
   runApp(
     ChangeNotifierProvider(
-      create: (context) => IndexProvider(),
+      create: (_) => IndexProvider(),
       child: MyApp(isLoggedIn: isLoggedIn),
     ),
   );
@@ -39,7 +36,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: isLoggedIn ? FirstPage() : LoginPage(),
+      home: isLoggedIn ? SplashScreen() : LoginPage(),
       routes: {
         '/loginpage': (context) => LoginPage(),
         '/signuppage': (context) => SignUpPage(),
@@ -49,7 +46,7 @@ class MyApp extends StatelessWidget {
         '/orderspage': (context) => OrdersPage(),
         '/profilepage': (context) => ProfilePage(),
         '/supportpage': (context) => SupportPage(),
-        '/chatpage': (context) => ChatScreen(),
+        '/chatpage': (context) => UserChatScreen(),
       },
     );
   }

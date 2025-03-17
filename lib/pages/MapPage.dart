@@ -34,6 +34,7 @@ class _MapPageState extends State<MapPage> {
   );
 
   String? userEmail;
+  String? userId;
 
   @override
   void initState() {
@@ -132,6 +133,7 @@ class _MapPageState extends State<MapPage> {
     _controller2.dispose();
     _startPointFN.dispose();
     _endPointFN.dispose();
+    _isMounted = false;
     super.dispose();
   }
 
@@ -446,50 +448,76 @@ class _MapPageState extends State<MapPage> {
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Payment Method',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color.fromRGBO(0, 31, 62, 1),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
               content: Container(
-                padding: const EdgeInsets.symmetric(vertical: 20.0),
+                width: double.maxFinite,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ),
-                    const SizedBox(height: 4.0),
-                    _buildPaymentOption(
-                      title: 'Cash',
-                      value: dialogIsCashorTransfer,
-                      onChanged: (newBool) {
+                    // Cash payment option
+                    _buildPaymentOptionCard(
+                      title: 'Cash Payment',
+                      subtitle: 'Pay with cash on delivery',
+                      icon: Icons.money,
+                      isSelected: dialogIsCashorTransfer,
+                      onTap: () {
                         setDialogState(() {
-                          dialogIsCashorTransfer = newBool!;
+                          dialogIsCashorTransfer = true;
                           dialogIsOnlinePayment = false;
                         });
                       },
                     ),
-                    const SizedBox(height: 2.0),
-                    _buildPaymentOption(
-                      title: 'Pay Online',
-                      value: dialogIsOnlinePayment,
-                      onChanged: (newBool) {
+
+                    const SizedBox(height: 12.0),
+
+                    // Online payment option
+                    _buildPaymentOptionCard(
+                      title: 'Online Payment',
+                      subtitle: 'Pay with card or bank transfer',
+                      icon: Icons.credit_card,
+                      isSelected: dialogIsOnlinePayment,
+                      onTap: () {
                         setDialogState(() {
-                          dialogIsOnlinePayment = newBool!;
+                          dialogIsOnlinePayment = true;
                           dialogIsCashorTransfer = false;
                         });
                       },
                     ),
-                    const SizedBox(height: 8.0),
-                    MButtons(
-                      onTap: () {
-                        setState(() {
-                          isCashorTransfer = dialogIsCashorTransfer;
-                          isOnlinePayment = dialogIsOnlinePayment;
-                        });
-                        _processPayment();
-                      },
-                      btnText: 'Process Order',
+
+                    const SizedBox(height: 20.0),
+
+                    // Process order button
+                    Container(
+                      width: double.infinity,
+                      child: MButtons(
+                        onTap: () {
+                          setState(() {
+                            isCashorTransfer = dialogIsCashorTransfer;
+                            isOnlinePayment = dialogIsOnlinePayment;
+                          });
+                          _processPayment();
+                        },
+                        btnText: 'Process Order',
+                      ),
                     ),
                   ],
                 ),
@@ -498,6 +526,71 @@ class _MapPageState extends State<MapPage> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildPackageSizeOption({
+    required String size,
+    required String description,
+    required String price,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Color.fromRGBO(0, 31, 62, 0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? Color.fromRGBO(0, 31, 62, 1)
+                : Colors.grey.shade300,
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Color.fromRGBO(0, 31, 62, 1)
+                    : Color.fromRGBO(0, 31, 62, 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                size,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color:
+                      isSelected ? Colors.white : Color.fromRGBO(0, 31, 62, 1),
+                ),
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              description,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 4),
+            Text(
+              price,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color.fromRGBO(0, 31, 62, 1),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -550,48 +643,124 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  Widget _buildPaymentOption({
+  Widget _buildPaymentOptionCard({
     required String title,
-    required bool? value,
-    required ValueChanged<bool?> onChanged,
+    required String subtitle,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
   }) {
-    return ListTile(
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w600),
-      ),
-      trailing: Checkbox(
-        activeColor: const Color.fromRGBO(0, 31, 62, 1),
-        value: value,
-        onChanged: onChanged,
-        checkColor: Colors.white,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? Color.fromRGBO(0, 31, 62, 0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? Color.fromRGBO(0, 31, 62, 1)
+                : Colors.grey.shade300,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Color.fromRGBO(0, 31, 62, 1)
+                    : Color.fromRGBO(0, 31, 62, 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: isSelected ? Colors.white : Color.fromRGBO(0, 31, 62, 1),
+                size: 20,
+              ),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color.fromRGBO(0, 31, 62, 1),
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected ? Color.fromRGBO(0, 31, 62, 1) : Colors.white,
+                border: Border.all(
+                  color: isSelected
+                      ? Color.fromRGBO(0, 31, 62, 1)
+                      : Colors.grey.shade400,
+                  width: 1.5,
+                ),
+              ),
+              child: isSelected
+                  ? Icon(
+                      Icons.check,
+                      size: 16,
+                      color: Colors.white,
+                    )
+                  : null,
+            ),
+          ],
+        ),
       ),
     );
   }
 
   void _processPayment() async {
+    if (!_isMounted) return;
+
     if (isCashorTransfer == true && isOnlinePayment == false) {
       FocusManager.instance.primaryFocus?.unfocus();
-      Provider.of<IndexProvider>(context, listen: false).setSelectedIndex(2);
+
+      // Close the payment dialog first
       Navigator.of(context).pop();
 
-      // Show pop-up for cash payment
-      _showRiderNotification();
-
       // Call submit delivery function for cash/transfer payments
-      _submitDelivery();
+      // This will show the success modal
+      await _submitDelivery();
+
+      // Navigation to orders page will happen in the success modal's OK button
     } else if (isOnlinePayment == true && isCashorTransfer == false) {
       if (userEmail == null || userEmail!.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error: User email not found'),
-            backgroundColor: Color.fromRGBO(255, 91, 82, 1),
-          ),
-        );
+        if (_isMounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error: User email not found'),
+              backgroundColor: Color.fromRGBO(255, 91, 82, 1),
+            ),
+          );
+        }
         return;
       }
 
       try {
+        if (!_isMounted) return;
+
         PaystackFlutter().pay(
           context: context,
           secretKey: 'sk_test_c69312cc47b0d93bd17d0407d4292f11ee38e2fb',
@@ -611,6 +780,13 @@ class _MapPageState extends State<MapPage> {
             "delivery_price": paymentAmt,
           },
           onSuccess: (paystackCallback) {
+            if (!_isMounted) return;
+
+            // Log the successful transaction details
+            debugPrint('💳 PAYMENT SUCCESSFUL');
+            debugPrint(
+                '📝 Transaction Reference: ${paystackCallback.reference}');
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
@@ -619,17 +795,27 @@ class _MapPageState extends State<MapPage> {
               ),
             );
             FocusManager.instance.primaryFocus?.unfocus();
-            Provider.of<IndexProvider>(context, listen: false)
-                .setSelectedIndex(2);
+
+            // Close the payment dialog first
             Navigator.of(context).pop();
 
-            // Show pop-up for successful online payment
-            _showRiderNotification();
-
             // Call submit delivery function after successful payment
-            _submitDelivery();
+            // This will show the success modal
+            _submitDelivery(
+              paymentReference: paystackCallback.reference,
+              paymentStatus: 'paid',
+              paymentDate: DateTime.now().toIso8601String(),
+              amountPaid: paymentAmt,
+            );
           },
           onCancelled: (paystackCallback) {
+            if (!_isMounted) return;
+
+            // Log the failed transaction details
+            debugPrint('❌ PAYMENT FAILED');
+            debugPrint(
+                '📝 Transaction Reference: ${paystackCallback.reference}');
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content:
@@ -640,85 +826,138 @@ class _MapPageState extends State<MapPage> {
           },
         );
       } catch (e) {
-        debugPrint('Payment error: $e');
+        debugPrint('❌ Payment error: $e');
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a mode of Payment'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  void _showRiderNotification() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Center(
-          child: AlertDialog(
-            elevation: 2,
-            title: Text("Order Confirmed"),
-            content: Text("A rider will reach out to you shortly."),
-            actions: [
-              MButtons(
-                onTap: () {
-                  Navigator.of(context).pop();
-                  FocusManager.instance.primaryFocus?.unfocus();
-                },
-                btnText: "OK",
-              ),
-            ],
+      if (_isMounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a mode of Payment'),
+            backgroundColor: Colors.red,
           ),
         );
-      },
-    );
+      }
+    }
   }
 
   String selectedVehicleType = "bike"; // Default selection
 
-  Future<void> _submitDelivery() async {
+  bool _isMounted = true;
+
+  Future<void> _submitDelivery({
+    String? paymentReference,
+    String? paymentStatus,
+    String? paymentDate,
+    double? amountPaid,
+  }) async {
+    if (!_isMounted) return;
+
     try {
+      if (userId == null || userId!.isEmpty) {
+        if (_isMounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error: User ID not found. Please log in again.'),
+              backgroundColor: Color.fromRGBO(255, 91, 82, 1),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Determine the endpoint based on vehicle type
+      final String endpoint = selectedVehicleType == "bike"
+          ? 'https://deliveryapi-plum.vercel.app/delivery/bike'
+          : 'https://deliveryapi-plum.vercel.app/delivery/car';
+
+      // Round up the payment amount to avoid decimal issues
+      final double roundedPrice = double.parse(paymentAmt.toStringAsFixed(2));
+
+      // Create the request body based on vehicle type
+      final Map<String, dynamic> requestBody = {
+        'user_id': userId, // Using the correctly loaded userId
+        'price': roundedPrice,
+        'distance': '$roundDistanceKM km',
+        'startpoint': _startPointController.text,
+        'endpoint': _destinationController.text,
+        'vehicletype': selectedVehicleType,
+        'transactiontype': isCashorTransfer ? 'cash' : 'online',
+        'deliveryspeed': isExpressSelected! ? 'express' : 'standard',
+        'status': {'deliverystatus': 'pending', 'orderstatus': 'pending'}
+      };
+
+      // Add packagesize only for bike delivery
+      if (selectedVehicleType == "bike") {
+        requestBody['packagesize'] = _getPackageSize();
+      }
+
+      debugPrint('Creating delivery with request: ${jsonEncode(requestBody)}');
+
       final response = await http.post(
-        Uri.parse('https://deliveryapi-plum.vercel.app/createdelivery'),
+        Uri.parse(endpoint),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
-        body: jsonEncode(<String, dynamic>{
-          'user_id': userEmail, // Assuming userEmail is the user ID
-          'price': paymentAmt,
-          'distance': roundDistanceKM,
-          'startpoint': _startPointController.text,
-          'endpoint': _destinationController.text,
-          'deliverytype': isExpressSelected! ? 'express' : 'standard',
-          'transactiontype': isCashorTransfer ? 'cash' : 'online',
-          'packagesize': _getPackageSize(),
-          'vehicletype': selectedVehicleType, // Add vehicle type
-          'status': {
-            'status': 'pending',
-            'rider_id': null,
-            'rider_name': null,
-            'rider_phone': null,
-            'rider_location': null,
-            'rider_eta': null,
-          },
-        }),
+        body: jsonEncode(requestBody),
       );
-
-      // Rest of your method
 
       debugPrint('Server Response Code: ${response.statusCode}');
       debugPrint('Server Response Body: ${response.body}');
 
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Delivery created successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
+      if (response.statusCode == 200 && _isMounted) {
+        // Extract delivery ID from response
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        final String deliveryId;
+
+        // Check for different possible formats of delivery ID in the response
+        if (responseData.containsKey('_id')) {
+          deliveryId = responseData['_id'];
+        } else if (responseData.containsKey('delivery_id')) {
+          // This is the format we're seeing in the logs
+          deliveryId = responseData['delivery_id'];
+        } else if (responseData.containsKey('delivery') &&
+            responseData['delivery'] is Map) {
+          deliveryId = responseData['delivery']['_id'] ?? '';
+        } else {
+          deliveryId = '';
+        }
+
+        debugPrint('Created delivery with ID: $deliveryId');
+
+        if (deliveryId.isNotEmpty) {
+          // For online payments, ensure we have valid values
+          final actualPaymentStatus =
+              paymentStatus ?? (isCashorTransfer ? 'pending' : 'paid');
+          final actualPaymentReference = paymentReference ?? '';
+          final actualPaymentDate =
+              paymentDate ?? DateTime.now().toIso8601String();
+          final actualAmountPaid =
+              amountPaid ?? (isCashorTransfer ? 0.0 : roundedPrice);
+
+          // More detailed logging for debugging
+          debugPrint('💼 Delivery created successfully with ID: $deliveryId');
+          debugPrint('💰 Payment details being sent to transaction update:');
+          debugPrint('   - Payment status: $actualPaymentStatus');
+          debugPrint('   - Payment reference: $actualPaymentReference');
+          debugPrint('   - Payment date: $actualPaymentDate');
+          debugPrint('   - Amount paid: $actualAmountPaid');
+
+          // Update transaction information
+          await _updateTransactionInfo(
+            deliveryId: deliveryId,
+            transactionType: isCashorTransfer ? 'cash' : 'online',
+            paymentStatus: actualPaymentStatus,
+            paymentReference: actualPaymentReference,
+            paymentDate: actualPaymentDate,
+            amountPaid: actualAmountPaid,
+          );
+        } else {
+          debugPrint('❌ ERROR: Empty delivery ID received from server');
+          debugPrint('📄 Full response: ${response.body}');
+        }
+        // Show modern success modal
+        _showSuccessModal(context);
+      } else if (_isMounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to create delivery: ${response.body}'),
@@ -729,26 +968,276 @@ class _MapPageState extends State<MapPage> {
     } catch (e) {
       debugPrint('Error creating delivery: $e');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error creating delivery: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (_isMounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating delivery: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
+  }
+
+  Future<void> _updateTransactionInfo({
+    required String deliveryId,
+    required String transactionType,
+    required String paymentStatus,
+    required String paymentReference,
+    required String paymentDate,
+    required double amountPaid,
+  }) async {
+    // Check if widget is still mounted before proceeding
+    if (!_isMounted) {
+      debugPrint('Skipping transaction update - widget no longer mounted');
+      return;
+    }
+
+    try {
+      final String endpoint =
+          'https://deliveryapi-plum.vercel.app/delivery/$deliveryId/transaction';
+
+      debugPrint('🔄 Updating transaction for delivery ID: $deliveryId');
+      debugPrint('🔗 Transaction endpoint: $endpoint');
+
+      // Log payment details for debugging
+      debugPrint('💰 Payment details being sent:');
+      debugPrint('   - Transaction type: $transactionType');
+      debugPrint('   - Payment status: $paymentStatus');
+      debugPrint(
+          '   - Payment reference: ${paymentReference.isNotEmpty ? paymentReference : "None"}');
+      debugPrint(
+          '   - Payment date: ${paymentDate.isNotEmpty ? paymentDate : "None"}');
+      debugPrint(
+          '   - Amount paid: ${amountPaid > 0 ? amountPaid.toString() : "None"}');
+
+      // Create the request body with the exact structure expected by the API
+      final Map<String, dynamic> requestBody = {
+        'transaction_type': transactionType,
+        'payment_status': paymentStatus,
+      };
+
+      // Only add these fields if they have values (for online payments)
+      if (paymentReference.isNotEmpty) {
+        requestBody['payment_reference'] = paymentReference;
+      }
+
+      if (paymentDate.isNotEmpty) {
+        requestBody['payment_date'] = paymentDate;
+      }
+
+      if (amountPaid > 0) {
+        requestBody['amount_paid'] = amountPaid;
+      }
+
+      debugPrint('📦 Transaction request body: ${jsonEncode(requestBody)}');
+
+      // Add a timeout to the HTTP request to prevent hanging
+      final response = await http
+          .put(
+        Uri.parse(endpoint),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(requestBody),
+      )
+          .timeout(Duration(seconds: 30), onTimeout: () {
+        debugPrint('⏱️ Transaction update request timed out');
+        return http.Response('{"error": "Request timed out"}', 408);
+      });
+
+      debugPrint('📊 Transaction Update Response Code: ${response.statusCode}');
+      debugPrint('📄 Transaction Update Response Body: ${response.body}');
+
+      // Check if widget is still mounted before processing response
+      if (!_isMounted) {
+        debugPrint('Widget no longer mounted after transaction update');
+        return;
+      }
+
+      if (response.statusCode == 200) {
+        debugPrint('✅ TRANSACTION UPDATED SUCCESSFULLY');
+        // Parse the response to verify the update
+        final responseData = jsonDecode(response.body);
+
+        // Show a more detailed log of the updated transaction
+        if (responseData.containsKey('updated_data')) {
+          debugPrint('📝 Updated transaction details:');
+          final updatedData = responseData['updated_data'];
+          if (updatedData is Map) {
+            updatedData.forEach((key, value) {
+              debugPrint('   - $key: $value');
+            });
+          } else {
+            debugPrint('   $updatedData');
+          }
+        } else {
+          debugPrint('📝 Response data: $responseData');
+        }
+
+        // Show a user-visible notification for successful transaction update
+        if (_isMounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Payment information updated successfully'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        debugPrint('❌ FAILED TO UPDATE TRANSACTION: ${response.body}');
+
+        // Show a user-visible notification for failed transaction update
+        if (_isMounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update payment information'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ ERROR UPDATING TRANSACTION: $e');
+
+      // Show a user-visible notification for transaction update error
+      if (_isMounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating payment information: $e'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  // Modern success modal
+  void _showSuccessModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.rectangle,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10.0,
+                  offset: Offset(0.0, 10.0),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Color.fromRGBO(0, 31, 62, 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check_circle,
+                    color: Color.fromRGBO(0, 31, 62, 1),
+                    size: 50,
+                  ),
+                ),
+                SizedBox(height: 20),
+                Text(
+                  "Success!",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color.fromRGBO(0, 31, 62, 1),
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  "Your delivery request has been submitted successfully.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  "A rider will reach out to you shortly.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                SizedBox(height: 24),
+                Container(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close the dialog
+
+                      // Clear form fields
+                      setState(() {
+                        _startPointController.clear();
+                        _destinationController.clear();
+                        _userMarkers.clear();
+                        polylines.clear();
+                        roundDistanceKM = 0;
+                      });
+
+                      // Navigate to the OrdersPage
+                      Provider.of<IndexProvider>(context, listen: false)
+                          .setSelectedIndex(1);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromRGBO(0, 31, 62, 1),
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      "OK",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   String _getPackageSize() {
     if (is25Selected) {
-      return '25';
+      return 'Quarter and below';
     } else if (is50Selected) {
-      return '50';
+      return 'Half to quarter';
     } else if (is75Selected) {
-      return '75';
+      return '3 quarter to half';
     } else if (is100Selected) {
-      return '100';
+      return 'Full to 3 quarter';
     }
-    return '25';
+    return 'Quarter and below'; // Default
   }
 
   var finalDistance;
@@ -792,9 +1281,7 @@ class _MapPageState extends State<MapPage> {
     bool isPickupField = false,
   }) {
     return StatefulBuilder(builder: (context, setState) {
-      controller.addListener(() {
-        setState(() {});
-      });
+      // Remove the listener setup from here
 
       return Container(
         margin: EdgeInsets.symmetric(vertical: 8),
@@ -859,10 +1346,36 @@ class _MapPageState extends State<MapPage> {
   }
 
   Future<void> _loadUserEmail() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      userEmail = prefs.getString('email') ?? '';
-    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Get user ID directly from the dedicated key
+      userId = prefs.getString('user_id');
+      userEmail = prefs.getString('email');
+
+      // Fallback to extracting from the full user object if direct keys are not available
+      if (userId == null || userEmail == null) {
+        final userString = prefs.getString('user');
+        if (userString != null) {
+          final userData = json.decode(userString);
+          if (_isMounted) {
+            setState(() {
+              userEmail = userData['email'] ?? '';
+              userId = userData['_id'];
+            });
+          }
+        }
+      } else if (_isMounted) {
+        setState(() {
+          // Variables already set from direct keys
+        });
+      }
+
+      debugPrint('Loaded User ID: $userId');
+      debugPrint('Loaded User Email: $userEmail');
+    } catch (e) {
+      debugPrint('Error loading user data: $e');
+    }
   }
 
   @override
@@ -961,387 +1474,431 @@ class _MapPageState extends State<MapPage> {
                     ),
                   ],
                 ),
-                child: Column(
-                  children: [
-                    // Drag handle
-                    Container(
-                      margin: EdgeInsets.symmetric(vertical: 12),
-                      height: 5,
-                      width: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(10),
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  child: Column(
+                    children: [
+                      // Drag handle
+                      Container(
+                        margin: EdgeInsets.symmetric(vertical: 12),
+                        height: 5,
+                        width: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                    ),
 
-                    // Ad Carousel Banner with improved styling
-                    Container(
-                      height: 120,
-                      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      child: PageView.builder(
-                        itemCount: 3,
-                        itemBuilder: (context, index) {
-                          final adData = [
-                            {
-                              'image': 'assets/images/bike.png',
-                              'title': 'Express Delivery',
-                              'subtitle': 'Get 10% off your first order'
-                            },
-                            {
-                              'image': 'assets/images/bike.png',
-                              'title': 'Special Offer',
-                              'subtitle': 'Free delivery on orders over ₦5000'
-                            },
-                            {
-                              'image': 'assets/images/bike.png',
-                              'title': 'New Service',
-                              'subtitle': 'Try our premium delivery option'
-                            },
-                          ][index];
+                      // Ad Carousel Banner with improved styling
+                      Container(
+                        height: 120,
+                        margin:
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        child: PageView.builder(
+                          itemCount: 3,
+                          itemBuilder: (context, index) {
+                            final adData = [
+                              {
+                                'image': 'assets/images/bike.png',
+                                'title': 'Express Delivery',
+                                'subtitle': 'Get 10% off your first order'
+                              },
+                              {
+                                'image': 'assets/images/bike.png',
+                                'title': 'Special Offer',
+                                'subtitle': 'Free delivery on orders over ₦5000'
+                              },
+                              {
+                                'image': 'assets/images/bike.png',
+                                'title': 'New Service',
+                                'subtitle': 'Try our premium delivery option'
+                              },
+                            ][index];
 
-                          return Container(
-                            margin: EdgeInsets.symmetric(horizontal: 4),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Color.fromRGBO(0, 31, 62, 1),
-                                  Color.fromRGBO(0, 70, 67, 0.9),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 4),
+                            return Container(
+                              margin: EdgeInsets.symmetric(horizontal: 4),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Color.fromRGBO(0, 31, 62, 1),
+                                    Color.fromRGBO(0, 70, 67, 0.9),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                              ],
-                            ),
-                            padding: EdgeInsets.all(16),
-                            child: Row(
-                              children: [
-                                Image.asset(
-                                  adData['image']!,
-                                  width: 70,
-                                  height: 70,
-                                ),
-                                SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        adData['title']!,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 18,
-                                        ),
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        adData['subtitle']!,
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.9),
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 10,
+                                    offset: Offset(0, 4),
                                   ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-
-                    // Vehicle Type Selection
-                    Container(
-                      margin:
-                          EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Select Vehicle Type",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Color.fromRGBO(0, 31, 62, 1),
-                            ),
-                          ),
-                          SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      selectedVehicleType = "bike";
-                                    });
-                                  },
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: selectedVehicleType == "bike"
-                                          ? Color.fromRGBO(0, 31, 62, 1)
-                                          : Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: selectedVehicleType == "bike"
-                                            ? Color.fromRGBO(0, 31, 62, 1)
-                                            : Colors.grey.shade300,
-                                        width: 1.5,
-                                      ),
-                                      boxShadow: selectedVehicleType == "bike"
-                                          ? [
-                                              BoxShadow(
-                                                color: Color.fromRGBO(
-                                                    0, 31, 62, 0.3),
-                                                blurRadius: 8,
-                                                offset: Offset(0, 4),
-                                              )
-                                            ]
-                                          : [],
-                                    ),
+                                ],
+                              ),
+                              padding: EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  Image.asset(
+                                    adData['image']!,
+                                    width: 70,
+                                    height: 70,
+                                  ),
+                                  SizedBox(width: 16),
+                                  Expanded(
                                     child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
-                                        Icon(
-                                          Icons.motorcycle,
-                                          color: selectedVehicleType == "bike"
-                                              ? Colors.white
-                                              : Colors.grey.shade700,
-                                          size: 28,
+                                        Text(
+                                          adData['title']!,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
                                         ),
                                         SizedBox(height: 8),
                                         Text(
-                                          "Bike",
+                                          adData['subtitle']!,
                                           style: TextStyle(
+                                            color:
+                                                Colors.white.withOpacity(0.9),
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      // Vehicle Type Selection
+                      Container(
+                        margin:
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Select Vehicle Type",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Color.fromRGBO(0, 31, 62, 1),
+                              ),
+                            ),
+                            SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        isStandardSelected = true;
+                                        isExpressSelected = false;
+                                        selectedVehicleType =
+                                            "bike"; // Set vehicle type to bike
+                                        // Default package size for bike delivery
+                                        is25Selected = true;
+                                        is50Selected = is75Selected =
+                                            is100Selected = false;
+                                      });
+                                    },
+                                    child: Container(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: selectedVehicleType == "bike"
+                                            ? Color.fromRGBO(0, 31, 62, 1)
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: selectedVehicleType == "bike"
+                                              ? Color.fromRGBO(0, 31, 62, 1)
+                                              : Colors.grey.shade300,
+                                          width: 1.5,
+                                        ),
+                                        boxShadow: selectedVehicleType == "bike"
+                                            ? [
+                                                BoxShadow(
+                                                  color: Color.fromRGBO(
+                                                      0, 31, 62, 0.3),
+                                                  blurRadius: 8,
+                                                  offset: Offset(0, 4),
+                                                )
+                                              ]
+                                            : [],
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Icon(
+                                            Icons.motorcycle,
                                             color: selectedVehicleType == "bike"
                                                 ? Colors.white
                                                 : Colors.grey.shade700,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      selectedVehicleType = "car";
-                                    });
-                                  },
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: selectedVehicleType == "car"
-                                          ? Color.fromRGBO(0, 31, 62, 1)
-                                          : Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: selectedVehicleType == "car"
-                                            ? Color.fromRGBO(0, 31, 62, 1)
-                                            : Colors.grey.shade300,
-                                        width: 1.5,
-                                      ),
-                                      boxShadow: selectedVehicleType == "car"
-                                          ? [
-                                              BoxShadow(
-                                                color: Color.fromRGBO(
-                                                    0, 31, 62, 0.3),
-                                                blurRadius: 8,
-                                                offset: Offset(0, 4),
-                                              )
-                                            ]
-                                          : [],
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Icon(
-                                          Icons.directions_car,
-                                          color: selectedVehicleType == "car"
-                                              ? Colors.white
-                                              : Colors.grey.shade700,
-                                          size: 28,
-                                        ),
-                                        SizedBox(height: 8),
-                                        Text(
-                                          "Car",
-                                          style: TextStyle(
-                                            color: selectedVehicleType == "car"
-                                                ? Colors.white
-                                                : Colors.grey.shade700,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.grey.shade300,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Stack(
-                                        alignment: Alignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.local_shipping,
-                                            color: Colors.grey.shade400,
                                             size: 28,
                                           ),
-                                          Positioned(
-                                            right: 0,
-                                            top: 0,
-                                            child: Container(
-                                              padding: EdgeInsets.all(2),
-                                              decoration: BoxDecoration(
-                                                color: Colors.orange,
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: Text(
-                                                "!",
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
+                                          SizedBox(height: 8),
+                                          Text(
+                                            "Bike",
+                                            style: TextStyle(
+                                              color:
+                                                  selectedVehicleType == "bike"
+                                                      ? Colors.white
+                                                      : Colors.grey.shade700,
+                                              fontWeight: FontWeight.w500,
                                             ),
                                           ),
                                         ],
                                       ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        "Truck",
-                                        style: TextStyle(
-                                          color: Colors.grey.shade400,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      Text(
-                                        "Coming Soon",
-                                        style: TextStyle(
-                                          color: Colors.orange,
-                                          fontSize: 10,
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    Expanded(
-                      child: ListView(
-                        controller: scrollController,
-                        padding: EdgeInsets.symmetric(horizontal: 20),
-                        physics: BouncingScrollPhysics(),
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Column(
-                              children: [
-                                _buildInputField(
-                                  controller: _startPointController,
-                                  focusNode: _startPointFN,
-                                  hintText: 'Pickup Location',
-                                  isPickupField: true,
-                                  onItemClick: (prediction) {
-                                    _startPointController.text =
-                                        prediction.description!;
-                                    _startPointController.selection =
-                                        TextSelection.fromPosition(
-                                      TextPosition(
-                                          offset:
-                                              prediction.description!.length),
-                                    );
-                                  },
-                                  onGetDetailWithLatLng: (cordinatesCus) {
-                                    _userLocToMarker(cordinatesCus);
-                                    getPolylinePoints().then(
-                                      (cordinates) =>
-                                          generatePolylineFromPoints(
-                                              cordinates),
-                                    );
-                                  },
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        isExpressSelected = true;
+                                        isStandardSelected = false;
+                                        selectedVehicleType =
+                                            "car"; // Set vehicle type to car
+                                        // Reset package size selection when switching to car delivery
+                                        is25Selected = true;
+                                        is50Selected = is75Selected =
+                                            is100Selected = false;
+                                      });
+                                    },
+                                    child: Container(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: selectedVehicleType == "car"
+                                            ? Color.fromRGBO(0, 31, 62, 1)
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: selectedVehicleType == "car"
+                                              ? Color.fromRGBO(0, 31, 62, 1)
+                                              : Colors.grey.shade300,
+                                          width: 1.5,
+                                        ),
+                                        boxShadow: selectedVehicleType == "car"
+                                            ? [
+                                                BoxShadow(
+                                                  color: Color.fromRGBO(
+                                                      0, 31, 62, 0.3),
+                                                  blurRadius: 8,
+                                                  offset: Offset(0, 4),
+                                                )
+                                              ]
+                                            : [],
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Icon(
+                                            Icons.directions_car,
+                                            color: selectedVehicleType == "car"
+                                                ? Colors.white
+                                                : Colors.grey.shade700,
+                                            size: 28,
+                                          ),
+                                          SizedBox(height: 8),
+                                          Text(
+                                            "Car",
+                                            style: TextStyle(
+                                              color:
+                                                  selectedVehicleType == "car"
+                                                      ? Colors.white
+                                                      : Colors.grey.shade700,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                                SizedBox(height: 16),
-                                _buildInputField(
-                                  controller: _destinationController,
-                                  focusNode: _endPointFN,
-                                  hintText: 'Destination Location',
-                                  onItemClick: (prediction) {
-                                    setState(() {
-                                      _destinationController.text =
-                                          prediction.description!;
-                                      _destinationController.selection =
-                                          TextSelection.fromPosition(
-                                        TextPosition(
-                                            offset:
-                                                prediction.description!.length),
-                                      );
-                                    });
-                                    _userDesToMarker(prediction);
-                                  },
-                                  onGetDetailWithLatLng: (cordinates) {
-                                    _userDesToMarker(cordinates);
-                                    getPolylinePoints().then(
-                                      (cordinates) =>
-                                          generatePolylineFromPoints(
-                                              cordinates),
-                                    );
-                                  },
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.grey.shade300,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.local_shipping,
+                                              color: Colors.grey.shade400,
+                                              size: 28,
+                                            ),
+                                            Positioned(
+                                              right: 0,
+                                              top: 0,
+                                              child: Container(
+                                                padding: EdgeInsets.all(2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.orange,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Text(
+                                                  "!",
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          "Truck",
+                                          style: TextStyle(
+                                            color: Colors.grey.shade400,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        Text(
+                                          "Coming Soon",
+                                          style: TextStyle(
+                                            color: Colors.orange,
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          FutureBuilder(
-                            future: getPolylinePoints(),
-                            builder: (deliveryDetails, snapshot) {
-                              if (snapshot.hasData) {
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10.0),
-                                  child: SingleChildScrollView(
-                                    physics: NeverScrollableScrollPhysics(),
-                                    child: Column(
-                                      children: [
-                                        Container(
-                                          padding: EdgeInsets.symmetric(
-                                              vertical: 16, horizontal: 20),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
+                          ],
+                        ),
+                      ),
+
+                      // Input fields for pickup and destination
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          children: [
+                            _buildInputField(
+                              controller: _startPointController,
+                              focusNode: _startPointFN,
+                              hintText: 'Pickup Location',
+                              isPickupField: true,
+                              onItemClick: (prediction) {
+                                _startPointController.text =
+                                    prediction.description!;
+                                _startPointController.selection =
+                                    TextSelection.fromPosition(
+                                  TextPosition(
+                                      offset: prediction.description!.length),
+                                );
+                              },
+                              onGetDetailWithLatLng: (cordinatesCus) {
+                                _userLocToMarker(cordinatesCus);
+                                getPolylinePoints().then(
+                                  (cordinates) =>
+                                      generatePolylineFromPoints(cordinates),
+                                );
+                              },
+                            ),
+                            SizedBox(height: 16),
+                            _buildInputField(
+                              controller: _destinationController,
+                              focusNode: _endPointFN,
+                              hintText: 'Destination Location',
+                              onItemClick: (prediction) {
+                                setState(() {
+                                  _destinationController.text =
+                                      prediction.description!;
+                                  _destinationController.selection =
+                                      TextSelection.fromPosition(
+                                    TextPosition(
+                                        offset: prediction.description!.length),
+                                  );
+                                });
+                                _userDesToMarker(prediction);
+                              },
+                              onGetDetailWithLatLng: (cordinates) {
+                                _userDesToMarker(cordinates);
+                                getPolylinePoints().then(
+                                  (cordinates) =>
+                                      generatePolylineFromPoints(cordinates),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Delivery details and options
+                      FutureBuilder(
+                        future: getPolylinePoints(),
+                        builder: (deliveryDetails, snapshot) {
+                          if (snapshot.hasData) {
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10.0),
+                              child: Column(
+                                children: [
+                                  // Distance and location info with improved design
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 12),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color:
+                                                Colors.black.withOpacity(0.05),
+                                            blurRadius: 10,
+                                            offset: Offset(0, 4),
+                                            spreadRadius: 2,
+                                          ),
+                                        ],
+                                      ),
+                                      padding: EdgeInsets.all(16),
+                                      child: Column(
+                                        children: [
+                                          // Distance display
+                                          Row(
                                             children: [
+                                              Container(
+                                                padding: EdgeInsets.all(10),
+                                                decoration: BoxDecoration(
+                                                  color: Color.fromRGBO(
+                                                      0, 31, 62, 0.1),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  Icons.route,
+                                                  color: Color.fromRGBO(
+                                                      0, 31, 62, 1),
+                                                  size: 20,
+                                                ),
+                                              ),
+                                              SizedBox(width: 16),
                                               Column(
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.start,
@@ -1349,16 +1906,16 @@ class _MapPageState extends State<MapPage> {
                                                   Text(
                                                     'Distance',
                                                     style: TextStyle(
-                                                      fontSize: 16,
+                                                      fontSize: 14,
                                                       color:
                                                           Colors.grey.shade600,
                                                     ),
                                                   ),
                                                   SizedBox(height: 4),
                                                   Text(
-                                                    '${roundDistanceKM ?? 0}Km',
+                                                    '${roundDistanceKM ?? 0} Km',
                                                     style: TextStyle(
-                                                      fontSize: 22,
+                                                      fontSize: 18,
                                                       fontWeight:
                                                           FontWeight.w600,
                                                       color: Color.fromRGBO(
@@ -1367,10 +1924,11 @@ class _MapPageState extends State<MapPage> {
                                                   ),
                                                 ],
                                               ),
+                                              Spacer(),
                                               if (roundDistanceKM != null &&
                                                   roundDistanceKM != 0)
                                                 IconButton(
-                                                  icon: Icon(Icons.close,
+                                                  icon: Icon(Icons.refresh,
                                                       color: Colors.grey),
                                                   onPressed: () {
                                                     setState(() {
@@ -1386,328 +1944,501 @@ class _MapPageState extends State<MapPage> {
                                                 ),
                                             ],
                                           ),
-                                        ),
-                                        const SizedBox(
-                                          height: 10,
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 20.0),
-                                          child: Row(
+
+                                          Divider(
+                                              height: 24,
+                                              color: Colors.grey.shade200),
+
+                                          // Pickup location
+                                          Row(
                                             children: [
-                                              Expanded(
-                                                  child: Divider(
-                                                thickness: 0.8,
-                                                color: Colors.grey,
-                                              ))
-                                            ],
-                                          ),
-                                        ),
-                                        ListTile(
-                                          leading: Container(
-                                            decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.all(
-                                                    Radius.circular(8)),
-                                                color: Color.fromRGBO(
-                                                    0, 70, 67, 0.24)),
-                                            height: 80,
-                                            width: 60,
-                                            child: Icon(
-                                              Icons.location_on,
-                                              size: 40,
-                                              color: const Color.fromRGBO(
-                                                  0, 31, 62, 1),
-                                            ),
-                                          ),
-                                          title: Text(
-                                            'Pickup Location',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          subtitle:
-                                              Text(_startPointController.text),
-                                        ),
-                                        const SizedBox(
-                                          height: 20,
-                                        ),
-                                        ListTile(
-                                          leading: Container(
-                                            decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.all(
-                                                    Radius.circular(8)),
-                                                color: Color.fromRGBO(
-                                                    0, 70, 67, 0.24)),
-                                            height: 80,
-                                            width: 60,
-                                            child: Icon(
-                                              Icons.location_on,
-                                              size: 40,
-                                              color: const Color.fromRGBO(
-                                                  0, 31, 67, 1),
-                                            ),
-                                          ),
-                                          title: Text(
-                                            'Delivery Location',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          subtitle:
-                                              Text(_destinationController.text),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 20.0),
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                  child: Divider(
-                                                thickness: 0.8,
-                                                color: Colors.grey,
-                                              ))
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(
-                                          height: 10,
-                                        ),
-                                        ListTile(
-                                          leading: Container(
-                                              decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.all(
-                                                          Radius.circular(8)),
+                                              Container(
+                                                padding: EdgeInsets.all(10),
+                                                decoration: BoxDecoration(
                                                   color: Color.fromRGBO(
-                                                      0, 70, 67, 0.24)),
-                                              height: 80,
-                                              width: 60,
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.all(6.0),
-                                                child: Image.asset(
-                                                  'assets/images/bike.png',
-                                                  scale: 2,
+                                                      0, 31, 62, 0.1),
+                                                  shape: BoxShape.circle,
                                                 ),
-                                              )),
-                                          title: Text(
-                                            'Same-Day Delivery',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          subtitle: Text(
-                                            standardFormatted?.symbolOnLeft ??
-                                                ''.toString(),
-                                            style: TextStyle(fontSize: 16),
-                                          ),
-                                          trailing: Checkbox(
-                                            activeColor: const Color.fromRGBO(
-                                                0, 31, 62, 1),
-                                            value: isStandardSelected,
-                                            onChanged: (newBool) {
-                                              setState(() {
-                                                isStandardSelected =
-                                                    newBool ?? false;
-                                                isExpressSelected = false;
-                                              });
-                                            },
-                                            checkColor: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(
-                                          height: 20,
-                                        ),
-                                        ListTile(
-                                          leading: Container(
-                                              decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.all(
-                                                          Radius.circular(8)),
+                                                child: Icon(
+                                                  Icons.my_location,
                                                   color: Color.fromRGBO(
-                                                      0, 70, 67, 0.24)),
-                                              height: 80,
-                                              width: 60,
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.all(6.0),
-                                                child: Image.asset(
-                                                  'assets/images/bike.png',
-                                                  scale: 2,
+                                                      0, 31, 62, 1),
+                                                  size: 20,
                                                 ),
-                                              )),
-                                          title: Text(
-                                            'Express Delivery',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          subtitle: Text(
-                                            expressFormatted?.symbolOnLeft ??
-                                                ''.toString(),
-                                            style: TextStyle(fontSize: 16),
-                                          ),
-                                          trailing: Checkbox(
-                                            activeColor: const Color.fromRGBO(
-                                                0, 31, 62, 1),
-                                            value: isExpressSelected,
-                                            onChanged: (newBool) {
-                                              setState(() {
-                                                isExpressSelected =
-                                                    newBool ?? false;
-                                                isStandardSelected = false;
-                                              });
-                                            },
-                                            checkColor: Colors.white,
-                                          ),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 20.0),
-                                          child: Row(
-                                            children: [
+                                              ),
+                                              SizedBox(width: 16),
                                               Expanded(
-                                                  child: Divider(
-                                                thickness: 0.8,
-                                                color: Colors.grey,
-                                              ))
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Pickup',
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        color: Colors
+                                                            .grey.shade600,
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 4),
+                                                    Text(
+                                                      _startPointController
+                                                              .text.isEmpty
+                                                          ? 'Select pickup location'
+                                                          : _startPointController
+                                                              .text,
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color: Color.fromRGBO(
+                                                            0, 31, 62, 1),
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
                                             ],
                                           ),
-                                        ),
-                                        const SizedBox(
-                                          height: 10,
-                                        ),
-                                        SizedBox(
-                                          width: 340,
-                                          child: Text(
-                                            'Our delivery boxes are 3.05 cubic feet, and thus we charge on the space your item takes. Select an option from below',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
+
+                                          SizedBox(height: 16),
+
+                                          // Destination location
+                                          Row(
+                                            children: [
+                                              Container(
+                                                padding: EdgeInsets.all(10),
+                                                decoration: BoxDecoration(
+                                                  color: Color.fromRGBO(
+                                                      0, 31, 62, 0.1),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  Icons.location_on,
+                                                  color: Color.fromRGBO(
+                                                      0, 31, 62, 1),
+                                                  size: 20,
+                                                ),
+                                              ),
+                                              SizedBox(width: 16),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Destination',
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        color: Colors
+                                                            .grey.shade600,
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 4),
+                                                    Text(
+                                                      _destinationController
+                                                              .text.isEmpty
+                                                          ? 'Select destination location'
+                                                          : _destinationController
+                                                              .text,
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color: Color.fromRGBO(
+                                                            0, 31, 62, 1),
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  // Delivery Type Selection
+                                  Container(
+                                    margin: EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 12),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Delivery Type",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color.fromRGBO(0, 31, 62, 1),
                                           ),
                                         ),
-                                        ListTile(
-                                          title: Text(
-                                            'Quarter the Box & Below',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          subtitle: Text(
-                                            size25Formatted?.symbolOnLeft ??
-                                                'Free',
-                                          ),
-                                          trailing: Checkbox(
-                                            activeColor: const Color.fromRGBO(
-                                                0, 31, 62, 1),
-                                            value: is25Selected,
-                                            onChanged: (newBool) {
-                                              setState(() {
-                                                is25Selected = newBool ?? false;
-                                                is50Selected = false;
-                                                is75Selected = false;
-                                                is100Selected = false;
-                                              });
-                                            },
-                                            checkColor: Colors.white,
-                                          ),
+                                        SizedBox(height: 12),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    isExpressSelected = true;
+                                                    isStandardSelected = false;
+                                                  });
+                                                },
+                                                child: Container(
+                                                  padding: EdgeInsets.all(16),
+                                                  decoration: BoxDecoration(
+                                                    color: isExpressSelected ==
+                                                            true
+                                                        ? Color.fromRGBO(
+                                                            0, 31, 62, 0.05)
+                                                        : Colors.white,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                    border: Border.all(
+                                                      color:
+                                                          isExpressSelected ==
+                                                                  true
+                                                              ? Color.fromRGBO(
+                                                                  0, 31, 62, 1)
+                                                              : Colors.grey
+                                                                  .shade300,
+                                                      width: 1.5,
+                                                    ),
+                                                  ),
+                                                  child: Column(
+                                                    children: [
+                                                      Container(
+                                                        padding:
+                                                            EdgeInsets.all(10),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color:
+                                                              isExpressSelected ==
+                                                                      true
+                                                                  ? Color
+                                                                      .fromRGBO(
+                                                                          0,
+                                                                          31,
+                                                                          62,
+                                                                          1)
+                                                                  : Color
+                                                                      .fromRGBO(
+                                                                          0,
+                                                                          31,
+                                                                          62,
+                                                                          0.1),
+                                                          shape:
+                                                              BoxShape.circle,
+                                                        ),
+                                                        child: Icon(
+                                                          Icons.flash_on,
+                                                          color:
+                                                              isExpressSelected ==
+                                                                      true
+                                                                  ? Colors.white
+                                                                  : Color
+                                                                      .fromRGBO(
+                                                                          0,
+                                                                          31,
+                                                                          62,
+                                                                          1),
+                                                          size: 20,
+                                                        ),
+                                                      ),
+                                                      SizedBox(height: 8),
+                                                      Text(
+                                                        "Express",
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: Color.fromRGBO(
+                                                              0, 31, 62, 1),
+                                                        ),
+                                                      ),
+                                                      SizedBox(height: 4),
+                                                      Text(
+                                                        expressFormatted
+                                                                ?.symbolOnLeft ??
+                                                            "₦0",
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors
+                                                              .grey.shade600,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            SizedBox(width: 12),
+                                            Expanded(
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    isStandardSelected = true;
+                                                    isExpressSelected = false;
+                                                  });
+                                                },
+                                                child: Container(
+                                                  padding: EdgeInsets.all(16),
+                                                  decoration: BoxDecoration(
+                                                    color: isStandardSelected ==
+                                                            true
+                                                        ? Color.fromRGBO(
+                                                            0, 31, 62, 0.05)
+                                                        : Colors.white,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                    border: Border.all(
+                                                      color:
+                                                          isStandardSelected ==
+                                                                  true
+                                                              ? Color.fromRGBO(
+                                                                  0, 31, 62, 1)
+                                                              : Colors.grey
+                                                                  .shade300,
+                                                      width: 1.5,
+                                                    ),
+                                                  ),
+                                                  child: Column(
+                                                    children: [
+                                                      Container(
+                                                        padding:
+                                                            EdgeInsets.all(10),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color:
+                                                              isStandardSelected ==
+                                                                      true
+                                                                  ? Color
+                                                                      .fromRGBO(
+                                                                          0,
+                                                                          31,
+                                                                          62,
+                                                                          1)
+                                                                  : Color
+                                                                      .fromRGBO(
+                                                                          0,
+                                                                          31,
+                                                                          62,
+                                                                          0.1),
+                                                          shape:
+                                                              BoxShape.circle,
+                                                        ),
+                                                        child: Icon(
+                                                          Icons.pedal_bike,
+                                                          color:
+                                                              isStandardSelected ==
+                                                                      true
+                                                                  ? Colors.white
+                                                                  : Color
+                                                                      .fromRGBO(
+                                                                          0,
+                                                                          31,
+                                                                          62,
+                                                                          1),
+                                                          size: 20,
+                                                        ),
+                                                      ),
+                                                      SizedBox(height: 8),
+                                                      Text(
+                                                        "Standard",
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: Color.fromRGBO(
+                                                              0, 31, 62, 1),
+                                                        ),
+                                                      ),
+                                                      SizedBox(height: 4),
+                                                      Text(
+                                                        standardFormatted
+                                                                ?.symbolOnLeft ??
+                                                            "₦0",
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors
+                                                              .grey.shade600,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        ListTile(
-                                          title: Text(
-                                            'Half the Box & Below',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          subtitle: Text(
-                                            size50Formatted?.symbolOnLeft ?? '',
-                                          ),
-                                          trailing: Checkbox(
-                                            activeColor: const Color.fromRGBO(
-                                                0, 31, 62, 1),
-                                            value: is50Selected,
-                                            onChanged: (newBool) {
-                                              setState(() {
-                                                is25Selected = false;
-                                                is50Selected = newBool ?? false;
-                                                is75Selected = false;
-                                                is100Selected = false;
-                                              });
-                                            },
-                                            checkColor: Colors.white,
-                                          ),
-                                        ),
-                                        ListTile(
-                                          title: Text(
-                                            '3 quarter the Box & Below',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          subtitle: Text(
-                                            size75Formatted?.symbolOnLeft ?? '',
-                                          ),
-                                          trailing: Checkbox(
-                                            activeColor: const Color.fromRGBO(
-                                                0, 31, 62, 1),
-                                            value: is75Selected,
-                                            onChanged: (newBool) {
-                                              setState(() {
-                                                is25Selected = false;
-                                                is50Selected = false;
-                                                is75Selected = newBool ?? false;
-                                                is100Selected = false;
-                                              });
-                                            },
-                                            checkColor: Colors.white,
-                                          ),
-                                        ),
-                                        ListTile(
-                                          title: Text(
-                                            'Full Box & Below',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600),
-                                          ),
-                                          subtitle: Text(
-                                            size100Formatted?.symbolOnLeft ??
-                                                '',
-                                          ),
-                                          trailing: Checkbox(
-                                            activeColor: const Color.fromRGBO(
-                                                0, 31, 62, 1),
-                                            value: is100Selected,
-                                            onChanged: (newBool) {
-                                              setState(() {
-                                                is25Selected = false;
-                                                is50Selected = false;
-                                                is75Selected = false;
-                                                is100Selected =
-                                                    newBool ?? false;
-                                              });
-                                            },
-                                            checkColor: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(
-                                          height: 30,
-                                        ),
-                                        MButtons(
-                                            onTap: () {
-                                              confirmOrder(context);
-                                            },
-                                            btnText: 'Confirm Order')
                                       ],
                                     ),
                                   ),
-                                );
-                              } else {
-                                return Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(top: 60.0),
-                                    child: CircularProgressIndicator(
-                                      color: Color.fromRGBO(0, 31, 62, 1),
+
+                                  // Package Size Selection
+                                  // Package Size Selection
+                                  if (selectedVehicleType == "bike")
+                                    Container(
+                                      margin: EdgeInsets.symmetric(
+                                          horizontal: 20, vertical: 12),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "Select Package Size",
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color:
+                                                  Color.fromRGBO(0, 31, 62, 1),
+                                            ),
+                                          ),
+                                          SizedBox(height: 12),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceEvenly,
+                                            children: [
+                                              Expanded(
+                                                child: _buildPackageSizeOption(
+                                                  size: "¼",
+                                                  description:
+                                                      "Quarter and below",
+                                                  price: size25Formatted
+                                                          ?.symbolOnLeft ??
+                                                      "₦0",
+                                                  isSelected: is25Selected,
+                                                  onTap: () {
+                                                    setState(() {
+                                                      is25Selected = true;
+                                                      is50Selected = false;
+                                                      is75Selected = false;
+                                                      is100Selected = false;
+                                                    });
+                                                  },
+                                                ),
+                                              ),
+                                              SizedBox(width: 8),
+                                              Expanded(
+                                                child: _buildPackageSizeOption(
+                                                  size: "½",
+                                                  description:
+                                                      "Half to quarter",
+                                                  price: size50Formatted
+                                                          ?.symbolOnLeft ??
+                                                      "₦250",
+                                                  isSelected: is50Selected,
+                                                  onTap: () {
+                                                    setState(() {
+                                                      is25Selected = false;
+                                                      is50Selected = true;
+                                                      is75Selected = false;
+                                                      is100Selected = false;
+                                                    });
+                                                  },
+                                                ),
+                                              ),
+                                              SizedBox(width: 8),
+                                              Expanded(
+                                                child: _buildPackageSizeOption(
+                                                  size: "¾",
+                                                  description:
+                                                      "3 quarter to half",
+                                                  price: size75Formatted
+                                                          ?.symbolOnLeft ??
+                                                      "₦500",
+                                                  isSelected: is75Selected,
+                                                  onTap: () {
+                                                    setState(() {
+                                                      is25Selected = false;
+                                                      is50Selected = false;
+                                                      is75Selected = true;
+                                                      is100Selected = false;
+                                                    });
+                                                  },
+                                                ),
+                                              ),
+                                              SizedBox(width: 8),
+                                              Expanded(
+                                                child: _buildPackageSizeOption(
+                                                  size: "F",
+                                                  description:
+                                                      "Full to 3 quarter",
+                                                  price: size100Formatted
+                                                          ?.symbolOnLeft ??
+                                                      "₦750",
+                                                  isSelected: is100Selected,
+                                                  onTap: () {
+                                                    setState(() {
+                                                      is25Selected = false;
+                                                      is50Selected = false;
+                                                      is75Selected = false;
+                                                      is100Selected = true;
+                                                    });
+                                                  },
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                        ],
+                                  const SizedBox(height: 30),
+                                  Container(
+                                    width: double.infinity,
+                                    margin:
+                                        EdgeInsets.symmetric(horizontal: 20),
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        confirmOrder(context);
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            Color.fromRGBO(0, 31, 62, 1),
+                                        foregroundColor: Colors.white,
+                                        padding:
+                                            EdgeInsets.symmetric(vertical: 16),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              8), // Reduced border radius
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Confirm Order',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                            );
+                          } else {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 60.0),
+                                child: CircularProgressIndicator(
+                                  color: Color.fromRGBO(0, 31, 62, 1),
+                                ),
+                              ),
+                            );
+                          }
+                        },
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
