@@ -2,15 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:micollins_delivery_app/components/bottom_nav_bar.dart';
-import 'package:micollins_delivery_app/pages/homePage.dart';
 import 'package:micollins_delivery_app/pages/ordersPage.dart';
 import 'package:micollins_delivery_app/pages/supportPage.dart'; // Make sure this is imported
 import 'package:micollins_delivery_app/pages/profilePage.dart';
 import 'package:micollins_delivery_app/pages/MapPage.dart';
-import 'package:micollins_delivery_app/pages/chat_screen.dart';
-import 'package:micollins_delivery_app/pages/ordersPage.dart';
-import 'package:micollins_delivery_app/pages/profilePage.dart';
-import 'package:micollins_delivery_app/pages/supportPage.dart';
 
 class FirstPage extends StatefulWidget {
   const FirstPage({super.key});
@@ -30,6 +25,7 @@ class IndexProvider extends ChangeNotifier {
   }
 }
 
+// ignore: unused_element
 final List<Widget> _pages = [
   MapPage(), // Home (Maps)
   OrdersPage(), // Deliveries

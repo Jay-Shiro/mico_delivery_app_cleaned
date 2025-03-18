@@ -3,7 +3,6 @@ import 'package:micollins_delivery_app/pages/LoginPage.dart';
 import 'package:micollins_delivery_app/pages/MapPage.dart';
 import 'package:micollins_delivery_app/pages/RecoverPassword.dart';
 import 'package:micollins_delivery_app/pages/SignUpPage.dart';
-import 'package:micollins_delivery_app/pages/chat_screen.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart'; // Import FirstPage to access IndexProvider
 import 'package:micollins_delivery_app/pages/ordersPage.dart';
 import 'package:micollins_delivery_app/pages/profilePage.dart';

@@ -1260,6 +1260,8 @@ class _MapPageState extends State<MapPage> {
 
   double expressCost = 0;
   double standardCost = 0;
+  double carExpressCost = 0;
+  double carStandardCost = 0;
 
   MoneyFormatterOutput? standardFormatted;
   MoneyFormatterOutput? expressFormatted;
