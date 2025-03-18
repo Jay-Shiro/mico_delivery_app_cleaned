@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:micollins_delivery_app/components/m_buttons.dart';
-import 'package:micollins_delivery_app/components/m_orange_buttons.dart';
 import 'package:micollins_delivery_app/pages/FAQ_screen.dart';
 import 'package:micollins_delivery_app/pages/webview_screen.dart'; // Add this import
 import 'package:shared_preferences/shared_preferences.dart';
