@@ -314,28 +314,28 @@ class _MapPageState extends State<MapPage> {
               carExpressCost = getCost(roundDistanceKM, 500.00);
               carStandardCost = getCost(roundDistanceKM, 500.00 / 2);
               busCost = getCost(roundDistanceKM, 600.00);
-              truckCost = getCost(roundDistanceKM, 600.00 / 2);
+              truckCost = getCost(roundDistanceKM, 600.00 * 2);
             } else if (roundDistanceKM <= 10) {
               expressCost = getCost(roundDistanceKM, 317.12);
               standardCost = getCost(roundDistanceKM, 317.12 / 2);
               carExpressCost = getCost(roundDistanceKM, 480.00);
               carStandardCost = getCost(roundDistanceKM, 480.00 / 2);
               busCost = getCost(roundDistanceKM, 580.00);
-              truckCost = getCost(roundDistanceKM, 580.00 / 2);
+              truckCost = getCost(roundDistanceKM, 580.00 * 2);
             } else if (roundDistanceKM <= 15) {
               expressCost = getCost(roundDistanceKM, 259.60);
               standardCost = getCost(roundDistanceKM, 259.60 / 2);
               carExpressCost = getCost(roundDistanceKM, 450.00);
               carStandardCost = getCost(roundDistanceKM, 450.00 / 2);
               busCost = getCost(roundDistanceKM, 560.00);
-              truckCost = getCost(roundDistanceKM, 560.00 / 2);
+              truckCost = getCost(roundDistanceKM, 560.00 * 2);
             } else {
               expressCost = getCost(roundDistanceKM, 200.00);
               standardCost = getCost(roundDistanceKM, 200.00 / 2);
               carExpressCost = getCost(roundDistanceKM, 400.00);
               carStandardCost = getCost(roundDistanceKM, 400.00 / 2);
               busCost = getCost(roundDistanceKM, 520.00);
-              truckCost = getCost(roundDistanceKM, 520.00 / 2);
+              truckCost = getCost(roundDistanceKM, 520.00 * 2);
             }
           } else {
             if (roundDistanceKM <= 5) {
@@ -344,28 +344,28 @@ class _MapPageState extends State<MapPage> {
               carExpressCost = getCost(roundDistanceKM, 460.00);
               carStandardCost = getCost(roundDistanceKM, 460.00 / 2);
               busCost = getCost(roundDistanceKM, 560.00);
-              truckCost = getCost(roundDistanceKM, 560.00 / 2);
+              truckCost = getCost(roundDistanceKM, 560.00 * 2);
             } else if (roundDistanceKM <= 10) {
               expressCost = getCost(roundDistanceKM, 232.34);
               standardCost = getCost(roundDistanceKM, 232.34 / 2);
               carExpressCost = getCost(roundDistanceKM, 430.00);
               carStandardCost = getCost(roundDistanceKM, 430.00 / 2);
               busCost = getCost(roundDistanceKM, 540.00);
-              truckCost = getCost(roundDistanceKM, 540.00 / 2);
+              truckCost = getCost(roundDistanceKM, 540.00 * 2);
             } else if (roundDistanceKM <= 15) {
               expressCost = getCost(roundDistanceKM, 222.52);
               standardCost = getCost(roundDistanceKM, 222.52 / 2);
               carExpressCost = getCost(roundDistanceKM, 410.00);
               carStandardCost = getCost(roundDistanceKM, 410.00 / 2);
               busCost = getCost(roundDistanceKM, 520.00);
-              truckCost = getCost(roundDistanceKM, 520.00 / 2);
+              truckCost = getCost(roundDistanceKM, 520.00 * 2);
             } else {
               expressCost = getCost(roundDistanceKM, 160.00);
               standardCost = getCost(roundDistanceKM, 160.00 / 2);
               carExpressCost = getCost(roundDistanceKM, 350.00);
               carStandardCost = getCost(roundDistanceKM, 350.00 / 2);
               busCost = getCost(roundDistanceKM, 500.00);
-              truckCost = getCost(roundDistanceKM, 500.00 / 2);
+              truckCost = getCost(roundDistanceKM, 500.00 * 2);
             }
           }
 
