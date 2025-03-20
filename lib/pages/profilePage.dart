@@ -45,7 +45,8 @@ class _ProfilePageState extends State<ProfilePage> {
         firstName = userData['firstname'];
         lastName = userData['lastname'];
         userId = userData['_id']; // Store user ID
-        profilePictureUrl = userData['profile_picture_url']; // Get profile picture URL
+        profilePictureUrl =
+            userData['profile_picture_url']; // Get profile picture URL
         isLoading = false;
       });
 
@@ -207,7 +208,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   backgroundColor: const Color.fromRGBO(227, 223, 214, 1),
                   radius: 40,
                   // Use profile picture if available, otherwise show a placeholder icon
-                  child: profilePictureUrl != null && profilePictureUrl!.isNotEmpty
+                  child: profilePictureUrl != null &&
+                          profilePictureUrl!.isNotEmpty
                       ? ClipOval(
                           child: Image.network(
                             profilePictureUrl!,

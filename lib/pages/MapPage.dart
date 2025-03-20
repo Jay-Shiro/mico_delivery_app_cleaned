@@ -14,6 +14,7 @@ import 'package:paystack_for_flutter/paystack_for_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:micollins_delivery_app/components/ad_banner_carousel.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -302,80 +303,78 @@ class _MapPageState extends State<MapPage> {
             _userDestinationLatLng!.longitude,
           );
 
+          double getCost(double distance, double rate) {
+            return (distance / 0.8) * rate;
+          }
+
           if (isIslandToMainland) {
             if (roundDistanceKM <= 5) {
-              expressCost = (roundDistanceKM / 0.8) * 345.60;
-              standardCost = (roundDistanceKM / 1.6) * 345.60;
+              expressCost = getCost(roundDistanceKM, 345.60);
+              standardCost = getCost(roundDistanceKM, 345.60 / 2);
+              carExpressCost = getCost(roundDistanceKM, 500.00);
+              carStandardCost = getCost(roundDistanceKM, 500.00 / 2);
+              busCost = getCost(roundDistanceKM, 600.00);
+              truckCost = getCost(roundDistanceKM, 600.00 / 2);
             } else if (roundDistanceKM <= 10) {
-              expressCost = (roundDistanceKM / 0.8) * 317.12;
-              standardCost = (roundDistanceKM / 1.6) * 317.12;
+              expressCost = getCost(roundDistanceKM, 317.12);
+              standardCost = getCost(roundDistanceKM, 317.12 / 2);
+              carExpressCost = getCost(roundDistanceKM, 480.00);
+              carStandardCost = getCost(roundDistanceKM, 480.00 / 2);
+              busCost = getCost(roundDistanceKM, 580.00);
+              truckCost = getCost(roundDistanceKM, 580.00 / 2);
             } else if (roundDistanceKM <= 15) {
-              expressCost = (roundDistanceKM / 0.8) * 259.60;
-              standardCost = (roundDistanceKM / 1.6) * 259.60;
-            } else if (roundDistanceKM <= 20) {
-              expressCost = (roundDistanceKM / 0.8) * 283.74;
-              standardCost = (roundDistanceKM / 1.6) * 283.74;
-            } else if (roundDistanceKM <= 25) {
-              expressCost = (roundDistanceKM / 0.8) * 256.31;
-              standardCost = (roundDistanceKM / 1.6) * 256.31;
-            } else if (roundDistanceKM <= 30) {
-              expressCost = (roundDistanceKM / 0.8) * 242.88;
-              standardCost = (roundDistanceKM / 1.6) * 242.88;
-            } else if (roundDistanceKM <= 35) {
-              expressCost = (roundDistanceKM / 0.8) * 236.03;
-              standardCost = (roundDistanceKM / 1.6) * 236.03;
-            } else if (roundDistanceKM <= 40) {
-              expressCost = (roundDistanceKM / 0.8) * 250.06;
-              standardCost = (roundDistanceKM / 1.6) * 250.06;
-            } else if (roundDistanceKM <= 45) {
-              expressCost = (roundDistanceKM / 0.8) * 268.75;
-              standardCost = (roundDistanceKM / 1.6) * 268.75;
-            } else if (roundDistanceKM <= 50) {
-              expressCost = (roundDistanceKM / 0.8) * 255.49;
-              standardCost = (roundDistanceKM / 1.6) * 255.49;
+              expressCost = getCost(roundDistanceKM, 259.60);
+              standardCost = getCost(roundDistanceKM, 259.60 / 2);
+              carExpressCost = getCost(roundDistanceKM, 450.00);
+              carStandardCost = getCost(roundDistanceKM, 450.00 / 2);
+              busCost = getCost(roundDistanceKM, 560.00);
+              truckCost = getCost(roundDistanceKM, 560.00 / 2);
             } else {
-              expressCost = (roundDistanceKM / 0.8) * 200;
-              standardCost = (roundDistanceKM / 1.6) * 200;
+              expressCost = getCost(roundDistanceKM, 200.00);
+              standardCost = getCost(roundDistanceKM, 200.00 / 2);
+              carExpressCost = getCost(roundDistanceKM, 400.00);
+              carStandardCost = getCost(roundDistanceKM, 400.00 / 2);
+              busCost = getCost(roundDistanceKM, 520.00);
+              truckCost = getCost(roundDistanceKM, 520.00 / 2);
             }
           } else {
             if (roundDistanceKM <= 5) {
-              expressCost = (roundDistanceKM / 0.8) * 302.46;
-              standardCost = (roundDistanceKM / 1.6) * 302.46;
+              expressCost = getCost(roundDistanceKM, 302.46);
+              standardCost = getCost(roundDistanceKM, 302.46 / 2);
+              carExpressCost = getCost(roundDistanceKM, 460.00);
+              carStandardCost = getCost(roundDistanceKM, 460.00 / 2);
+              busCost = getCost(roundDistanceKM, 560.00);
+              truckCost = getCost(roundDistanceKM, 560.00 / 2);
             } else if (roundDistanceKM <= 10) {
-              expressCost = (roundDistanceKM / 0.8) * 232.34;
-              standardCost = (roundDistanceKM / 1.6) * 232.34;
+              expressCost = getCost(roundDistanceKM, 232.34);
+              standardCost = getCost(roundDistanceKM, 232.34 / 2);
+              carExpressCost = getCost(roundDistanceKM, 430.00);
+              carStandardCost = getCost(roundDistanceKM, 430.00 / 2);
+              busCost = getCost(roundDistanceKM, 540.00);
+              truckCost = getCost(roundDistanceKM, 540.00 / 2);
             } else if (roundDistanceKM <= 15) {
-              expressCost = (roundDistanceKM / 0.8) * 222.52;
-              standardCost = (roundDistanceKM / 1.6) * 222.52;
-            } else if (roundDistanceKM <= 20) {
-              expressCost = (roundDistanceKM / 0.8) * 205.06;
-              standardCost = (roundDistanceKM / 1.6) * 205.06;
-            } else if (roundDistanceKM <= 25) {
-              expressCost = (roundDistanceKM / 0.8) * 240.78;
-              standardCost = (roundDistanceKM / 1.6) * 240.78;
-            } else if (roundDistanceKM <= 30) {
-              expressCost = (roundDistanceKM / 0.8) * 189.83;
-              standardCost = (roundDistanceKM / 1.6) * 189.83;
-            } else if (roundDistanceKM <= 35) {
-              expressCost = (roundDistanceKM / 0.8) * 182.98;
-              standardCost = (roundDistanceKM / 1.6) * 182.98;
-            } else if (roundDistanceKM <= 40) {
-              expressCost = (roundDistanceKM / 0.8) * 172.43;
-              standardCost = (roundDistanceKM / 1.6) * 172.43;
-            } else if (roundDistanceKM <= 45) {
-              expressCost = (roundDistanceKM / 0.8) * 169.03;
-              standardCost = (roundDistanceKM / 1.6) * 169.03;
-            } else if (roundDistanceKM <= 50) {
-              expressCost = (roundDistanceKM / 0.8) * 192.86;
-              standardCost = (roundDistanceKM / 1.6) * 192.86;
+              expressCost = getCost(roundDistanceKM, 222.52);
+              standardCost = getCost(roundDistanceKM, 222.52 / 2);
+              carExpressCost = getCost(roundDistanceKM, 410.00);
+              carStandardCost = getCost(roundDistanceKM, 410.00 / 2);
+              busCost = getCost(roundDistanceKM, 520.00);
+              truckCost = getCost(roundDistanceKM, 520.00 / 2);
             } else {
-              expressCost = (roundDistanceKM / 0.8) * 160;
-              standardCost = (roundDistanceKM / 1.6) * 160;
+              expressCost = getCost(roundDistanceKM, 160.00);
+              standardCost = getCost(roundDistanceKM, 160.00 / 2);
+              carExpressCost = getCost(roundDistanceKM, 350.00);
+              carStandardCost = getCost(roundDistanceKM, 350.00 / 2);
+              busCost = getCost(roundDistanceKM, 500.00);
+              truckCost = getCost(roundDistanceKM, 500.00 / 2);
             }
           }
 
           standardFormatted = formatMoney(standardCost);
           expressFormatted = formatMoney(expressCost);
+          carExpressFormatted = formatMoney(carExpressCost);
+          carStandardFormatted = formatMoney(carStandardCost);
+          busFormatted = formatMoney(busCost);
+          truckFormatted = formatMoney(truckCost);
           size50Formatted = formatMoney(packageSize50Price);
           size75Formatted = formatMoney(packageSize75Price);
           size100Formatted = formatMoney(packageSize100Price);
@@ -594,55 +593,6 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  Widget _buildAdBanner(String imagePath, String title, String subtitle) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color.fromRGBO(0, 31, 62, 1), Color.fromRGBO(0, 70, 67, 1)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: EdgeInsets.all(12),
-      margin: EdgeInsets.symmetric(horizontal: 4),
-      child: Row(
-        children: [
-          Image.asset(
-            imagePath,
-            width: 60,
-            height: 60,
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildPaymentOptionCard({
     required String title,
     required String subtitle,
@@ -727,6 +677,105 @@ class _MapPageState extends State<MapPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildVehicleOption(
+      {required IconData icon,
+      required String label,
+      required bool isSelected}) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: isSelected ? Color.fromRGBO(0, 31, 62, 1) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color:
+              isSelected ? Color.fromRGBO(0, 31, 62, 1) : Colors.grey.shade300,
+          width: 1.5,
+        ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: Color.fromRGBO(0, 31, 62, 0.3),
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                )
+              ]
+            : [],
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: isSelected ? Colors.white : Colors.grey.shade700,
+            size: 28,
+          ),
+          SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.grey.shade700,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeliveryOption({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    String? cost,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isSelected ? Color.fromRGBO(0, 31, 62, 0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color:
+              isSelected ? Color.fromRGBO(0, 31, 62, 1) : Colors.grey.shade300,
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? Color.fromRGBO(0, 31, 62, 1)
+                  : Color.fromRGBO(0, 31, 62, 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: isSelected ? Colors.white : Color.fromRGBO(0, 31, 62, 1),
+              size: 20,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color.fromRGBO(0, 31, 62, 1),
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            cost ?? "₦0",
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1262,9 +1311,15 @@ class _MapPageState extends State<MapPage> {
   double standardCost = 0;
   double carExpressCost = 0;
   double carStandardCost = 0;
+  double busCost = 0;
+  double truckCost = 0;
 
   MoneyFormatterOutput? standardFormatted;
   MoneyFormatterOutput? expressFormatted;
+  MoneyFormatterOutput? carStandardFormatted;
+  MoneyFormatterOutput? carExpressFormatted;
+  MoneyFormatterOutput? busFormatted;
+  MoneyFormatterOutput? truckFormatted;
   MoneyFormatterOutput? size25Formatted;
   MoneyFormatterOutput? size50Formatted;
   MoneyFormatterOutput? size75Formatted;
@@ -1492,93 +1547,7 @@ class _MapPageState extends State<MapPage> {
                       ),
 
                       // Ad Carousel Banner with improved styling
-                      Container(
-                        height: 120,
-                        margin:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        child: PageView.builder(
-                          itemCount: 3,
-                          itemBuilder: (context, index) {
-                            final adData = [
-                              {
-                                'image': 'assets/images/bike.png',
-                                'title': 'Express Delivery',
-                                'subtitle': 'Get 10% off your first order'
-                              },
-                              {
-                                'image': 'assets/images/bike.png',
-                                'title': 'Special Offer',
-                                'subtitle': 'Free delivery on orders over ₦5000'
-                              },
-                              {
-                                'image': 'assets/images/bike.png',
-                                'title': 'New Service',
-                                'subtitle': 'Try our premium delivery option'
-                              },
-                            ][index];
-
-                            return Container(
-                              margin: EdgeInsets.symmetric(horizontal: 4),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Color.fromRGBO(0, 31, 62, 1),
-                                    Color.fromRGBO(0, 70, 67, 0.9),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 10,
-                                    offset: Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              padding: EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  Image.asset(
-                                    adData['image']!,
-                                    width: 70,
-                                    height: 70,
-                                  ),
-                                  SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          adData['title']!,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
-                                          ),
-                                        ),
-                                        SizedBox(height: 8),
-                                        Text(
-                                          adData['subtitle']!,
-                                          style: TextStyle(
-                                            color:
-                                                Colors.white.withOpacity(0.9),
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                      AdBannerCarousel(),
 
                       // Vehicle Type Selection
                       Container(
@@ -1604,61 +1573,16 @@ class _MapPageState extends State<MapPage> {
                                       setState(() {
                                         isStandardSelected = true;
                                         isExpressSelected = false;
-                                        selectedVehicleType =
-                                            "bike"; // Set vehicle type to bike
-                                        // Default package size for bike delivery
+                                        selectedVehicleType = "bike";
                                         is25Selected = true;
                                         is50Selected = is75Selected =
                                             is100Selected = false;
                                       });
                                     },
-                                    child: Container(
-                                      padding:
-                                          EdgeInsets.symmetric(vertical: 12),
-                                      decoration: BoxDecoration(
-                                        color: selectedVehicleType == "bike"
-                                            ? Color.fromRGBO(0, 31, 62, 1)
-                                            : Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: selectedVehicleType == "bike"
-                                              ? Color.fromRGBO(0, 31, 62, 1)
-                                              : Colors.grey.shade300,
-                                          width: 1.5,
-                                        ),
-                                        boxShadow: selectedVehicleType == "bike"
-                                            ? [
-                                                BoxShadow(
-                                                  color: Color.fromRGBO(
-                                                      0, 31, 62, 0.3),
-                                                  blurRadius: 8,
-                                                  offset: Offset(0, 4),
-                                                )
-                                              ]
-                                            : [],
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          Icon(
-                                            Icons.motorcycle,
-                                            color: selectedVehicleType == "bike"
-                                                ? Colors.white
-                                                : Colors.grey.shade700,
-                                            size: 28,
-                                          ),
-                                          SizedBox(height: 8),
-                                          Text(
-                                            "Bike",
-                                            style: TextStyle(
-                                              color:
-                                                  selectedVehicleType == "bike"
-                                                      ? Colors.white
-                                                      : Colors.grey.shade700,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                    child: _buildVehicleOption(
+                                      icon: Icons.motorcycle,
+                                      label: "Bike",
+                                      isSelected: selectedVehicleType == "bike",
                                     ),
                                   ),
                                 ),
@@ -1669,123 +1593,36 @@ class _MapPageState extends State<MapPage> {
                                       setState(() {
                                         isExpressSelected = true;
                                         isStandardSelected = false;
-                                        selectedVehicleType =
-                                            "car"; // Set vehicle type to car
-                                        // Reset package size selection when switching to car delivery
+                                        selectedVehicleType = "car";
                                         is25Selected = true;
                                         is50Selected = is75Selected =
                                             is100Selected = false;
                                       });
                                     },
-                                    child: Container(
-                                      padding:
-                                          EdgeInsets.symmetric(vertical: 12),
-                                      decoration: BoxDecoration(
-                                        color: selectedVehicleType == "car"
-                                            ? Color.fromRGBO(0, 31, 62, 1)
-                                            : Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: selectedVehicleType == "car"
-                                              ? Color.fromRGBO(0, 31, 62, 1)
-                                              : Colors.grey.shade300,
-                                          width: 1.5,
-                                        ),
-                                        boxShadow: selectedVehicleType == "car"
-                                            ? [
-                                                BoxShadow(
-                                                  color: Color.fromRGBO(
-                                                      0, 31, 62, 0.3),
-                                                  blurRadius: 8,
-                                                  offset: Offset(0, 4),
-                                                )
-                                              ]
-                                            : [],
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          Icon(
-                                            Icons.directions_car,
-                                            color: selectedVehicleType == "car"
-                                                ? Colors.white
-                                                : Colors.grey.shade700,
-                                            size: 28,
-                                          ),
-                                          SizedBox(height: 8),
-                                          Text(
-                                            "Car",
-                                            style: TextStyle(
-                                              color:
-                                                  selectedVehicleType == "car"
-                                                      ? Colors.white
-                                                      : Colors.grey.shade700,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                    child: _buildVehicleOption(
+                                      icon: Icons.directions_car,
+                                      label: "Car",
+                                      isSelected: selectedVehicleType == "car",
                                     ),
                                   ),
                                 ),
                                 SizedBox(width: 12),
                                 Expanded(
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.grey.shade300,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Stack(
-                                          alignment: Alignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.local_shipping,
-                                              color: Colors.grey.shade400,
-                                              size: 28,
-                                            ),
-                                            Positioned(
-                                              right: 0,
-                                              top: 0,
-                                              child: Container(
-                                                padding: EdgeInsets.all(2),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.orange,
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: Text(
-                                                  "!",
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        SizedBox(height: 8),
-                                        Text(
-                                          "Truck",
-                                          style: TextStyle(
-                                            color: Colors.grey.shade400,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        Text(
-                                          "Coming Soon",
-                                          style: TextStyle(
-                                            color: Colors.orange,
-                                            fontSize: 10,
-                                          ),
-                                        ),
-                                      ],
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        selectedVehicleType = "bus";
+                                        isStandardSelected = true;
+                                        isExpressSelected = false;
+                                        is25Selected = true;
+                                        is50Selected = is75Selected =
+                                            is100Selected = false;
+                                      });
+                                    },
+                                    child: _buildVehicleOption(
+                                      icon: Icons.local_shipping,
+                                      label: "Bus/Truck",
+                                      isSelected: selectedVehicleType == "bus",
                                     ),
                                   ),
                                 ),
@@ -2094,92 +1931,30 @@ class _MapPageState extends State<MapPage> {
                                                     isStandardSelected = false;
                                                   });
                                                 },
-                                                child: Container(
-                                                  padding: EdgeInsets.all(16),
-                                                  decoration: BoxDecoration(
-                                                    color: isExpressSelected ==
-                                                            true
-                                                        ? Color.fromRGBO(
-                                                            0, 31, 62, 0.05)
-                                                        : Colors.white,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            12),
-                                                    border: Border.all(
-                                                      color:
-                                                          isExpressSelected ==
-                                                                  true
-                                                              ? Color.fromRGBO(
-                                                                  0, 31, 62, 1)
-                                                              : Colors.grey
-                                                                  .shade300,
-                                                      width: 1.5,
-                                                    ),
-                                                  ),
-                                                  child: Column(
-                                                    children: [
-                                                      Container(
-                                                        padding:
-                                                            EdgeInsets.all(10),
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color:
-                                                              isExpressSelected ==
-                                                                      true
-                                                                  ? Color
-                                                                      .fromRGBO(
-                                                                          0,
-                                                                          31,
-                                                                          62,
-                                                                          1)
-                                                                  : Color
-                                                                      .fromRGBO(
-                                                                          0,
-                                                                          31,
-                                                                          62,
-                                                                          0.1),
-                                                          shape:
-                                                              BoxShape.circle,
-                                                        ),
-                                                        child: Icon(
-                                                          Icons.flash_on,
-                                                          color:
-                                                              isExpressSelected ==
-                                                                      true
-                                                                  ? Colors.white
-                                                                  : Color
-                                                                      .fromRGBO(
-                                                                          0,
-                                                                          31,
-                                                                          62,
-                                                                          1),
-                                                          size: 20,
-                                                        ),
-                                                      ),
-                                                      SizedBox(height: 8),
-                                                      Text(
-                                                        "Express",
-                                                        style: TextStyle(
-                                                          fontSize: 16,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          color: Color.fromRGBO(
-                                                              0, 31, 62, 1),
-                                                        ),
-                                                      ),
-                                                      SizedBox(height: 4),
-                                                      Text(
-                                                        expressFormatted
-                                                                ?.symbolOnLeft ??
-                                                            "₦0",
-                                                        style: TextStyle(
-                                                          fontSize: 14,
-                                                          color: Colors
-                                                              .grey.shade600,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
+                                                child: _buildDeliveryOption(
+                                                  icon: selectedVehicleType ==
+                                                          "bus"
+                                                      ? Icons
+                                                          .local_shipping // Truck icon for Express
+                                                      : Icons
+                                                          .flash_on, // Default express icon
+                                                  label: selectedVehicleType ==
+                                                          "bus"
+                                                      ? "Truck" // Change label if Bus is selected
+                                                      : "Express",
+                                                  isSelected:
+                                                      isExpressSelected ??
+                                                          false,
+                                                  cost: selectedVehicleType ==
+                                                          "car"
+                                                      ? carExpressFormatted
+                                                          ?.symbolOnLeft
+                                                      : selectedVehicleType ==
+                                                              "bus"
+                                                          ? truckFormatted
+                                                              ?.symbolOnLeft // Use truck cost
+                                                          : expressFormatted
+                                                              ?.symbolOnLeft,
                                                 ),
                                               ),
                                             ),
@@ -2192,92 +1967,30 @@ class _MapPageState extends State<MapPage> {
                                                     isExpressSelected = false;
                                                   });
                                                 },
-                                                child: Container(
-                                                  padding: EdgeInsets.all(16),
-                                                  decoration: BoxDecoration(
-                                                    color: isStandardSelected ==
-                                                            true
-                                                        ? Color.fromRGBO(
-                                                            0, 31, 62, 0.05)
-                                                        : Colors.white,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            12),
-                                                    border: Border.all(
-                                                      color:
-                                                          isStandardSelected ==
-                                                                  true
-                                                              ? Color.fromRGBO(
-                                                                  0, 31, 62, 1)
-                                                              : Colors.grey
-                                                                  .shade300,
-                                                      width: 1.5,
-                                                    ),
-                                                  ),
-                                                  child: Column(
-                                                    children: [
-                                                      Container(
-                                                        padding:
-                                                            EdgeInsets.all(10),
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color:
-                                                              isStandardSelected ==
-                                                                      true
-                                                                  ? Color
-                                                                      .fromRGBO(
-                                                                          0,
-                                                                          31,
-                                                                          62,
-                                                                          1)
-                                                                  : Color
-                                                                      .fromRGBO(
-                                                                          0,
-                                                                          31,
-                                                                          62,
-                                                                          0.1),
-                                                          shape:
-                                                              BoxShape.circle,
-                                                        ),
-                                                        child: Icon(
-                                                          Icons.pedal_bike,
-                                                          color:
-                                                              isStandardSelected ==
-                                                                      true
-                                                                  ? Colors.white
-                                                                  : Color
-                                                                      .fromRGBO(
-                                                                          0,
-                                                                          31,
-                                                                          62,
-                                                                          1),
-                                                          size: 20,
-                                                        ),
-                                                      ),
-                                                      SizedBox(height: 8),
-                                                      Text(
-                                                        "Standard",
-                                                        style: TextStyle(
-                                                          fontSize: 16,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          color: Color.fromRGBO(
-                                                              0, 31, 62, 1),
-                                                        ),
-                                                      ),
-                                                      SizedBox(height: 4),
-                                                      Text(
-                                                        standardFormatted
-                                                                ?.symbolOnLeft ??
-                                                            "₦0",
-                                                        style: TextStyle(
-                                                          fontSize: 14,
-                                                          color: Colors
-                                                              .grey.shade600,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
+                                                child: _buildDeliveryOption(
+                                                  icon: selectedVehicleType ==
+                                                          "bus"
+                                                      ? Icons
+                                                          .directions_bus // Bus icon for Standard
+                                                      : Icons
+                                                          .pedal_bike, // Default standard icon
+                                                  label: selectedVehicleType ==
+                                                          "bus"
+                                                      ? "Bus" // Change label if Bus is selected
+                                                      : "Standard",
+                                                  isSelected:
+                                                      isStandardSelected ??
+                                                          false,
+                                                  cost: selectedVehicleType ==
+                                                          "car"
+                                                      ? carStandardFormatted
+                                                          ?.symbolOnLeft
+                                                      : selectedVehicleType ==
+                                                              "bus"
+                                                          ? busFormatted
+                                                              ?.symbolOnLeft // Use bus cost
+                                                          : standardFormatted
+                                                              ?.symbolOnLeft,
                                                 ),
                                               ),
                                             ),

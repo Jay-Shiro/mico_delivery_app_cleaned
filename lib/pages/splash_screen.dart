@@ -9,16 +9,17 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedSplashScreen(
-      duration: 6000, // 6 seconds
+      duration: 2800, // 6 seconds
       splash: Center(
         child: Lottie.asset(
           'assets/animations/MicoIntro.json',
           fit: BoxFit.cover,
         ),
       ),
+
       nextScreen: const FirstPage(),
       splashTransition: SplashTransition.fadeTransition,
-      backgroundColor: const Color.fromRGBO(219, 230, 76, 1),
+      backgroundColor: Colors.white,
       animationDuration: const Duration(milliseconds: 2500),
     );
   }
