@@ -413,7 +413,13 @@ class _MapPageState extends State<MapPage> {
   }
 
   double _getDeliveryCost() {
-    return isExpressSelected! ? expressCost : standardCost;
+    if (selectedVehicleType == "car") {
+      return isExpressSelected! ? carExpressCost : carStandardCost;
+    } else if (selectedVehicleType == "bus") {
+      return isExpressSelected! ? truckCost : busCost;
+    } else {
+      return isExpressSelected! ? expressCost : standardCost;
+    }
   }
 
   double _getPackagePrice() {
