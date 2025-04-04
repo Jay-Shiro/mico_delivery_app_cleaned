@@ -1029,9 +1029,16 @@ class _MapPageState extends State<MapPage> {
       }
 
       // Determine the endpoint based on vehicle type
-      final String endpoint = selectedVehicleType == "bike"
-          ? 'https://deliveryapi-ten.vercel.app/delivery/bike'
-          : 'https://deliveryapi-ten.vercel.app/delivery/car';
+      final String endpoint;
+      if (selectedVehicleType == "bike") {
+        endpoint = 'https://deliveryapi-ten.vercel.app/delivery/bike';
+      } else if (selectedVehicleType == "car") {
+        endpoint = 'https://deliveryapi-ten.vercel.app/delivery/car';
+      } else if (selectedVehicleType == "bus-truck") {
+        endpoint = 'https://delivery-ten.vercel.app/delivery/bus-truck';
+      } else {
+        throw Exception("Invalid vehicle type selected");
+      }
 
       // Round up the payment amount to avoid decimal issues
       final double roundedPrice = double.parse(paymentAmt.toStringAsFixed(2));
@@ -1757,19 +1764,30 @@ class _MapPageState extends State<MapPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Column(
                           children: [
+                            // Pickup Location Input Field
                             _buildInputField(
                               controller: _startPointController,
                               focusNode: _startPointFN,
                               hintText: 'Pickup Location',
                               isPickupField: true,
                               onItemClick: (prediction) {
-                                _startPointController.text =
-                                    prediction.description!;
-                                _startPointController.selection =
-                                    TextSelection.fromPosition(
-                                  TextPosition(
-                                      offset: prediction.description!.length),
-                                );
+                                setState(() {
+                                  _startPointController.text =
+                                      prediction.description!;
+                                  _startPointController.selection =
+                                      TextSelection.fromPosition(
+                                    TextPosition(
+                                        offset: prediction.description!.length),
+                                  );
+
+                                  // Reset roundDistanceKM if the pickup location is empty
+                                  if (_startPointController.text.isEmpty ||
+                                      _destinationController.text.isEmpty) {
+                                    roundDistanceKM = 0;
+                                    _userMarkers.clear();
+                                    polylines.clear();
+                                  }
+                                });
                               },
                               onGetDetailWithLatLng: (cordinatesCus) {
                                 _userLocToMarker(cordinatesCus);
@@ -1779,7 +1797,8 @@ class _MapPageState extends State<MapPage> {
                                 );
                               },
                             ),
-                            SizedBox(height: 16),
+
+// Destination Location Input Field
                             _buildInputField(
                               controller: _destinationController,
                               focusNode: _endPointFN,
@@ -1793,6 +1812,14 @@ class _MapPageState extends State<MapPage> {
                                     TextPosition(
                                         offset: prediction.description!.length),
                                   );
+
+                                  // Reset roundDistanceKM if the destination location is empty
+                                  if (_startPointController.text.isEmpty ||
+                                      _destinationController.text.isEmpty) {
+                                    roundDistanceKM = 0;
+                                    _userMarkers.clear();
+                                    polylines.clear();
+                                  }
                                 });
                                 _userDesToMarker(prediction);
                               },
@@ -1804,7 +1831,6 @@ class _MapPageState extends State<MapPage> {
                                 );
                               },
                             ),
-                            // Dynamically added stops
                             // Dynamically added stops
                             ...List.generate(_stopControllers.length, (index) {
                               return Column(
