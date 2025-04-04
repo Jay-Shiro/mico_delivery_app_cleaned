@@ -283,6 +283,48 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
+  void _addStopToMap(Prediction prediction, int index) {
+    try {
+      double stopLat = double.parse(prediction.lat!);
+      double stopLng = double.parse(prediction.lng!);
+      LatLng stopLatLng = LatLng(stopLat, stopLng);
+
+      setState(() {
+        // Add the stop's location to the map
+        _userDestinations.add(stopLatLng);
+        _userMarkers.add(
+          Marker(
+            markerId: MarkerId('stop_${index + 1}'),
+            position: stopLatLng,
+            icon:
+                BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          ),
+        );
+      });
+    } catch (e) {
+      debugPrint('Error adding stop to map: $e');
+    }
+  }
+
+  void _addStopToMapWithCoordinates(LatLng coordinates, int index) {
+    try {
+      setState(() {
+        // Add the stop's location to the map
+        _userDestinations.add(coordinates);
+        _userMarkers.add(
+          Marker(
+            markerId: MarkerId('stop_${index + 1}'),
+            position: coordinates,
+            icon:
+                BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          ),
+        );
+      });
+    } catch (e) {
+      debugPrint('Error adding stop to map with coordinates: $e');
+    }
+  }
+
   Future<void> _calculateDeliveryDetails(
       List<LatLng> polylineCoordinates) async {
     try {
@@ -1016,92 +1058,88 @@ class _MapPageState extends State<MapPage> {
     if (!_isMounted) return;
 
     try {
+      // Ensure the user is logged in
       if (userId == null || userId!.isEmpty) {
         if (_isMounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error: User ID not found. Please log in again.'),
-              backgroundColor: Color.fromRGBO(255, 91, 82, 1),
-            ),
-          );
+          _showErrorSnackbar('Error: User ID not found. Please log in again.');
         }
         return;
       }
 
-      // Determine the endpoint based on vehicle type
-      final String endpoint;
-      if (selectedVehicleType == "bike") {
-        endpoint = 'https://deliveryapi-ten.vercel.app/delivery/bike';
-      } else if (selectedVehicleType == "car") {
-        endpoint = 'https://deliveryapi-ten.vercel.app/delivery/car';
-      } else if (selectedVehicleType == "bus-truck") {
-        endpoint = 'https://delivery-ten.vercel.app/delivery/bus-truck';
-      } else {
+      // Determine the correct API endpoint based on vehicle type
+      final Map<String, String> endpoints = {
+        "bike": "https://deliveryapi-ten.vercel.app/delivery/bike",
+        "car": "https://deliveryapi-ten.vercel.app/delivery/car",
+        "bus-truck": "https://deliveryapi-ten.vercel.app/delivery/bus-truck"
+      };
+
+      final String? endpoint = endpoints[selectedVehicleType];
+      if (endpoint == null) {
         throw Exception("Invalid vehicle type selected");
       }
 
-      // Round up the payment amount to avoid decimal issues
+      // Round payment amount to avoid decimal issues
       final double roundedPrice = double.parse(paymentAmt.toStringAsFixed(2));
 
-      // Extract stops from the controllers
+      // Extract stops from controllers
       List<String> stops = _stopControllers
-          .map((controller) => controller.text)
+          .map((controller) => controller.text.trim())
           .where((stop) => stop.isNotEmpty)
           .toList();
 
-      // Create the request body based on vehicle type
+      // Ensure `endpoint` is taken from the destination controller, NOT stops
+      final String finalDestination = _destinationController.text.trim();
+
+      // Remove the final destination from the stops list if it exists
+      stops.remove(finalDestination);
+
+      // Debugging: Log values to check what's being sent
+      debugPrint('🛑 Stops List: $stops');
+      debugPrint('📍 Final Destination (Endpoint): $finalDestination');
+
+      // Prepare request payload
       final Map<String, dynamic> requestBody = {
-        'user_id': userId, // Using the correctly loaded userId
+        'user_id': userId,
         'price': roundedPrice,
         'distance': '$roundDistanceKM km',
-        'startpoint': _startPointController.text,
-        'endpoint': _destinationController.text,
-        'stops': stops, // Add the list of stops
+        'startpoint': _startPointController.text.trim(),
+        'endpoint': finalDestination,
+        'stops': stops,
         'vehicletype': selectedVehicleType,
         'transactiontype': isCashorTransfer ? 'cash' : 'online',
         'deliveryspeed': isExpressSelected! ? 'express' : 'standard',
         'status': {'deliverystatus': 'pending', 'orderstatus': 'pending'}
       };
 
-      // Add packagesize only for bike delivery
+      // Add package size only for bike deliveries
       if (selectedVehicleType == "bike") {
         requestBody['packagesize'] = _getPackageSize();
       }
 
-      debugPrint('Creating delivery with request: ${jsonEncode(requestBody)}');
+      debugPrint('🚀 Sending delivery request: ${jsonEncode(requestBody)}');
 
       final response = await http.post(
         Uri.parse(endpoint),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
         body: jsonEncode(requestBody),
       );
 
-      debugPrint('Server Response Code: ${response.statusCode}');
-      debugPrint('Server Response Body: ${response.body}');
+      debugPrint(
+          '📩 Server Response: ${response.statusCode} - ${response.body}');
 
       if (response.statusCode == 200 && _isMounted) {
-        // Extract delivery ID from response
         final Map<String, dynamic> responseData = jsonDecode(response.body);
-        final String deliveryId;
 
-        // Check for different possible formats of delivery ID in the response
-        if (responseData.containsKey('_id')) {
-          deliveryId = responseData['_id'];
-        } else if (responseData.containsKey('delivery_id')) {
-          deliveryId = responseData['delivery_id'];
-        } else if (responseData.containsKey('delivery') &&
-            responseData['delivery'] is Map) {
-          deliveryId = responseData['delivery']['_id'] ?? '';
-        } else {
-          deliveryId = '';
-        }
-
-        debugPrint('Created delivery with ID: $deliveryId');
+        // Extract delivery ID using a cleaner approach
+        final String deliveryId = responseData['_id'] ??
+            responseData['delivery_id'] ??
+            responseData['delivery']?['_id'] ??
+            '';
 
         if (deliveryId.isNotEmpty) {
-          // For online payments, ensure we have valid values
+          debugPrint('✅ Delivery created successfully with ID: $deliveryId');
+
+          // Ensure payment details are correctly set
           final actualPaymentStatus =
               paymentStatus ?? (isCashorTransfer ? 'pending' : 'paid');
           final actualPaymentReference = paymentReference ?? '';
@@ -1110,9 +1148,7 @@ class _MapPageState extends State<MapPage> {
           final actualAmountPaid =
               amountPaid ?? (isCashorTransfer ? 0.0 : roundedPrice);
 
-          // More detailed logging for debugging
-          debugPrint('💼 Delivery created successfully with ID: $deliveryId');
-          debugPrint('💰 Payment details being sent to transaction update:');
+          debugPrint('💰 Updating payment details:');
           debugPrint('   - Payment status: $actualPaymentStatus');
           debugPrint('   - Payment reference: $actualPaymentReference');
           debugPrint('   - Payment date: $actualPaymentDate');
@@ -1127,31 +1163,28 @@ class _MapPageState extends State<MapPage> {
             paymentDate: actualPaymentDate,
             amountPaid: actualAmountPaid,
           );
+
+          // Show success confirmation
+          _showSuccessModal(context);
         } else {
-          debugPrint('❌ ERROR: Empty delivery ID received from server');
+          debugPrint('❌ ERROR: Empty delivery ID received from server.');
           debugPrint('📄 Full response: ${response.body}');
         }
-        // Show modern success modal
-        _showSuccessModal(context);
-      } else if (_isMounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to create delivery: ${response.body}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      } else {
+        _showErrorSnackbar('Failed to create delivery: ${response.body}');
       }
     } catch (e) {
-      debugPrint('Error creating delivery: $e');
+      debugPrint('🚨 Error creating delivery: $e');
+      _showErrorSnackbar('Error creating delivery: $e');
+    }
+  }
 
-      if (_isMounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error creating delivery: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+  /// Helper function to show error messages
+  void _showErrorSnackbar(String message) {
+    if (_isMounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
     }
   }
 
@@ -1798,7 +1831,7 @@ class _MapPageState extends State<MapPage> {
                               },
                             ),
 
-// Destination Location Input Field
+                            // Destination Location Input Field
                             _buildInputField(
                               controller: _destinationController,
                               focusNode: _endPointFN,
@@ -1846,6 +1879,7 @@ class _MapPageState extends State<MapPage> {
                                               'Stop ${index + 2}', // Hint text starts at Stop 2
                                           onItemClick: (prediction) {
                                             setState(() {
+                                              // Update only the selected stop's controller
                                               _stopControllers[index].text =
                                                   prediction.description!;
                                               _stopControllers[index]
@@ -1856,15 +1890,17 @@ class _MapPageState extends State<MapPage> {
                                                         .description!.length),
                                               );
                                             });
-                                            _userDesToMarker(prediction);
+                                            // Add the stop's location to the map
+                                            _addStopToMap(prediction, index);
                                           },
                                           onGetDetailWithLatLng: (coordinates) {
-                                            _userDesToMarker(coordinates);
-                                            getPolylinePoints().then(
-                                              (coordinates) =>
-                                                  generatePolylineFromPoints(
-                                                      coordinates),
+                                            // Add the stop's location to the map
+                                            LatLng stopCoordinates = LatLng(
+                                              double.parse(coordinates.lat!),
+                                              double.parse(coordinates.lng!),
                                             );
+                                            _addStopToMapWithCoordinates(
+                                                stopCoordinates, index);
                                           },
                                         ),
                                       ),
@@ -1902,6 +1938,7 @@ class _MapPageState extends State<MapPage> {
                           ],
                         ),
                       ),
+
                       const SizedBox(height: 20),
 
                       ElevatedButton(
