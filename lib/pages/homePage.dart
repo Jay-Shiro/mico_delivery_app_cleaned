@@ -100,7 +100,7 @@ class _HomepageState extends State<Homepage> {
   }
 
   Future<void> fetchRecentDeliveries() async {
-    const String apiUrl = "https://deliveryapi-plum.vercel.app/deliveries";
+    const String apiUrl = "https://deliveryapi-ten.vercel.app/deliveries";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));

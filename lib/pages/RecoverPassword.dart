@@ -14,16 +14,16 @@ class _RecoverPasswordState extends State<RecoverPassword> {
   final resetCodeController = TextEditingController();
   final newPasswordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
-  
+
   final formKey = GlobalKey<FormState>();
   bool isLoading = false;
   bool emailSent = false;
   bool resetSuccess = false;
-  
+
   // Password visibility toggles
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
-  
+
   // Step tracking
   int currentStep = 1; // 1: Email entry, 2: Code and new password
 
@@ -35,17 +35,18 @@ class _RecoverPasswordState extends State<RecoverPassword> {
     });
 
     try {
-      final url = Uri.parse('https://deliveryapi-plum.vercel.app/auth/forgot-password/user');
-      
+      final url = Uri.parse(
+          'https://deliveryapi-ten.vercel.app/auth/forgot-password/user');
+
       var request = http.MultipartRequest('POST', url);
       request.fields['email'] = resetEmailController.text.trim();
-      
+
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
-      
+
       print('Forgot Password Response: ${response.body}');
       print('Forgot Password Status Code: ${response.statusCode}');
-      
+
       if (response.statusCode == 200) {
         setState(() {
           emailSent = true;
@@ -61,7 +62,7 @@ class _RecoverPasswordState extends State<RecoverPassword> {
         } catch (e) {
           // Use default error message
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -82,10 +83,10 @@ class _RecoverPasswordState extends State<RecoverPassword> {
       });
     }
   }
-  
+
   Future<void> resetPassword() async {
     if (!formKey.currentState!.validate()) return;
-    
+
     if (newPasswordController.text != confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -101,31 +102,32 @@ class _RecoverPasswordState extends State<RecoverPassword> {
     });
 
     try {
-      final url = Uri.parse('https://deliveryapi-plum.vercel.app/auth/reset-password/user');
-      
+      final url = Uri.parse(
+          'https://deliveryapi-ten.vercel.app/auth/reset-password/user');
+
       var request = http.MultipartRequest('POST', url);
       request.fields['email'] = resetEmailController.text.trim();
       request.fields['reset_code'] = resetCodeController.text.trim();
       request.fields['new_password'] = newPasswordController.text.trim();
-      
+
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
-      
+
       print('Reset Password Response: ${response.body}');
       print('Reset Password Status Code: ${response.statusCode}');
-      
+
       if (response.statusCode == 200) {
         setState(() {
           resetSuccess = true;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Password reset successfully!'),
             backgroundColor: Colors.green,
           ),
         );
-        
+
         // Navigate back to login after a short delay
         Future.delayed(const Duration(seconds: 2), () {
           Navigator.pop(context);
@@ -140,7 +142,7 @@ class _RecoverPasswordState extends State<RecoverPassword> {
         } catch (e) {
           // Use default error message
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -187,7 +189,7 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const SizedBox(height: 30),
-                  
+
                   // Reset password illustration
                   Container(
                     padding: const EdgeInsets.all(24),
@@ -201,12 +203,14 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                       color: const Color.fromRGBO(0, 31, 62, 0.8),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Title and description
                   Text(
-                    currentStep == 1 ? "Reset Your Password" : "Verify & Create New Password",
+                    currentStep == 1
+                        ? "Reset Your Password"
+                        : "Verify & Create New Password",
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -215,7 +219,7 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    currentStep == 1 
+                    currentStep == 1
                         ? "Enter your email address and we'll send you a verification code"
                         : "Enter the 6-digit code sent to your email and create a new password",
                     textAlign: TextAlign.center,
@@ -225,9 +229,9 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                       height: 1.5,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 40),
-                  
+
                   // STEP 1: Email input field
                   if (currentStep == 1)
                     Container(
@@ -249,7 +253,8 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your email';
                           }
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                              .hasMatch(value)) {
                             return 'Please enter a valid email';
                           }
                           return null;
@@ -299,7 +304,7 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                         ),
                       ),
                     ),
-                  
+
                   // STEP 2: Verification code and new password
                   if (currentStep == 2) ...[
                     // Email display
@@ -349,9 +354,9 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Verification code field
                     Container(
                       decoration: BoxDecoration(
@@ -424,9 +429,9 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // New password field
                     Container(
                       decoration: BoxDecoration(
@@ -464,7 +469,9 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                           ),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscureNewPassword ? Icons.visibility_off : Icons.visibility,
+                              _obscureNewPassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                               color: const Color.fromRGBO(0, 31, 62, 0.7),
                             ),
                             onPressed: () {
@@ -508,9 +515,9 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Confirm new password field
                     Container(
                       decoration: BoxDecoration(
@@ -548,12 +555,15 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                           ),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                              _obscureConfirmPassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                               color: const Color.fromRGBO(0, 31, 62, 0.7),
                             ),
                             onPressed: () {
                               setState(() {
-                                _obscureConfirmPassword = !_obscureConfirmPassword;
+                                _obscureConfirmPassword =
+                                    !_obscureConfirmPassword;
                               });
                             },
                           ),
@@ -592,9 +602,9 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Password requirements
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -635,9 +645,9 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                       ),
                     ),
                   ],
-                  
+
                   const SizedBox(height: 40),
-                  
+
                   // Action buttons
                   if (currentStep == 1)
                     SizedBox(
@@ -652,7 +662,8 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          disabledBackgroundColor: const Color.fromRGBO(0, 31, 62, 0.6),
+                          disabledBackgroundColor:
+                              const Color.fromRGBO(0, 31, 62, 0.6),
                         ),
                         child: isLoading
                             ? const SizedBox(
@@ -672,7 +683,7 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                               ),
                       ),
                     ),
-                  
+
                   if (currentStep == 2)
                     SizedBox(
                       width: double.infinity,
@@ -686,7 +697,8 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          disabledBackgroundColor: const Color.fromRGBO(0, 31, 62, 0.6),
+                          disabledBackgroundColor:
+                              const Color.fromRGBO(0, 31, 62, 0.6),
                         ),
                         child: isLoading
                             ? const SizedBox(
@@ -706,9 +718,9 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                               ),
                       ),
                     ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Resend code option
                   if (currentStep == 2)
                     TextButton(
@@ -721,7 +733,7 @@ class _RecoverPasswordState extends State<RecoverPassword> {
                         ),
                       ),
                     ),
-                  
+
                   const SizedBox(height: 30),
                 ],
               ),
@@ -737,7 +749,7 @@ class _RecoverPasswordState extends State<RecoverPassword> {
 class _PasswordRequirement extends StatelessWidget {
   final String text;
   final IconData icon;
-  
+
   const _PasswordRequirement({
     required this.text,
     required this.icon,

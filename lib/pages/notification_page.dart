@@ -29,7 +29,7 @@ class _NotificationSettingsState extends State<NotificationSettings> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     // Get user ID from shared preferences
     final userString = prefs.getString('user');
     if (userString != null) {
@@ -41,7 +41,7 @@ class _NotificationSettingsState extends State<NotificationSettings> {
     } else {
       print('Debug - No user data found in SharedPreferences');
     }
-    
+
     setState(() {
       isNotificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
       isUpdatesEnabled = prefs.getBool('updatesEnabled') ?? false;
@@ -53,7 +53,7 @@ class _NotificationSettingsState extends State<NotificationSettings> {
       // Try to reload user data one more time
       final prefs = await SharedPreferences.getInstance();
       final userString = prefs.getString('user');
-      
+
       if (userString != null) {
         try {
           final userData = json.decode(userString);
@@ -63,23 +63,24 @@ class _NotificationSettingsState extends State<NotificationSettings> {
           print('Debug - Error parsing user data: $e');
         }
       }
-      
+
       // If still null, show error
       if (userId == null || userId!.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("User ID not found. Cannot update settings. Please log in again."),
+            content: Text(
+                "User ID not found. Cannot update settings. Please log in again."),
             backgroundColor: Colors.redAccent,
           ),
         );
         return;
       }
     }
-    
+
     setState(() {
       isLoading = true;
     });
-    
+
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('notificationsEnabled', isNotificationsEnabled);
@@ -93,16 +94,17 @@ class _NotificationSettingsState extends State<NotificationSettings> {
       }
 
       // Use form-urlencoded format instead of JSON
-      final url = Uri.parse('https://deliveryapi-plum.vercel.app/users/$userId/update');
-      
+      final url =
+          Uri.parse('https://deliveryapi-ten.vercel.app/users/$userId/update');
+
       // Create form data with only the notification settings
       final Map<String, String> formData = {
         'email_notification': isUpdatesEnabled ? "true" : "false",
         'push_notification': isNotificationsEnabled ? "true" : "false",
       };
-      
+
       print('Debug - Form data: $formData');
-      
+
       final response = await http.put(
         url,
         headers: {
@@ -111,7 +113,7 @@ class _NotificationSettingsState extends State<NotificationSettings> {
         },
         body: formData,
       );
-      
+
       print('Update Notification Settings Response: ${response.body}');
       print('Update Notification Settings Status Code: ${response.statusCode}');
 
@@ -123,8 +125,8 @@ class _NotificationSettingsState extends State<NotificationSettings> {
                 : "Failed to update notification settings.",
             style: const TextStyle(color: Colors.white),
           ),
-          backgroundColor: response.statusCode == 200 
-              ? const Color.fromRGBO(0, 31, 62, 1) 
+          backgroundColor: response.statusCode == 200
+              ? const Color.fromRGBO(0, 31, 62, 1)
               : Colors.redAccent,
         ),
       );
@@ -190,7 +192,7 @@ class _NotificationSettingsState extends State<NotificationSettings> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 30),
-                
+
                 // Notification illustration
                 Container(
                   padding: const EdgeInsets.all(24),
@@ -204,9 +206,9 @@ class _NotificationSettingsState extends State<NotificationSettings> {
                     color: Color.fromRGBO(0, 31, 62, 0.8),
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Description text
                 const Text(
                   "Manage Your Notifications",
@@ -226,13 +228,14 @@ class _NotificationSettingsState extends State<NotificationSettings> {
                     height: 1.5,
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
-                
+
                 // Settings cards
                 _buildSettingsCard(
                   title: "Push Notifications",
-                  description: "Receive alerts on your device about delivery updates",
+                  description:
+                      "Receive alerts on your device about delivery updates",
                   icon: Icons.notifications_none,
                   isEnabled: isNotificationsEnabled,
                   onChanged: (value) {
@@ -241,12 +244,13 @@ class _NotificationSettingsState extends State<NotificationSettings> {
                     });
                   },
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 _buildSettingsCard(
                   title: "Email & SMS Updates",
-                  description: "Get delivery status updates via email and text messages",
+                  description:
+                      "Get delivery status updates via email and text messages",
                   icon: Icons.email_outlined,
                   isEnabled: isUpdatesEnabled,
                   onChanged: (value) {
@@ -255,9 +259,9 @@ class _NotificationSettingsState extends State<NotificationSettings> {
                     });
                   },
                 ),
-                
+
                 const SizedBox(height: 40),
-                
+
                 // Save button
                 SizedBox(
                   width: double.infinity,
@@ -271,7 +275,8 @@ class _NotificationSettingsState extends State<NotificationSettings> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      disabledBackgroundColor: const Color.fromRGBO(0, 31, 62, 0.6),
+                      disabledBackgroundColor:
+                          const Color.fromRGBO(0, 31, 62, 0.6),
                     ),
                     child: isLoading
                         ? const SizedBox(
@@ -291,7 +296,7 @@ class _NotificationSettingsState extends State<NotificationSettings> {
                           ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 30),
               ],
             ),

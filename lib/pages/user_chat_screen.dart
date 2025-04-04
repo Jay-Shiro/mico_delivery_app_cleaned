@@ -89,7 +89,7 @@ class _UserChatScreenState extends State<UserChatScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-            'https://deliveryapi-plum.vercel.app/chat/${widget.deliveryId}'),
+            'https://deliveryapi-ten.vercel.app/chat/${widget.deliveryId}'),
       );
 
       if (response.statusCode == 200) {
@@ -168,7 +168,7 @@ class _UserChatScreenState extends State<UserChatScreen> {
     try {
       await http.put(
         Uri.parse(
-            'https://deliveryapi-plum.vercel.app/chat/${widget.deliveryId}/${widget.senderId}/mark-read'),
+            'https://deliveryapi-ten.vercel.app/chat/${widget.deliveryId}/${widget.senderId}/mark-read'),
       );
     } catch (e) {
       print('Error marking messages as read: $e');
@@ -206,7 +206,7 @@ class _UserChatScreenState extends State<UserChatScreen> {
       try {
         final response = await http.post(
           Uri.parse(
-              'https://deliveryapi-plum.vercel.app/chat/${widget.deliveryId}/${widget.senderId}/${widget.receiverId}'),
+              'https://deliveryapi-ten.vercel.app/chat/${widget.deliveryId}/${widget.senderId}/${widget.receiverId}'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode({
             'message': text,
@@ -483,12 +483,12 @@ class _UserChatScreenState extends State<UserChatScreen> {
                         itemCount: _messages.length,
                         itemBuilder: (context, index) {
                           final message = _messages[index];
-                          
+
                           // Check if this is a date header
                           if (message['isDateHeader'] == true) {
                             return _buildDateHeader(message['dateText']);
                           }
-                          
+
                           return _buildMessageItem(message);
                         },
                       ),
@@ -508,7 +508,8 @@ class _UserChatScreenState extends State<UserChatScreen> {
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                   child: Row(
                     children: [
                       Expanded(
@@ -525,8 +526,8 @@ class _UserChatScreenState extends State<UserChatScreen> {
                               hintText: "Type a message...",
                               hintStyle: TextStyle(color: Colors.grey),
                               border: InputBorder.none,
-                              contentPadding:
-                                  EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                              contentPadding: EdgeInsets.symmetric(
+                                  vertical: 12, horizontal: 4),
                             ),
                             maxLines: null,
                             textCapitalization: TextCapitalization.sentences,
@@ -546,7 +547,8 @@ class _UserChatScreenState extends State<UserChatScreen> {
                           padding: EdgeInsets.zero,
                           onPressed: () {
                             if (_messageController.text.trim().isNotEmpty) {
-                              _sendMessage(text: _messageController.text.trim());
+                              _sendMessage(
+                                  text: _messageController.text.trim());
                             }
                           },
                         ),
@@ -612,23 +614,28 @@ class _UserChatScreenState extends State<UserChatScreen> {
     final DateTime date = DateFormat('yyyy-MM-dd').parse(dateKey);
     final DateTime now = DateTime.now();
     final DateTime yesterday = DateTime(now.year, now.month, now.day - 1);
-    
-    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+
+    if (date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day) {
       return 'Today';
-    } else if (date.year == yesterday.year && date.month == yesterday.month && date.day == yesterday.day) {
+    } else if (date.year == yesterday.year &&
+        date.month == yesterday.month &&
+        date.day == yesterday.day) {
       return 'Yesterday';
     } else if (date.isAfter(DateTime(now.year, now.month, now.day - 7))) {
       // Within the last week
       return DateFormat('EEEE').format(date); // Day name (e.g., "Monday")
     } else if (date.year == now.year) {
       // Same year
-      return DateFormat('MMMM d').format(date); // Month and day (e.g., "March 16")
+      return DateFormat('MMMM d')
+          .format(date); // Month and day (e.g., "March 16")
     } else {
       // Different year
       return DateFormat('MMMM d, yyyy').format(date); // Full date with year
     }
   }
-  
+
   Widget _buildDateHeader(String dateText) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10),
@@ -824,47 +831,48 @@ class _UserChatScreenState extends State<UserChatScreen> {
 }
 
 // Add this method to create shimmer loading effect for messages
-  Widget _buildLoadingShimmer() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-        itemCount: 6, // Show 6 shimmer message bubbles
-        itemBuilder: (_, index) {
-          final bool isUserMessage = index % 2 == 0; // Alternate between user and other messages
-          
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              mainAxisAlignment: isUserMessage 
-                  ? MainAxisAlignment.end 
-                  : MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (!isUserMessage) ...[
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
+Widget _buildLoadingShimmer() {
+  return Shimmer.fromColors(
+    baseColor: Colors.grey[300]!,
+    highlightColor: Colors.grey[100]!,
+    child: ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      itemCount: 6, // Show 6 shimmer message bubbles
+      itemBuilder: (_, index) {
+        final bool isUserMessage =
+            index % 2 == 0; // Alternate between user and other messages
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            mainAxisAlignment:
+                isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (!isUserMessage) ...[
                 Container(
-                  width: 200 - (index * 20) % 100, // Varying widths for more natural look
-                  height: 40,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
+                    shape: BoxShape.circle,
                   ),
                 ),
+                const SizedBox(width: 8),
               ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+              Container(
+                width: 200 -
+                    (index * 20) % 100, // Varying widths for more natural look
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    ),
+  );
+}

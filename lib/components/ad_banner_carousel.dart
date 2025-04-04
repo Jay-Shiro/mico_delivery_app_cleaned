@@ -22,8 +22,8 @@ class _AdBannerCarouselState extends State<AdBannerCarousel> {
     },
     {
       'image': 'assets/images/advert_2.png',
-      'title': 'Special Offer',
-      'subtitle': 'Free delivery on orders over ₦5000',
+      'title': 'Fast and Reliable',
+      'subtitle': 'Quick delivery in 30 minutes or less',
       'gradient': LinearGradient(
         colors: [Color(0xff161414), Color(0xff897b68)],
         begin: Alignment.topRight,

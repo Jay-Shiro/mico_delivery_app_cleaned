@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:micollins_delivery_app/components/toggle_bar.dart';
+import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -83,6 +86,83 @@ class _OrdersPageState extends State<OrdersPage> {
     }
   }
 
+  Future<void> cancelDelivery(String deliveryId) async {
+    try {
+      debugPrint('Canceling delivery for $deliveryId');
+
+      // Make the DELETE request
+      final response = await http.delete(Uri.parse(
+          'https://deliveryapi-ten.vercel.app/deliveries/$deliveryId/delete'));
+
+      // Check for redirect (308 status code)
+      if (response.statusCode == 308) {
+        final redirectUrl = response.headers['location'];
+        if (redirectUrl != null) {
+          debugPrint('Redirecting to: $redirectUrl');
+          final redirectResponse = await http.delete(Uri.parse(redirectUrl));
+
+          if (redirectResponse.statusCode == 200) {
+            final data = json.decode(redirectResponse.body);
+            if (data['status'] == 'success') {
+              debugPrint('Delivery canceled successfully');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Delivery canceled successfully')),
+              );
+              fetchDeliveries(); // Refresh the deliveries list
+            } else {
+              debugPrint('Failed to cancel delivery: ${data['message']}');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content:
+                        Text(data['message'] ?? 'Failed to cancel delivery')),
+              );
+            }
+          } else {
+            debugPrint(
+                'Error canceling delivery after redirect: ${redirectResponse.statusCode}');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text('Error canceling delivery after redirect')),
+            );
+          }
+        } else {
+          debugPrint('Redirect URL not found in response headers');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Redirect URL not found')),
+          );
+        }
+      } else if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') {
+          debugPrint('Delivery canceled successfully');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Delivery canceled successfully')),
+          );
+          fetchDeliveries(); // Refresh the deliveries list
+        } else {
+          debugPrint('Failed to cancel delivery: ${data['message']}');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(data['message'] ?? 'Failed to cancel delivery')),
+          );
+        }
+      } else {
+        debugPrint('Error canceling delivery: ${response.statusCode}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text('Error canceling delivery: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Exception while canceling delivery: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('An error occurred while canceling the delivery')),
+      );
+    }
+  }
+
   Future<void> fetchDeliveries() async {
     if (userId == null) {
       debugPrint('fetchDeliveries: userId is null, cannot fetch deliveries');
@@ -102,7 +182,7 @@ class _OrdersPageState extends State<OrdersPage> {
     try {
       debugPrint('Fetching deliveries for userId: $userId');
       final response = await http.get(
-        Uri.parse('https://deliveryapi-plum.vercel.app/deliveries'),
+        Uri.parse('https://deliveryapi-ten.vercel.app/deliveries'),
       );
 
       debugPrint('Response status code: ${response.statusCode}');
@@ -223,7 +303,7 @@ class _OrdersPageState extends State<OrdersPage> {
   Future<Map<String, dynamic>> _fetchRiderDetails(String riderId) async {
     try {
       final response = await http.get(
-        Uri.parse('https://deliveryapi-plum.vercel.app/riders/$riderId'),
+        Uri.parse('https://deliveryapi-ten.vercel.app/riders/$riderId'),
       );
 
       if (response.statusCode == 200) {
@@ -243,20 +323,71 @@ class _OrdersPageState extends State<OrdersPage> {
     try {
       final response = await http.get(
         Uri.parse(
-            'https://deliveryapi-plum.vercel.app/riders/$riderId/overall-rating'),
+            'https://deliveryapi-ten.vercel.app/riders/$riderId/overall-rating'),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['status'] == 'success') {
-          return data['rating'].toDouble();
+          // Safely handle null rating
+          return (data['rating'] ?? 0.0).toDouble();
         }
       }
-      return 0.0;
+      return 0.0; // Default value if the API response is not successful
     } catch (e) {
       debugPrint('Error fetching rider rating: $e');
-      return 0.0;
+      return 0.0; // Default value in case of an exception
     }
+  }
+
+  Future<Map<String, dynamic>> _fetchRiderLocation(String deliveryId) async {
+    try {
+      final Uri url = Uri.parse(
+          'https://deliveryapi-ten.vercel.app/deliveries/$deliveryId/rider-location');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json', // Use 'Accept' as per your API example
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['status'] == 'success' && data.containsKey('location_data')) {
+          final locationData = data['location_data'];
+
+          return {
+            'latitude': locationData['latitude'] ?? 0.0,
+            'longitude': locationData['longitude'] ?? 0.0,
+            'last_updated': locationData['last_updated'] ?? '',
+            'eta_minutes': locationData['eta_minutes'] ?? 0,
+            'eta_time': locationData['eta_time'] ?? '',
+          };
+        } else {
+          debugPrint('API Error: ${data['message']}');
+          return _emptyLocation();
+        }
+      } else {
+        debugPrint('HTTP Error ${response.statusCode}: ${response.body}');
+        return _emptyLocation();
+      }
+    } catch (e) {
+      debugPrint('Error fetching rider location: $e');
+      return _emptyLocation();
+    }
+  }
+
+// Helper function to return a consistent empty location response
+  Map<String, dynamic> _emptyLocation() {
+    return {
+      'latitude': 0.0,
+      'longitude': 0.0,
+      'last_updated': '',
+      'eta_minutes': 0,
+      'eta_time': '',
+    };
   }
 
   @override
@@ -972,22 +1103,136 @@ class _OrdersPageState extends State<OrdersPage> {
                 ),
                 child: Column(
                   children: [
-                    Row(
-                      children: [
-                        Icon(EvaIcons.pinOutline,
-                            color: Color.fromRGBO(0, 31, 62, 1), size: 20),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            delivery['startpoint'],
-                            style: TextStyle(fontSize: 14),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                    // Rider's current location
+                    FutureBuilder<Map<String, dynamic>>(
+                      future: _fetchRiderLocation(delivery['_id']),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Row(
+                            children: [
+                              Icon(EvaIcons.pinOutline,
+                                  color: Color.fromRGBO(0, 31, 62, 1),
+                                  size: 20),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  "Fetching rider's location...",
+                                  style: TextStyle(
+                                      fontSize: 14, color: Colors.grey[600]),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          );
+                        } else if (snapshot.hasError ||
+                            !snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return Row(
+                            children: [
+                              Icon(EvaIcons.pinOutline,
+                                  color: Color.fromRGBO(0, 31, 62, 1),
+                                  size: 20),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  "Rider's location unavailable",
+                                  style: TextStyle(
+                                      fontSize: 14, color: Colors.red),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          final riderLocation = snapshot.data!;
+                          final double latitude = riderLocation['latitude'];
+                          final double longitude = riderLocation['longitude'];
+
+                          return FutureBuilder<List<Placemark>>(
+                            future:
+                                placemarkFromCoordinates(latitude, longitude),
+                            builder: (context, addressSnapshot) {
+                              if (addressSnapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return Row(
+                                  children: [
+                                    Icon(EvaIcons.pinOutline,
+                                        color: Color.fromRGBO(0, 31, 62, 1),
+                                        size: 20),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        "Converting coordinates to address...",
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey[600]),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              } else if (addressSnapshot.hasError ||
+                                  !addressSnapshot.hasData ||
+                                  addressSnapshot.data!.isEmpty) {
+                                return Row(
+                                  children: [
+                                    Icon(EvaIcons.pinOutline,
+                                        color: Color.fromRGBO(0, 31, 62, 1),
+                                        size: 20),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        "Address unavailable",
+                                        style: TextStyle(
+                                            fontSize: 14, color: Colors.red),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              } else {
+                                final placemark = addressSnapshot.data!.first;
+                                final riderAddress = [
+                                  placemark.street,
+                                  placemark.subLocality,
+                                  placemark.locality,
+                                  placemark.administrativeArea,
+                                  placemark.country,
+                                ]
+                                    .where((element) =>
+                                        element != null && element.isNotEmpty)
+                                    .join(', ');
+
+                                return Row(
+                                  children: [
+                                    Icon(EvaIcons.pinOutline,
+                                        color: Color.fromRGBO(0, 31, 62, 1),
+                                        size: 20),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        riderAddress,
+                                        style: TextStyle(fontSize: 14),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }
+                            },
+                          );
+                        }
+                      },
                     ),
                     SizedBox(height: 8),
+
+                    // Progress bar
                     Container(
                       height: 40,
                       child: Row(
@@ -1003,29 +1248,153 @@ class _OrdersPageState extends State<OrdersPage> {
                           ),
                           SizedBox(width: 8),
                           Expanded(
-                            child: LinearProgressIndicator(
-                              value: 0.6,
-                              backgroundColor: Colors.grey[300],
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Color.fromRGBO(0, 31, 62, 1),
-                              ),
-                              borderRadius: BorderRadius.circular(10),
+                            child: FutureBuilder<Map<String, dynamic>>(
+                              future: _fetchRiderLocation(delivery[
+                                  '_id']), // Fetch rider location and ETA
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return LinearProgressIndicator(
+                                    value:
+                                        null, // Indeterminate progress while loading
+                                    backgroundColor: Colors.grey[300],
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Color.fromRGBO(0, 31, 62, 1),
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                  );
+                                } else if (snapshot.hasError ||
+                                    !snapshot.hasData ||
+                                    snapshot.data!.isEmpty) {
+                                  return LinearProgressIndicator(
+                                    value:
+                                        0.0, // No progress if there's an error or no data
+                                    backgroundColor: Colors.grey[300],
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.red, // Red to indicate an error
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                  );
+                                } else {
+                                  final riderLocation = snapshot.data!;
+                                  final int etaMinutes =
+                                      riderLocation['eta_minutes'] ?? 0;
+                                  final String etaTime =
+                                      riderLocation['eta_time'] ?? '';
+
+                                  // Validate and parse etaTime
+                                  DateTime? etaDateTime;
+                                  try {
+                                    etaDateTime = DateTime.parse(etaTime);
+                                  } catch (e) {
+                                    debugPrint(
+                                        'Invalid eta_time format: $etaTime');
+                                    etaDateTime =
+                                        null; // Fallback to null if parsing fails
+                                  }
+
+                                  if (etaDateTime == null) {
+                                    return LinearProgressIndicator(
+                                      value:
+                                          0.0, // No progress if eta_time is invalid
+                                      backgroundColor: Colors.grey[300],
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.red, // Red to indicate an error
+                                      ),
+                                      borderRadius: BorderRadius.circular(10),
+                                    );
+                                  }
+
+                                  // Calculate progress based on elapsed time
+                                  final DateTime now = DateTime.now();
+                                  final int totalSeconds = etaMinutes * 60;
+                                  final int elapsedSeconds = totalSeconds -
+                                      etaDateTime.difference(now).inSeconds;
+
+                                  // Ensure progress is between 0.0 and 1.0
+                                  final double progress =
+                                      (elapsedSeconds / totalSeconds)
+                                          .clamp(0.0, 1.0);
+
+                                  return LinearProgressIndicator(
+                                    value: progress,
+                                    backgroundColor: Colors.grey[300],
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Color.fromRGBO(0, 31, 62, 1),
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                  );
+                                }
+                              },
                             ),
                           ),
                         ],
                       ),
                     ),
                     SizedBox(height: 8),
+
+                    // Pickup or Delivery endpoint
                     Row(
                       children: [
-                        Icon(EvaIcons.pinOutline, color: Colors.red, size: 20),
+                        Icon(
+                          EvaIcons.pinOutline,
+                          color: Color.fromRGBO(0, 31, 62, 1),
+                          size: 20,
+                        ),
                         SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            delivery['endpoint'],
-                            style: TextStyle(fontSize: 14),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          child: FutureBuilder<Map<String, dynamic>>(
+                            future: _fetchRiderLocation(delivery['_id']),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return Text(
+                                  "Fetching location...",
+                                  style: TextStyle(
+                                      fontSize: 14, color: Colors.grey[600]),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                );
+                              } else if (snapshot.hasError ||
+                                  !snapshot.hasData ||
+                                  snapshot.data!.isEmpty) {
+                                return Text(
+                                  "Location unavailable",
+                                  style: TextStyle(
+                                      fontSize: 14, color: Colors.red),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                );
+                              } else {
+                                final riderLocation = snapshot.data!;
+                                final double riderLat =
+                                    riderLocation['latitude'];
+                                final double riderLng =
+                                    riderLocation['longitude'];
+                                final double pickupLat =
+                                    delivery['pickup_lat'] ?? 0.0;
+                                final double pickupLng =
+                                    delivery['pickup_lng'] ?? 0.0;
+
+                                // Check if rider is at the pickup location
+                                if (riderLat == pickupLat &&
+                                    riderLng == pickupLng) {
+                                  return Text(
+                                    delivery['startpoint'],
+                                    style: TextStyle(fontSize: 14),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  );
+                                } else {
+                                  return Text(
+                                    delivery['endpoint'],
+                                    style: TextStyle(fontSize: 14),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  );
+                                }
+                              }
+                            },
                           ),
                         ),
                       ],
@@ -1035,13 +1404,45 @@ class _OrdersPageState extends State<OrdersPage> {
               ),
 
               SizedBox(height: 16),
-              Text(
-                "Estimated arrival: 10 minutes",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[700],
-                  fontWeight: FontWeight.w500,
-                ),
+              FutureBuilder<Map<String, dynamic>>(
+                future: _fetchRiderLocation(
+                    delivery['_id']), // Fetch rider location and ETA
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Text(
+                      "Calculating estimated arrival...",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    );
+                  } else if (snapshot.hasError ||
+                      !snapshot.hasData ||
+                      snapshot.data!.isEmpty) {
+                    return Text(
+                      "Unable to calculate arrival time",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    );
+                  } else {
+                    final riderLocation = snapshot.data!;
+                    final int etaMinutes = riderLocation['eta_minutes'] ?? 0;
+
+                    // Display the dynamic estimated arrival time
+                    return Text(
+                      "Estimated arrival: $etaMinutes minutes",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    );
+                  }
+                },
               ),
               SizedBox(height: 24),
 
@@ -1165,9 +1566,13 @@ class _OrdersPageState extends State<OrdersPage> {
               onPressed: () {
                 Navigator.pop(context);
                 // Implement cancel delivery logic
+                cancelDelivery(delivery['_id']);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Delivery cancellation requested')),
+                  SnackBar(content: Text('Delivery cancelled')),
                 );
+                // Optionally, navigate to another page or refresh the order list
+                Provider.of<IndexProvider>(context, listen: false)
+                    .setSelectedIndex(1);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,

@@ -56,7 +56,7 @@ class _SecuritySettingsState extends State<SecuritySettings> {
       // Get user ID from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       final userString = prefs.getString('user');
-      
+
       if (userString == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -69,25 +69,25 @@ class _SecuritySettingsState extends State<SecuritySettings> {
         });
         return;
       }
-      
+
       final userData = json.decode(userString);
       final userId = userData['_id'];
-      
+
       // Use the correct endpoint with user ID
       final url = Uri.parse(
-          "https://deliveryapi-plum.vercel.app/auth/change-password/user/$userId");
-      
+          "https://deliveryapi-ten.vercel.app/auth/change-password/user/$userId");
+
       // Create a multipart request
       var request = http.MultipartRequest('PUT', url);
-      
+
       // Add form fields
       request.fields['old_password'] = oldPasswordController.text.trim();
       request.fields['new_password'] = newPasswordController.text.trim();
-      
+
       // Send the request
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
-      
+
       print('Change Password Response: ${response.body}');
       print('Change Password Status Code: ${response.statusCode}');
 
@@ -116,7 +116,7 @@ class _SecuritySettingsState extends State<SecuritySettings> {
         } catch (e) {
           // Use default error message if parsing fails
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Colors.redAccent,
@@ -171,7 +171,7 @@ class _SecuritySettingsState extends State<SecuritySettings> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 30),
-                
+
                 // Security illustration
                 Container(
                   padding: const EdgeInsets.all(24),
@@ -185,9 +185,9 @@ class _SecuritySettingsState extends State<SecuritySettings> {
                     color: Color.fromRGBO(0, 31, 62, 0.8),
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Description text
                 const Text(
                   "Change Your Password",
@@ -207,9 +207,9 @@ class _SecuritySettingsState extends State<SecuritySettings> {
                     height: 1.5,
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
-                
+
                 // Password fields
                 _buildPasswordField(
                   controller: oldPasswordController,
@@ -221,9 +221,9 @@ class _SecuritySettingsState extends State<SecuritySettings> {
                     });
                   },
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 _buildPasswordField(
                   controller: newPasswordController,
                   label: "New Password",
@@ -234,9 +234,9 @@ class _SecuritySettingsState extends State<SecuritySettings> {
                     });
                   },
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 _buildPasswordField(
                   controller: confirmPasswordController,
                   label: "Confirm New Password",
@@ -247,9 +247,9 @@ class _SecuritySettingsState extends State<SecuritySettings> {
                     });
                   },
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Forgot Password link
                 Align(
                   alignment: Alignment.centerRight,
@@ -271,9 +271,9 @@ class _SecuritySettingsState extends State<SecuritySettings> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Password requirements
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -313,9 +313,9 @@ class _SecuritySettingsState extends State<SecuritySettings> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
-                
+
                 // Update button
                 SizedBox(
                   width: double.infinity,
@@ -329,7 +329,8 @@ class _SecuritySettingsState extends State<SecuritySettings> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      disabledBackgroundColor: const Color.fromRGBO(0, 31, 62, 0.6),
+                      disabledBackgroundColor:
+                          const Color.fromRGBO(0, 31, 62, 0.6),
                     ),
                     child: isLoading
                         ? const SizedBox(
@@ -349,7 +350,7 @@ class _SecuritySettingsState extends State<SecuritySettings> {
                           ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 30),
               ],
             ),

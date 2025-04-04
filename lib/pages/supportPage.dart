@@ -135,11 +135,13 @@ class _SupportPageState extends State<SupportPage> {
                     _buildSupportOption(
                       icon: Icons.email_outlined,
                       title: 'Email Support',
-                      description: 'Send us an email at support@micollins.com',
+                      description:
+                          'Send us an email at support@micodelivery.com',
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Email support@micollins.com'),
+                            content: Text(
+                                'Drop a mail for us at support@micodelivery.com'),
                             backgroundColor: Color.fromRGBO(0, 31, 62, 1),
                           ),
                         );

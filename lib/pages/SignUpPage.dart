@@ -70,7 +70,7 @@ class _SignUpPageState extends State<SignUpPage> {
     });
 
     const String apiUrl =
-        "https://deliveryapi-plum.vercel.app/usersignup"; // Replace with your actual API URL.
+        "https://deliveryapi-ten.vercel.app/usersignup"; // Replace with your actual API URL.
 
     try {
       final response = await http.post(

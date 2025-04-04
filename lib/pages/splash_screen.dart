@@ -12,15 +12,16 @@ class SplashScreen extends StatelessWidget {
       duration: 2800, // 6 seconds
       splash: Center(
         child: Lottie.asset(
-          'assets/animations/MicoIntro.json',
+          'assets/animations/Customer.mp4.lottie.json',
           fit: BoxFit.cover,
         ),
       ),
 
       nextScreen: const FirstPage(),
       splashTransition: SplashTransition.fadeTransition,
-      backgroundColor: Colors.white,
+      backgroundColor: Color.fromRGBO(219, 230, 76, 1),
       animationDuration: const Duration(milliseconds: 2500),
+      splashIconSize: 120,
     );
   }
 }

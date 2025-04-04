@@ -251,7 +251,7 @@ class _ProfileEditState extends State<ProfileEdit> {
       var request = http.MultipartRequest(
         'PUT',
         Uri.parse(
-            'https://deliveryapi-plum.vercel.app/users/$userId/profile-picture'),
+            'https://deliveryapi-ten.vercel.app/users/$userId/profile-picture'),
       );
 
       // Add the image file
@@ -395,13 +395,13 @@ class _ProfileEditState extends State<ProfileEdit> {
       String firstname = firstNameController.text.trim();
       String lastname = lastNameController.text.trim();
       String phone = phoneEditController.text.trim();
-      
+
       // Check if any field has been changed
       bool hasChanges = false;
       if (firstname != firstName) hasChanges = true;
       if (lastname != lastName) hasChanges = true;
       if (phone != this.phone) hasChanges = true;
-      
+
       if (!hasChanges) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -414,22 +414,22 @@ class _ProfileEditState extends State<ProfileEdit> {
         });
         return;
       }
-      
+
       // Create a multipart request to match the curl example
       var request = http.MultipartRequest(
         'PUT',
-        Uri.parse('https://deliveryapi-plum.vercel.app/users/$userId/update'),
+        Uri.parse('https://deliveryapi-ten.vercel.app/users/$userId/update'),
       );
-      
+
       // Add form fields
       if (firstname.isNotEmpty) request.fields['firstname'] = firstname;
       if (lastname.isNotEmpty) request.fields['lastname'] = lastname;
       if (phone.isNotEmpty) request.fields['phone'] = phone;
-      
+
       // Send the request
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
-      
+
       print('Update response: ${response.statusCode}, ${response.body}');
 
       if (response.statusCode == 200) {
@@ -439,14 +439,14 @@ class _ProfileEditState extends State<ProfileEdit> {
 
         if (userString != null) {
           final userData = json.decode(userString);
-          
+
           // Update the user data in shared preferences
           if (firstname.isNotEmpty) userData['firstname'] = firstname;
           if (lastname.isNotEmpty) userData['lastname'] = lastname;
           if (phone.isNotEmpty) userData['phone'] = phone;
 
           await prefs.setString('user', json.encode(userData));
-          
+
           // Update the state variables
           setState(() {
             firstName = firstname;
@@ -478,7 +478,8 @@ class _ProfileEditState extends State<ProfileEdit> {
           ),
         );
 
-        Navigator.pop(context, true); // Return true to indicate successful update
+        Navigator.pop(
+            context, true); // Return true to indicate successful update
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

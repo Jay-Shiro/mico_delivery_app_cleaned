@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:micollins_delivery_app/components/coming_soon.dart';
-import 'package:micollins_delivery_app/components/mico_list_tiles.dart';
 import 'package:micollins_delivery_app/components/user_cache.dart';
 import 'package:micollins_delivery_app/pages/notification_page.dart';
 import 'package:micollins_delivery_app/pages/profile_edit.dart';
@@ -74,7 +73,7 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       print('Fetching user details for ID: $userId');
       final response = await http
-          .get(Uri.parse('https://deliveryapi-plum.vercel.app/users/$userId'));
+          .get(Uri.parse('https://deliveryapi-ten.vercel.app/users/$userId'));
 
       print('User details response status: ${response.statusCode}');
       print('User details response body: ${response.body}');
@@ -152,7 +151,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       final response = await http.get(Uri.parse(
-          'https://deliveryapi-plum.vercel.app/users/$userId/overall-rating'));
+          'https://deliveryapi-ten.vercel.app/users/$userId/overall-rating'));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -163,6 +162,54 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     } catch (e) {
       print('Error fetching user rating: $e');
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    if (userId == null) return;
+
+    try {
+      final response = await http.delete(
+        Uri.parse('https://deliveryapi-ten.vercel.app/users/$userId/delete'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'success') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account deleted successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Log the user out and navigate to the login page
+          await AuthService.logout();
+          Navigator.of(context)
+              .pushNamedAndRemoveUntil('/loginpage', (route) => false);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['message'] ?? 'Failed to delete account'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -764,6 +811,132 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget _buildDeleteAccountModal(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Container(
+            width: 40,
+            height: 5,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(5),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Warning icon
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(50),
+            ),
+            child: const Icon(
+              Icons.delete_forever_rounded,
+              color: Colors.red,
+              size: 40,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Title
+          const Text(
+            "Delete Account",
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Description
+          const Text(
+            "Are you sure you want to delete your account? This action cannot be undone.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Buttons
+          Row(
+            children: [
+              // Cancel button
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.grey,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(
+                        color: Colors.grey,
+                        width: 1.5,
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+
+              // Delete button
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    Navigator.pop(context); // Close the modal
+                    await _deleteAccount(); // Call the delete account function
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text(
+                    "Delete",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -860,6 +1033,42 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   child: const Text(
                     'Log Out',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    // Show confirmation modal for account deletion
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => _buildDeleteAccountModal(context),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.red,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(
+                        color: Colors.red,
+                        width: 1.5,
+                      ),
+                    ),
+                    minimumSize: const Size(double.infinity, 56),
+                  ),
+                  child: const Text(
+                    'Delete Account',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

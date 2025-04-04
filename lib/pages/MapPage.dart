@@ -28,6 +28,9 @@ class _MapPageState extends State<MapPage> {
   LatLng? _userCurrentLocation;
   final Set<Marker> _userMarkers = {};
   Map<PolylineId, Polyline> polylines = {};
+  List<TextEditingController> _stopControllers = [];
+  List<FocusNode> _stopFocusNodes = [];
+  int _stopCount = 1;
 
   static final CameraPosition _initialPosition = CameraPosition(
     target: LatLng(6.435872, 3.456507),
@@ -138,7 +141,7 @@ class _MapPageState extends State<MapPage> {
     super.dispose();
   }
 
-  LatLng? _userDestinationLatLng;
+  List<LatLng> _userDestinations = []; // List to store multiple destinations
 
   late double _userDestinationLatDEC;
 
@@ -156,33 +159,29 @@ class _MapPageState extends State<MapPage> {
 
   void _userDesToMarker(Prediction pCoordinates) {
     try {
-      _userDestinationLatDEC = double.parse(pCoordinates.lat!);
-      _userDestinationLngDEC = double.parse(pCoordinates.lng!);
+      double destinationLat = double.parse(pCoordinates.lat!);
+      double destinationLng = double.parse(pCoordinates.lng!);
+      LatLng destinationLatLng = LatLng(destinationLat, destinationLng);
 
       if (mounted) {
         setState(() {
           _destinationController.text = pCoordinates.description ?? '';
-          _userDestinationLatLng =
-              LatLng(_userDestinationLatDEC, _userDestinationLngDEC);
-          _userMarkers
-              .removeWhere((marker) => marker.markerId.value == 'destination');
+          _userDestinations
+              .add(destinationLatLng); // Add to the list of destinations
           _userMarkers.add(
             Marker(
-              markerId: const MarkerId('destination'),
-              position: _userDestinationLatLng!,
+              markerId: MarkerId('destination_${_userDestinations.length}'),
+              position: destinationLatLng,
               icon: BitmapDescriptor.defaultMarker,
             ),
           );
         });
 
         Future.delayed(Duration(milliseconds: 100), () {
-          if (_userCurrentLocation != null && _userDestinationLatLng != null) {
+          if (_userCurrentLocation != null) {
             _mapController.animateCamera(
-              CameraUpdate.newLatLngZoom(_userDestinationLatLng!, 15),
+              CameraUpdate.newLatLngZoom(destinationLatLng, 15),
             );
-          } else {
-            debugPrint('Current location: $_userCurrentLocation');
-            debugPrint('Destination location: $_userDestinationLatLng');
           }
         });
       }
@@ -226,39 +225,42 @@ class _MapPageState extends State<MapPage> {
   Future<List<LatLng>> getPolylinePoints() async {
     List<LatLng> polylineCoordinates = [];
     try {
-      if (_userCurrentLocation == null || _userDestinationLatLng == null) {
-        debugPrint('One or both locations are null');
+      if (_userCurrentLocation == null || _userDestinations.isEmpty) {
+        debugPrint('Current location or destinations are null');
         return polylineCoordinates;
       }
 
       PolylinePoints polylinePoints = PolylinePoints();
-      PolylineResult lineResult =
-          await polylinePoints.getRouteBetweenCoordinates(
-        googleApiKey: key,
-        request: PolylineRequest(
-          origin: PointLatLng(
-            _userCurrentLocation!.latitude,
-            _userCurrentLocation!.longitude,
-          ),
-          destination: PointLatLng(
-            _userDestinationLatLng!.latitude,
-            _userDestinationLatLng!.longitude,
-          ),
-          mode: TravelMode.driving,
-        ),
-      );
+      LatLng previousPoint = _userCurrentLocation!;
 
-      if (lineResult.points.isNotEmpty) {
-        polylineCoordinates = lineResult.points
-            .map((point) => LatLng(point.latitude, point.longitude))
-            .toList();
+      for (LatLng destination in _userDestinations) {
+        PolylineResult lineResult =
+            await polylinePoints.getRouteBetweenCoordinates(
+          googleApiKey: key,
+          request: PolylineRequest(
+            origin:
+                PointLatLng(previousPoint.latitude, previousPoint.longitude),
+            destination:
+                PointLatLng(destination.latitude, destination.longitude),
+            mode: TravelMode.driving,
+          ),
+        );
 
-        if (polylineCoordinates.isNotEmpty) {
-          await _calculateDeliveryDetails(polylineCoordinates);
-          generatePolylineFromPoints(polylineCoordinates);
+        if (lineResult.points.isNotEmpty) {
+          polylineCoordinates.addAll(lineResult.points
+              .map((point) => LatLng(point.latitude, point.longitude))
+              .toList());
+        } else {
+          debugPrint('Error fetching polyline: ${lineResult.errorMessage}');
         }
-      } else {
-        debugPrint('Error fetching polyline: ${lineResult.errorMessage}');
+
+        previousPoint =
+            destination; // Update the previous point for the next leg
+      }
+
+      if (polylineCoordinates.isNotEmpty) {
+        await _calculateDeliveryDetails(polylineCoordinates);
+        generatePolylineFromPoints(polylineCoordinates);
       }
     } catch (e) {
       debugPrint('Error generating polyline: $e');
@@ -284,27 +286,35 @@ class _MapPageState extends State<MapPage> {
   Future<void> _calculateDeliveryDetails(
       List<LatLng> polylineCoordinates) async {
     try {
-      if (_userCurrentLocation != null && _userDestinationLatLng != null) {
-        double totalDistance = Geolocator.distanceBetween(
-          _userCurrentLocation!.latitude,
-          _userCurrentLocation!.longitude,
-          _userDestinationLatLng!.latitude,
-          _userDestinationLatLng!.longitude,
-        );
+      if (_userCurrentLocation != null && _userDestinations.isNotEmpty) {
+        double totalDistance = 0.0;
+
+        // Calculate the total distance by summing up distances between consecutive points
+        LatLng previousPoint = _userCurrentLocation!;
+        for (LatLng destination in _userDestinations) {
+          totalDistance += Geolocator.distanceBetween(
+            previousPoint.latitude,
+            previousPoint.longitude,
+            destination.latitude,
+            destination.longitude,
+          );
+          previousPoint = destination;
+        }
 
         setState(() {
-          finalDistance = totalDistance / 1000;
+          finalDistance = totalDistance / 1000; // Convert to kilometers
           roundDistanceKM = double.parse(finalDistance.toStringAsFixed(1));
 
+          // Determine if the route is from Island to Mainland
           bool isIslandToMainland = _isIslandToMainland(
             _userCurrentLocation!.latitude,
             _userCurrentLocation!.longitude,
-            _userDestinationLatLng!.latitude,
-            _userDestinationLatLng!.longitude,
+            _userDestinations.last.latitude,
+            _userDestinations.last.longitude,
           );
 
           double getCost(double distance, double rate) {
-            return (distance / 0.8) * rate;
+            return (distance / 0.4) * rate;
           }
 
           if (isIslandToMainland) {
@@ -325,6 +335,55 @@ class _MapPageState extends State<MapPage> {
             } else if (roundDistanceKM <= 15) {
               expressCost = getCost(roundDistanceKM, 259.60);
               standardCost = getCost(roundDistanceKM, 259.60 / 2);
+              carExpressCost = getCost(roundDistanceKM, 450.00);
+              carStandardCost = getCost(roundDistanceKM, 450.00 / 2);
+              busCost = getCost(roundDistanceKM, 560.00);
+              truckCost = getCost(roundDistanceKM, 560.00 * 2);
+            } else if (roundDistanceKM <= 20) {
+              expressCost = getCost(roundDistanceKM, 283.74);
+              standardCost = getCost(roundDistanceKM, 283.74 / 2);
+              carExpressCost = getCost(roundDistanceKM, 450.00);
+              carStandardCost = getCost(roundDistanceKM, 450.00 / 2);
+              busCost = getCost(roundDistanceKM, 560.00);
+              truckCost = getCost(roundDistanceKM, 560.00 * 2);
+            } else if (roundDistanceKM <= 25) {
+              expressCost = getCost(roundDistanceKM, 256.31);
+              standardCost = getCost(roundDistanceKM, 256.31 / 2);
+              carExpressCost = getCost(roundDistanceKM, 450.00);
+              carStandardCost = getCost(roundDistanceKM, 450.00 / 2);
+              busCost = getCost(roundDistanceKM, 560.00);
+              truckCost = getCost(roundDistanceKM, 560.00 * 2);
+            } else if (roundDistanceKM <= 30) {
+              expressCost = getCost(roundDistanceKM, 242.88);
+              standardCost = getCost(roundDistanceKM, 242.88 / 2);
+              carExpressCost = getCost(roundDistanceKM, 450.00);
+              carStandardCost = getCost(roundDistanceKM, 450.00 / 2);
+              busCost = getCost(roundDistanceKM, 560.00);
+              truckCost = getCost(roundDistanceKM, 560.00 * 2);
+            } else if (roundDistanceKM <= 35) {
+              expressCost = getCost(roundDistanceKM, 236.03);
+              standardCost = getCost(roundDistanceKM, 236.03 / 2);
+              carExpressCost = getCost(roundDistanceKM, 450.00);
+              carStandardCost = getCost(roundDistanceKM, 450.00 / 2);
+              busCost = getCost(roundDistanceKM, 560.00);
+              truckCost = getCost(roundDistanceKM, 560.00 * 2);
+            } else if (roundDistanceKM <= 40) {
+              expressCost = getCost(roundDistanceKM, 250.06);
+              standardCost = getCost(roundDistanceKM, 250.06 / 2);
+              carExpressCost = getCost(roundDistanceKM, 450.00);
+              carStandardCost = getCost(roundDistanceKM, 450.00 / 2);
+              busCost = getCost(roundDistanceKM, 560.00);
+              truckCost = getCost(roundDistanceKM, 560.00 * 2);
+            } else if (roundDistanceKM <= 45) {
+              expressCost = getCost(roundDistanceKM, 268.75);
+              standardCost = getCost(roundDistanceKM, 268.75 / 2);
+              carExpressCost = getCost(roundDistanceKM, 450.00);
+              carStandardCost = getCost(roundDistanceKM, 450.00 / 2);
+              busCost = getCost(roundDistanceKM, 560.00);
+              truckCost = getCost(roundDistanceKM, 560.00 * 2);
+            } else if (roundDistanceKM <= 50) {
+              expressCost = getCost(roundDistanceKM, 255.49);
+              standardCost = getCost(roundDistanceKM, 255.49 / 2);
               carExpressCost = getCost(roundDistanceKM, 450.00);
               carStandardCost = getCost(roundDistanceKM, 450.00 / 2);
               busCost = getCost(roundDistanceKM, 560.00);
@@ -355,6 +414,55 @@ class _MapPageState extends State<MapPage> {
             } else if (roundDistanceKM <= 15) {
               expressCost = getCost(roundDistanceKM, 222.52);
               standardCost = getCost(roundDistanceKM, 222.52 / 2);
+              carExpressCost = getCost(roundDistanceKM, 410.00);
+              carStandardCost = getCost(roundDistanceKM, 410.00 / 2);
+              busCost = getCost(roundDistanceKM, 520.00);
+              truckCost = getCost(roundDistanceKM, 520.00 * 2);
+            } else if (roundDistanceKM <= 20) {
+              expressCost = getCost(roundDistanceKM, 205.06);
+              standardCost = getCost(roundDistanceKM, 205.06 / 2);
+              carExpressCost = getCost(roundDistanceKM, 410.00);
+              carStandardCost = getCost(roundDistanceKM, 410.00 / 2);
+              busCost = getCost(roundDistanceKM, 520.00);
+              truckCost = getCost(roundDistanceKM, 520.00 * 2);
+            } else if (roundDistanceKM <= 25) {
+              expressCost = getCost(roundDistanceKM, 240.78);
+              standardCost = getCost(roundDistanceKM, 240.78 / 2);
+              carExpressCost = getCost(roundDistanceKM, 410.00);
+              carStandardCost = getCost(roundDistanceKM, 410.00 / 2);
+              busCost = getCost(roundDistanceKM, 520.00);
+              truckCost = getCost(roundDistanceKM, 520.00 * 2);
+            } else if (roundDistanceKM <= 30) {
+              expressCost = getCost(roundDistanceKM, 189.83);
+              standardCost = getCost(roundDistanceKM, 189.83 / 2);
+              carExpressCost = getCost(roundDistanceKM, 410.00);
+              carStandardCost = getCost(roundDistanceKM, 410.00 / 2);
+              busCost = getCost(roundDistanceKM, 520.00);
+              truckCost = getCost(roundDistanceKM, 520.00 * 2);
+            } else if (roundDistanceKM <= 35) {
+              expressCost = getCost(roundDistanceKM, 182.98);
+              standardCost = getCost(roundDistanceKM, 182.98 / 2);
+              carExpressCost = getCost(roundDistanceKM, 410.00);
+              carStandardCost = getCost(roundDistanceKM, 410.00 / 2);
+              busCost = getCost(roundDistanceKM, 520.00);
+              truckCost = getCost(roundDistanceKM, 520.00 * 2);
+            } else if (roundDistanceKM <= 40) {
+              expressCost = getCost(roundDistanceKM, 172.43);
+              standardCost = getCost(roundDistanceKM, 172.43 / 2);
+              carExpressCost = getCost(roundDistanceKM, 410.00);
+              carStandardCost = getCost(roundDistanceKM, 410.00 / 2);
+              busCost = getCost(roundDistanceKM, 520.00);
+              truckCost = getCost(roundDistanceKM, 520.00 * 2);
+            } else if (roundDistanceKM <= 45) {
+              expressCost = getCost(roundDistanceKM, 169.03);
+              standardCost = getCost(roundDistanceKM, 169.03 / 2);
+              carExpressCost = getCost(roundDistanceKM, 410.00);
+              carStandardCost = getCost(roundDistanceKM, 410.00 / 2);
+              busCost = getCost(roundDistanceKM, 520.00);
+              truckCost = getCost(roundDistanceKM, 520.00 * 2);
+            } else if (roundDistanceKM <= 50) {
+              expressCost = getCost(roundDistanceKM, 192.86);
+              standardCost = getCost(roundDistanceKM, 192.86 / 2);
               carExpressCost = getCost(roundDistanceKM, 410.00);
               carStandardCost = getCost(roundDistanceKM, 410.00 / 2);
               busCost = getCost(roundDistanceKM, 520.00);
@@ -922,8 +1030,8 @@ class _MapPageState extends State<MapPage> {
 
       // Determine the endpoint based on vehicle type
       final String endpoint = selectedVehicleType == "bike"
-          ? 'https://deliveryapi-plum.vercel.app/delivery/bike'
-          : 'https://deliveryapi-plum.vercel.app/delivery/car';
+          ? 'https://deliveryapi-ten.vercel.app/delivery/bike'
+          : 'https://deliveryapi-ten.vercel.app/delivery/car';
 
       // Round up the payment amount to avoid decimal issues
       final double roundedPrice = double.parse(paymentAmt.toStringAsFixed(2));
@@ -1050,7 +1158,7 @@ class _MapPageState extends State<MapPage> {
 
     try {
       final String endpoint =
-          'https://deliveryapi-plum.vercel.app/delivery/$deliveryId/transaction';
+          'https://deliveryapi-ten.vercel.app/delivery/$deliveryId/transaction';
 
       debugPrint('🔄 Updating transaction for delivery ID: $deliveryId');
       debugPrint('🔗 Transaction endpoint: $endpoint');
@@ -1690,10 +1798,99 @@ class _MapPageState extends State<MapPage> {
                                 );
                               },
                             ),
+                            // Dynamically added stops
+                            // Dynamically added stops
+                            ...List.generate(_stopControllers.length, (index) {
+                              return Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      // Stop input field
+                                      Expanded(
+                                        child: _buildInputField(
+                                          controller: _stopControllers[index],
+                                          focusNode: _stopFocusNodes[index],
+                                          hintText:
+                                              'Stop ${index + 2}', // Hint text starts at Stop 2
+                                          onItemClick: (prediction) {
+                                            setState(() {
+                                              _stopControllers[index].text =
+                                                  prediction.description!;
+                                              _stopControllers[index]
+                                                      .selection =
+                                                  TextSelection.fromPosition(
+                                                TextPosition(
+                                                    offset: prediction
+                                                        .description!.length),
+                                              );
+                                            });
+                                            _userDesToMarker(prediction);
+                                          },
+                                          onGetDetailWithLatLng: (coordinates) {
+                                            _userDesToMarker(coordinates);
+                                            getPolylinePoints().then(
+                                              (coordinates) =>
+                                                  generatePolylineFromPoints(
+                                                      coordinates),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+
+                                      // Delete button
+                                      IconButton(
+                                        icon: Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () {
+                                          setState(() {
+                                            // Remove the stop controller and focus node
+                                            _stopControllers.removeAt(index);
+                                            _stopFocusNodes.removeAt(index);
+
+                                            // Optionally, remove the corresponding marker and recalculate the route
+                                            if (index <
+                                                _userDestinations.length) {
+                                              _userDestinations.removeAt(index);
+                                              getPolylinePoints().then(
+                                                (coordinates) =>
+                                                    generatePolylineFromPoints(
+                                                        coordinates),
+                                              );
+                                            }
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+                              );
+                            }),
                           ],
                         ),
                       ),
                       const SizedBox(height: 20),
+
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            // Increment the stop count and add a new controller and focus node
+                            _stopCount++;
+                            _stopControllers.add(TextEditingController());
+                            _stopFocusNodes.add(FocusNode());
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          shape: CircleBorder(),
+                          padding: EdgeInsets.all(16),
+                        ),
+                        child: Icon(
+                          Icons.add_location_alt_rounded,
+                          color: Color.fromRGBO(0, 31, 62, 1),
+                        ),
+                      ),
 
                       // Delivery details and options
                       FutureBuilder(
@@ -2034,7 +2231,7 @@ class _MapPageState extends State<MapPage> {
                                                 child: _buildPackageSizeOption(
                                                   size: "¼",
                                                   description:
-                                                      "Quarter and below",
+                                                      "Quarter and below of delivery box",
                                                   price: size25Formatted
                                                           ?.symbolOnLeft ??
                                                       "₦0",
@@ -2054,7 +2251,7 @@ class _MapPageState extends State<MapPage> {
                                                 child: _buildPackageSizeOption(
                                                   size: "½",
                                                   description:
-                                                      "Half to quarter",
+                                                      "Half to quarter of delivery box",
                                                   price: size50Formatted
                                                           ?.symbolOnLeft ??
                                                       "₦250",
@@ -2074,7 +2271,7 @@ class _MapPageState extends State<MapPage> {
                                                 child: _buildPackageSizeOption(
                                                   size: "¾",
                                                   description:
-                                                      "3 quarter to half",
+                                                      "3 quarter to half of delivery box",
                                                   price: size75Formatted
                                                           ?.symbolOnLeft ??
                                                       "₦500",
@@ -2094,7 +2291,7 @@ class _MapPageState extends State<MapPage> {
                                                 child: _buildPackageSizeOption(
                                                   size: "F",
                                                   description:
-                                                      "Full to 3 quarter",
+                                                      "Full to 3 quarter of delivery box",
                                                   price: size100Formatted
                                                           ?.symbolOnLeft ??
                                                       "₦750",
