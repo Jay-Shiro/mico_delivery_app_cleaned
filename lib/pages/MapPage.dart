@@ -1036,6 +1036,12 @@ class _MapPageState extends State<MapPage> {
       // Round up the payment amount to avoid decimal issues
       final double roundedPrice = double.parse(paymentAmt.toStringAsFixed(2));
 
+      // Extract stops from the controllers
+      List<String> stops = _stopControllers
+          .map((controller) => controller.text)
+          .where((stop) => stop.isNotEmpty)
+          .toList();
+
       // Create the request body based on vehicle type
       final Map<String, dynamic> requestBody = {
         'user_id': userId, // Using the correctly loaded userId
@@ -1043,6 +1049,7 @@ class _MapPageState extends State<MapPage> {
         'distance': '$roundDistanceKM km',
         'startpoint': _startPointController.text,
         'endpoint': _destinationController.text,
+        'stops': stops, // Add the list of stops
         'vehicletype': selectedVehicleType,
         'transactiontype': isCashorTransfer ? 'cash' : 'online',
         'deliveryspeed': isExpressSelected! ? 'express' : 'standard',
@@ -1076,7 +1083,6 @@ class _MapPageState extends State<MapPage> {
         if (responseData.containsKey('_id')) {
           deliveryId = responseData['_id'];
         } else if (responseData.containsKey('delivery_id')) {
-          // This is the format we're seeing in the logs
           deliveryId = responseData['delivery_id'];
         } else if (responseData.containsKey('delivery') &&
             responseData['delivery'] is Map) {
