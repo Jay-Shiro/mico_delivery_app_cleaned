@@ -1960,6 +1960,15 @@ class _MapPageState extends State<MapPage> {
                           color: Color.fromRGBO(0, 31, 62, 1),
                         ),
                       ),
+                      const SizedBox(height: 8),
+
+                      Text(
+                        "Add more stops",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color.fromRGBO(0, 31, 62, 1),
+                        ),
+                      ),
 
                       // Delivery details and options
                       FutureBuilder(
