@@ -47,9 +47,90 @@ class _MapPageState extends State<MapPage> {
     _loadUserEmail();
   }
 
+  bool _isInLagos(double latitude, double longitude) {
+    // Define the approximate latitude and longitude boundaries of Lagos
+    const double lagosMinLat = 6.4000;
+    const double lagosMaxLat = 6.7000;
+    const double lagosMinLng = 3.2000;
+    const double lagosMaxLng = 3.6000;
+
+    return latitude >= lagosMinLat &&
+        latitude <= lagosMaxLat &&
+        longitude >= lagosMinLng &&
+        longitude <= lagosMaxLng;
+  }
+
   Future<void> _initializeLocation() async {
     try {
       Position position = await _determinePosition();
+
+      // Check if the user's location is within Lagos
+      if (!_isInLagos(position.latitude, position.longitude)) {
+        // Show a short alert dialog
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Center(
+                child: Text(
+                  'Service Unavailable',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color.fromRGBO(0, 31, 62, 1),
+                  ),
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min, // Adjust size to fit content
+                children: [
+                  Icon(
+                    Icons.sentiment_dissatisfied, // Sad icon
+                    color: Colors.grey, // Icon color
+                    size: 50, // Icon size
+                  ),
+                  SizedBox(height: 10), // Add spacing between icon and text
+                  Text(
+                    'Our services are only limited to Lagos for now.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                Center(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close the dialog
+                    },
+                    style: ButtonStyle(
+                      fixedSize: MaterialStateProperty.all(Size(100, 40)),
+                      backgroundColor: MaterialStateProperty.all(
+                        Color.fromRGBO(0, 31, 62, 1),
+                      ),
+                      shape: MaterialStateProperty.all(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      'OK',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+        return; // Stop further execution
+      }
 
       if (mounted) {
         setState(() {
@@ -356,7 +437,7 @@ class _MapPageState extends State<MapPage> {
           );
 
           double getCost(double distance, double rate) {
-            return (distance / 0.4) * rate;
+            return (distance / 1.4) * rate;
           }
 
           if (isIslandToMainland) {
@@ -1803,7 +1884,7 @@ class _MapPageState extends State<MapPage> {
                               focusNode: _startPointFN,
                               hintText: 'Pickup Location',
                               isPickupField: true,
-                              onItemClick: (prediction) {
+                              onItemClick: (prediction) async {
                                 setState(() {
                                   _startPointController.text =
                                       prediction.description!;
@@ -1836,7 +1917,7 @@ class _MapPageState extends State<MapPage> {
                               controller: _destinationController,
                               focusNode: _endPointFN,
                               hintText: 'Destination Location',
-                              onItemClick: (prediction) {
+                              onItemClick: (prediction) async {
                                 setState(() {
                                   _destinationController.text =
                                       prediction.description!;
@@ -1846,7 +1927,7 @@ class _MapPageState extends State<MapPage> {
                                         offset: prediction.description!.length),
                                   );
 
-                                  // Reset roundDistanceKM if the destination location is empty
+                                  // Reset roundDistanceKM if either pickup or delivery is empty
                                   if (_startPointController.text.isEmpty ||
                                       _destinationController.text.isEmpty) {
                                     roundDistanceKM = 0;
@@ -1856,12 +1937,23 @@ class _MapPageState extends State<MapPage> {
                                 });
                                 _userDesToMarker(prediction);
                               },
-                              onGetDetailWithLatLng: (cordinates) {
-                                _userDesToMarker(cordinates);
-                                getPolylinePoints().then(
-                                  (cordinates) =>
-                                      generatePolylineFromPoints(cordinates),
-                                );
+                              onGetDetailWithLatLng: (coordinates) {
+                                _userDesToMarker(coordinates);
+
+                                // Reset roundDistanceKM if either pickup or delivery is empty
+                                if (_startPointController.text.isEmpty ||
+                                    _destinationController.text.isEmpty) {
+                                  setState(() {
+                                    roundDistanceKM = 0;
+                                    _userMarkers.clear();
+                                    polylines.clear();
+                                  });
+                                } else {
+                                  getPolylinePoints().then(
+                                    (cordinates) =>
+                                        generatePolylineFromPoints(cordinates),
+                                  );
+                                }
                               },
                             ),
                             // Dynamically added stops

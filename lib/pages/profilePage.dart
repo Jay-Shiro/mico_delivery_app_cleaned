@@ -254,17 +254,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: CircleAvatar(
                   backgroundColor: const Color.fromRGBO(227, 223, 214, 1),
                   radius: 40,
-                  // Use profile picture if available, otherwise show a placeholder icon
                   child: profilePictureUrl != null &&
                           profilePictureUrl!.isNotEmpty
                       ? ClipOval(
                           child: Image.network(
-                            profilePictureUrl!,
+                            profilePictureUrl!.replaceFirst(
+                                'deliveryapi-plum', 'deliveryapi-ten'),
                             width: 80,
                             height: 80,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
-                              // If image fails to load, show placeholder icon
                               return const Icon(
                                 Icons.person,
                                 size: 40,

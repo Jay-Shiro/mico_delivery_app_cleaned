@@ -1042,8 +1042,10 @@ class _OrdersPageState extends State<OrdersPage> {
               riderDetails['facial_picture_url'] != null
                   ? CircleAvatar(
                       radius: 40,
-                      backgroundImage:
-                          NetworkImage(riderDetails['facial_picture_url']),
+                      backgroundImage: NetworkImage(
+                        (riderDetails['facial_picture_url'] ?? '').replaceFirst(
+                            'deliveryapi-plum', 'deliveryapi-ten'),
+                      ),
                       backgroundColor: Color.fromRGBO(0, 31, 62, 0.1),
                     )
                   : CircleAvatar(
