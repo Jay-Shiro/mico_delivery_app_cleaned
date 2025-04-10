@@ -440,8 +440,19 @@ class _MapPageState extends State<MapPage> {
             return (distance / 1.4) * rate;
           }
 
+          double get3kmCost(double distance, double rate) {
+            return (distance) * rate;
+          }
+
           if (isIslandToMainland) {
-            if (roundDistanceKM <= 5) {
+            if (roundDistanceKM <= 1.5) {
+              expressCost = get3kmCost(roundDistanceKM, 345.60);
+              standardCost = get3kmCost(roundDistanceKM, 345.60 / 1.8);
+              carExpressCost = get3kmCost(roundDistanceKM, 1000.00);
+              carStandardCost = get3kmCost(roundDistanceKM, 1000.00 / 1.8);
+              busCost = get3kmCost(roundDistanceKM, 600.00);
+              truckCost = get3kmCost(roundDistanceKM, 600.00 * 2);
+            } else if (roundDistanceKM <= 5) {
               expressCost = getCost(roundDistanceKM, 345.60);
               standardCost = getCost(roundDistanceKM, 345.60 / 1.8);
               carExpressCost = getCost(roundDistanceKM, 1000.00);
@@ -520,7 +531,14 @@ class _MapPageState extends State<MapPage> {
               truckCost = getCost(roundDistanceKM, 520.00 * 2);
             }
           } else {
-            if (roundDistanceKM <= 5) {
+            if (roundDistanceKM <= 1.5) {
+              expressCost = get3kmCost(roundDistanceKM, 345.60);
+              standardCost = get3kmCost(roundDistanceKM, 345.60 / 1.8);
+              carExpressCost = get3kmCost(roundDistanceKM, 900.00);
+              carStandardCost = get3kmCost(roundDistanceKM, 900.00 / 1.8);
+              busCost = get3kmCost(roundDistanceKM, 550.00);
+              truckCost = get3kmCost(roundDistanceKM, 550.00 * 2);
+            } else if (roundDistanceKM <= 5) {
               expressCost = getCost(roundDistanceKM, 302.46);
               standardCost = getCost(roundDistanceKM, 302.46 / 1.8);
               carExpressCost = getCost(roundDistanceKM, 850.00);
