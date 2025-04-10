@@ -44,11 +44,16 @@ class _MapPageState extends State<MapPage> {
   bool _isPromoCodeApplied = false;
   double _promoDiscountAmount = 0.0;
 
+  int _promoCodeUsageLimit = 100; // Maximum number of uses allowed
+  int _promoCodeUsageCount =
+      0; // Tracks the number of times the promo code has been used
+
   @override
   void initState() {
     super.initState();
     _initializeLocation();
     _loadUserEmail();
+    _loadPromoCodeUsageCount();
   }
 
   bool _isInLagos(double latitude, double longitude) {
@@ -1599,11 +1604,24 @@ class _MapPageState extends State<MapPage> {
   void _applyPromoCode() {
     const String validPromoCode =
         "SAVE10"; // Replace with your desired promo code
+
+    if (_promoCodeUsageCount >= _promoCodeUsageLimit) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Promo code usage limit reached."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (_promoCodeController.text.trim().toUpperCase() == validPromoCode) {
       setState(() {
         _isPromoCodeApplied = true;
         _promoDiscountAmount = paymentAmt * 0.1; // 10% discount
+        _promoCodeUsageCount++; // Increment the usage count
       });
+      _savePromoCodeUsageCount(); // Save the updated usage count
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Promo code applied successfully!"),
@@ -1622,6 +1640,18 @@ class _MapPageState extends State<MapPage> {
         ),
       );
     }
+  }
+
+  Future<void> _savePromoCodeUsageCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('promoCodeUsageCount', _promoCodeUsageCount);
+  }
+
+  Future<void> _loadPromoCodeUsageCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _promoCodeUsageCount = prefs.getInt('promoCodeUsageCount') ?? 0;
+    });
   }
 
   String get formattedPaymentAmt => formatMoney(paymentAmt).symbolOnLeft;
@@ -2552,6 +2582,14 @@ class _MapPageState extends State<MapPage> {
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
                                             color: Color.fromRGBO(0, 31, 62, 1),
+                                          ),
+                                        ),
+                                        SizedBox(height: 6),
+                                        Text(
+                                          "Promo code uses remaining: ${_promoCodeUsageLimit - _promoCodeUsageCount}",
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey[600],
                                           ),
                                         ),
                                         SizedBox(height: 12),
