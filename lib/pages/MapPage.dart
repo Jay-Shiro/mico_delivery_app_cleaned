@@ -1602,8 +1602,10 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _applyPromoCode() {
-    const String validPromoCode =
-        "SAVE10"; // Replace with your desired promo code
+    const List<String> validPromoCodes = [
+      "SAVE10",
+      "MICOSTARTDATE"
+    ]; // List of valid promo codes
 
     if (_promoCodeUsageCount >= _promoCodeUsageLimit) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1615,10 +1617,12 @@ class _MapPageState extends State<MapPage> {
       return;
     }
 
-    if (_promoCodeController.text.trim().toUpperCase() == validPromoCode) {
+    // Check if the entered promo code exists in the validPromoCodes list
+    if (validPromoCodes
+        .contains(_promoCodeController.text.trim().toUpperCase())) {
       setState(() {
         _isPromoCodeApplied = true;
-        _promoDiscountAmount = paymentAmt * 0.1; // 10% discount
+        _promoDiscountAmount = paymentAmt * 0.1; // Apply 10% discount
         _promoCodeUsageCount++; // Increment the usage count
       });
       _savePromoCodeUsageCount(); // Save the updated usage count
