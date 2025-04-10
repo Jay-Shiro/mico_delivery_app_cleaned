@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
@@ -90,55 +91,28 @@ class _OrdersPageState extends State<OrdersPage> {
     try {
       debugPrint('Canceling delivery for $deliveryId');
 
-      // Make the DELETE request
       final response = await http.delete(Uri.parse(
           'https://deliveryapi-ten.vercel.app/deliveries/$deliveryId/delete'));
 
-      // Check for redirect (308 status code)
-      if (response.statusCode == 308) {
-        final redirectUrl = response.headers['location'];
-        if (redirectUrl != null) {
-          debugPrint('Redirecting to: $redirectUrl');
-          final redirectResponse = await http.delete(Uri.parse(redirectUrl));
-
-          if (redirectResponse.statusCode == 200) {
-            final data = json.decode(redirectResponse.body);
-            if (data['status'] == 'success') {
-              debugPrint('Delivery canceled successfully');
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Delivery canceled successfully')),
-              );
-              fetchDeliveries(); // Refresh the deliveries list
-            } else {
-              debugPrint('Failed to cancel delivery: ${data['message']}');
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content:
-                        Text(data['message'] ?? 'Failed to cancel delivery')),
-              );
-            }
-          } else {
-            debugPrint(
-                'Error canceling delivery after redirect: ${redirectResponse.statusCode}');
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text('Error canceling delivery after redirect')),
-            );
-          }
-        } else {
-          debugPrint('Redirect URL not found in response headers');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Redirect URL not found')),
-          );
-        }
-      } else if (response.statusCode == 200) {
+      if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['status'] == 'success') {
           debugPrint('Delivery canceled successfully');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Delivery canceled successfully')),
           );
-          fetchDeliveries(); // Refresh the deliveries list
+
+          // Fetch updated deliveries
+          fetchDeliveries();
+
+          // Show the rating modal
+          final canceledDelivery = deliveries.firstWhere(
+            (delivery) => delivery['_id'] == deliveryId,
+            orElse: () => null,
+          );
+          if (canceledDelivery != null) {
+            _showRatingModal(canceledDelivery);
+          }
         } else {
           debugPrint('Failed to cancel delivery: ${data['message']}');
           ScaffoldMessenger.of(context).showSnackBar(
@@ -388,6 +362,186 @@ class _OrdersPageState extends State<OrdersPage> {
       'eta_minutes': 0,
       'eta_time': '',
     };
+  }
+
+  // Add this new method to show the rating modal
+  Future<void> _showRatingModal(dynamic delivery) async {
+    final riderId = delivery['rider_id'];
+    if (riderId == null) {
+      debugPrint('No rider ID found for this delivery');
+      return;
+    }
+
+    double rating = 5.0;
+    final commentController = TextEditingController();
+
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Container(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            top: 20,
+            left: 20,
+            right: 20,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Rate Customer',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF001F3E),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'How was your experience with this customer?',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Star rating
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  return IconButton(
+                    icon: Icon(
+                      index < rating ? Icons.star : Icons.star_border,
+                      color: index < rating ? Colors.amber : Colors.grey,
+                      size: 36,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        rating = index + 1.0;
+                      });
+                    },
+                  );
+                }),
+              ),
+              const SizedBox(height: 20),
+              // Comment field
+              TextField(
+                controller: commentController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Add a comment (optional)',
+                  hintStyle: GoogleFonts.poppins(color: Colors.grey),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: Color(0xFF001F3E), width: 2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Submit button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    // Submit rating
+                    await _submitRating(riderId!, delivery['_id'], rating,
+                        commentController.text);
+                    if (mounted) {
+                      Navigator.pop(context);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF001F3E),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Submit Rating',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Skip button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    'Skip',
+                    style: GoogleFonts.poppins(
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Add this method to submit the rating
+  Future<void> _submitRating(
+      String riderId, String deliveryId, double rating, String comment) async {
+    try {
+      final response = await http.post(
+        Uri.parse(
+            'https://deliveryapi-ten.vercel.app/riders/$userId/rate-rider/$riderId'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(
+            {'rating': rating, 'comment': comment, 'delivery_id': deliveryId}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Rating submitted successfully!'),
+                backgroundColor: Colors.green),
+          );
+        }
+      } else {
+        debugPrint(
+            'Error submitting rating: ${response.statusCode}, ${response.body}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Failed to submit rating'),
+                backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error submitting rating: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override
@@ -792,6 +946,30 @@ class _OrdersPageState extends State<OrdersPage> {
                                     horizontal: 12, vertical: 8),
                               ),
                               child: Text('Track'),
+                            ),
+
+                          if (displayStatus == 'completed')
+                            Row(
+                              children: [
+                                OutlinedButton(
+                                  onPressed: () {
+                                    _showRatingModal(
+                                        delivery); // Call the rating modal
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor:
+                                        Color.fromRGBO(0, 31, 62, 1),
+                                    side: BorderSide(
+                                        color: Color.fromRGBO(0, 31, 62, 1)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                  ),
+                                  child: Text('Rate'),
+                                ),
+                              ],
                             ),
 
                           if (displayStatus == 'completed')
