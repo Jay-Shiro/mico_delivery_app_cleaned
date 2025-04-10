@@ -382,6 +382,55 @@ class _UserChatScreenState extends State<UserChatScreen> {
     );
   }
 
+  // Add this method to create shimmer loading effect for messages
+  Widget _buildLoadingShimmer() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+        itemCount: 6, // Show 6 shimmer message bubbles
+        itemBuilder: (_, index) {
+          final bool isUserMessage =
+              index % 2 == 0; // Alternate between user and other messages
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              mainAxisAlignment: isUserMessage
+                  ? MainAxisAlignment.end
+                  : MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (!isUserMessage) ...[
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Container(
+                  width: 200 -
+                      (index * 20) %
+                          100, // Varying widths for more natural look
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -828,51 +877,4 @@ class _UserChatScreenState extends State<UserChatScreen> {
       color: color,
     );
   }
-}
-
-// Add this method to create shimmer loading effect for messages
-Widget _buildLoadingShimmer() {
-  return Shimmer.fromColors(
-    baseColor: Colors.grey[300]!,
-    highlightColor: Colors.grey[100]!,
-    child: ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-      itemCount: 6, // Show 6 shimmer message bubbles
-      itemBuilder: (_, index) {
-        final bool isUserMessage =
-            index % 2 == 0; // Alternate between user and other messages
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            mainAxisAlignment:
-                isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (!isUserMessage) ...[
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-              Container(
-                width: 200 -
-                    (index * 20) % 100, // Varying widths for more natural look
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    ),
-  );
 }
