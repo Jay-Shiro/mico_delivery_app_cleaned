@@ -44,7 +44,7 @@ class _MapPageState extends State<MapPage> {
   bool _isPromoCodeApplied = false;
   double _promoDiscountAmount = 0.0;
 
-  int _promoCodeUsageLimit = 100; // Maximum number of uses allowed
+  int _promoCodeUsageLimit = 300; // Maximum number of uses allowed
   int _promoCodeUsageCount =
       0; // Tracks the number of times the promo code has been used
 
