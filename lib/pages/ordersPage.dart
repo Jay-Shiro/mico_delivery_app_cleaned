@@ -953,30 +953,6 @@ class _OrdersPageState extends State<OrdersPage> {
                               children: [
                                 OutlinedButton(
                                   onPressed: () {
-                                    _showRatingModal(
-                                        delivery); // Call the rating modal
-                                  },
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor:
-                                        Color.fromRGBO(0, 31, 62, 1),
-                                    side: BorderSide(
-                                        color: Color.fromRGBO(0, 31, 62, 1)),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                  ),
-                                  child: Text('Rate'),
-                                ),
-                              ],
-                            ),
-
-                          if (displayStatus == 'completed')
-                            Row(
-                              children: [
-                                OutlinedButton(
-                                  onPressed: () {
                                     // Navigate to chat screen with delivery info
                                     final String riderId =
                                         delivery['rider_id'] ?? '';
