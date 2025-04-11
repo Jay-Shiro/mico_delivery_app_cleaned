@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:micollins_delivery_app/components/toggle_bar.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
@@ -1764,8 +1766,8 @@ class _OrdersPageState extends State<OrdersPage> {
                           SizedBox(width: 8),
                           Expanded(
                             child: FutureBuilder<Map<String, dynamic>>(
-                              future: _fetchRiderLocation(delivery[
-                                  '_id']), // Fetch rider location and ETA
+                              future: _fetchRiderLocation(
+                                  delivery['_id']), // Fetch rider location
                               builder: (context, snapshot) {
                                 if (snapshot.connectionState ==
                                     ConnectionState.waiting) {
@@ -1784,7 +1786,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                   return LinearProgressIndicator(
                                     value:
                                         0.0, // No progress if there's an error or no data
-                                    backgroundColor: Colors.grey[300],
+                                    backgroundColor: Colors.grey,
                                     valueColor: AlwaysStoppedAnimation<Color>(
                                       Colors.red, // Red to indicate an error
                                     ),
@@ -1792,44 +1794,74 @@ class _OrdersPageState extends State<OrdersPage> {
                                   );
                                 } else {
                                   final riderLocation = snapshot.data!;
-                                  final int etaMinutes =
-                                      riderLocation['eta_minutes'] ?? 0;
-                                  final String etaTime =
-                                      riderLocation['eta_time'] ?? '';
+                                  final double riderLat =
+                                      riderLocation['latitude'];
+                                  final double riderLng =
+                                      riderLocation['longitude'];
+                                  final double pickupLat =
+                                      delivery['pickup_lat'] ?? 0.0;
+                                  final double pickupLng =
+                                      delivery['pickup_lng'] ?? 0.0;
+                                  final double destinationLat =
+                                      delivery['endpoint_lat'] ?? 0.0;
+                                  final double destinationLng =
+                                      delivery['endpoint_lng'] ?? 0.0;
 
-                                  // Validate and parse etaTime
-                                  DateTime? etaDateTime;
-                                  try {
-                                    etaDateTime = DateTime.parse(etaTime);
-                                  } catch (e) {
-                                    debugPrint(
-                                        'Invalid eta_time format: $etaTime');
-                                    etaDateTime =
-                                        null; // Fallback to null if parsing fails
-                                  }
+                                  // Convert rider location to LatLng
+                                  final LatLng riderLatLng =
+                                      LatLng(riderLat, riderLng);
+                                  final LatLng pickupLatLng =
+                                      LatLng(pickupLat, pickupLng);
+                                  final LatLng destinationLatLng =
+                                      LatLng(destinationLat, destinationLng);
 
-                                  if (etaDateTime == null) {
-                                    return LinearProgressIndicator(
-                                      value:
-                                          0.0, // No progress if eta_time is invalid
-                                      backgroundColor: Colors.grey[300],
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.red, // Red to indicate an error
-                                      ),
-                                      borderRadius: BorderRadius.circular(10),
+                                  // Calculate distances
+                                  final double distanceToPickup =
+                                      Geolocator.distanceBetween(
+                                    riderLatLng.latitude,
+                                    riderLatLng.longitude,
+                                    pickupLatLng.latitude,
+                                    pickupLatLng.longitude,
+                                  );
+
+                                  final double totalDistanceToDestination =
+                                      Geolocator.distanceBetween(
+                                    pickupLatLng.latitude,
+                                    pickupLatLng.longitude,
+                                    destinationLatLng.latitude,
+                                    destinationLatLng.longitude,
+                                  );
+
+                                  final double remainingDistanceToDestination =
+                                      Geolocator.distanceBetween(
+                                    riderLatLng.latitude,
+                                    riderLatLng.longitude,
+                                    destinationLatLng.latitude,
+                                    destinationLatLng.longitude,
+                                  );
+
+                                  // Determine progress
+                                  double progress;
+                                  if (distanceToPickup > 10) {
+                                    // Rider is still on the way to the pickup location
+                                    final double totalDistanceToPickup =
+                                        Geolocator.distanceBetween(
+                                      pickupLatLng.latitude,
+                                      pickupLatLng.longitude,
+                                      riderLatLng.latitude,
+                                      riderLatLng.longitude,
                                     );
+                                    progress = ((totalDistanceToPickup -
+                                                distanceToPickup) /
+                                            totalDistanceToPickup)
+                                        .clamp(0.0, 1.0);
+                                  } else {
+                                    // Rider has reached the pickup location, calculate progress to destination
+                                    progress = ((totalDistanceToDestination -
+                                                remainingDistanceToDestination) /
+                                            totalDistanceToDestination)
+                                        .clamp(0.0, 1.0);
                                   }
-
-                                  // Calculate progress based on elapsed time
-                                  final DateTime now = DateTime.now();
-                                  final int totalSeconds = etaMinutes * 60;
-                                  final int elapsedSeconds = totalSeconds -
-                                      etaDateTime.difference(now).inSeconds;
-
-                                  // Ensure progress is between 0.0 and 1.0
-                                  final double progress =
-                                      (elapsedSeconds / totalSeconds)
-                                          .clamp(0.0, 1.0);
 
                                   return LinearProgressIndicator(
                                     value: progress,
@@ -1921,7 +1953,7 @@ class _OrdersPageState extends State<OrdersPage> {
               SizedBox(height: 16),
               FutureBuilder<Map<String, dynamic>>(
                 future: _fetchRiderLocation(
-                    delivery['_id']), // Fetch rider location and ETA
+                    delivery['_id']), // Fetch rider location
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Text(
@@ -1945,9 +1977,33 @@ class _OrdersPageState extends State<OrdersPage> {
                     );
                   } else {
                     final riderLocation = snapshot.data!;
-                    final int etaMinutes = riderLocation['eta_minutes'] ?? 0;
+                    final double riderLat = riderLocation['latitude'];
+                    final double riderLng = riderLocation['longitude'];
+                    final double destinationLat =
+                        delivery['endpoint_lat'] ?? 0.0;
+                    final double destinationLng =
+                        delivery['endpoint_lng'] ?? 0.0;
 
-                    // Display the dynamic estimated arrival time
+                    // Calculate the distance to the destination
+                    final double distanceToDestination =
+                        Geolocator.distanceBetween(
+                      riderLat,
+                      riderLng,
+                      destinationLat,
+                      destinationLng,
+                    ); // Distance in meters
+
+                    // Assume an average speed of 40 km/h (11.11 m/s)
+                    const double averageSpeedMetersPerSecond = 11.11;
+
+                    // Calculate ETA in seconds
+                    final int etaSeconds =
+                        (distanceToDestination / averageSpeedMetersPerSecond)
+                            .round();
+
+                    // Convert ETA to minutes
+                    final int etaMinutes = (etaSeconds / 60).ceil();
+
                     return Text(
                       "Estimated arrival: $etaMinutes minutes",
                       style: TextStyle(
