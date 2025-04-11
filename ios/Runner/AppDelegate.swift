@@ -34,23 +34,27 @@ func presentImagePicker(sourceType: UIImagePickerController.SourceType) {
     picker.sourceType = sourceType
     picker.allowsEditing = false
 
-    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-       let window = windowScene.windows.first,
-       let rootVC = window.rootViewController {
-
-        // ✅ Prevent crash on iPad by setting up popoverPresentationController
-        if let popoverController = picker.popoverPresentationController {
-            popoverController.sourceView = rootVC.view
-            popoverController.sourceRect = CGRect(x: rootVC.view.bounds.midX,
-                                                  y: rootVC.view.bounds.midY,
-                                                  width: 0,
-                                                  height: 0)
-            popoverController.permittedArrowDirections = []
+    if #available(iOS 13.0, *) {
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first,
+           let rootVC = window.rootViewController {
+            
+            // ✅ Prevent crash on iPad by setting up popoverPresentationController
+            if let popoverController = picker.popoverPresentationController {
+                popoverController.sourceView = rootVC.view
+                popoverController.sourceRect = CGRect(x: rootVC.view.bounds.midX,
+                                                      y: rootVC.view.bounds.midY,
+                                                      width: 0,
+                                                      height: 0)
+                popoverController.permittedArrowDirections = []
+            }
+            
+            rootVC.present(picker, animated: true, completion: nil)
+        } else {
+            print("Failed to get root view controller.")
         }
-
-        rootVC.present(picker, animated: true, completion: nil)
     } else {
-        print("Failed to get root view controller.")
+        // Fallback on earlier versions
     }
 }
 
