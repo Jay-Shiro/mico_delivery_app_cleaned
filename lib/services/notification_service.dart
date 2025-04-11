@@ -6,11 +6,13 @@ import 'package:flutter/material.dart';
 
 class NotificationService {
   // Singleton pattern
-  static final NotificationService _notificationService = NotificationService._internal();
+  static final NotificationService _notificationService =
+      NotificationService._internal();
   factory NotificationService() => _notificationService;
   NotificationService._internal();
 
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
     // Initialize timezone
@@ -22,7 +24,7 @@ class NotificationService {
 
     // Android initialization settings
     final AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/launcher_icon');
 
     // iOS initialization settings
     final DarwinInitializationSettings initializationSettingsIOS =
@@ -33,7 +35,8 @@ class NotificationService {
     );
 
     // Initialization settings
-    final InitializationSettings initializationSettings = InitializationSettings(
+    final InitializationSettings initializationSettings =
+        InitializationSettings(
       android: initializationSettingsAndroid,
       iOS: initializationSettingsIOS,
     );
@@ -41,32 +44,35 @@ class NotificationService {
     // Initialize plugin
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse notificationResponse) {
+      onDidReceiveNotificationResponse:
+          (NotificationResponse notificationResponse) {
         // Handle notification tap
         debugPrint('Notification tapped: ${notificationResponse.payload}');
       },
     );
-    
+
     debugPrint('Notification service initialized');
   }
-  
+
   // Request permissions
   Future<void> _requestPermissions() async {
     // For iOS
     if (Platform.isIOS) {
       await flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>()
           ?.requestPermissions(
             alert: true,
             badge: true,
             sound: true,
           );
     }
-        
+
     // For Android
     if (Platform.isAndroid) {
       await flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
           ?.requestNotificationsPermission();
     }
   }
