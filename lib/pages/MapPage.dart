@@ -40,11 +40,20 @@ class _MapPageState extends State<MapPage> {
   String? userEmail;
   String? userId;
 
+  final TextEditingController _promoCodeController = TextEditingController();
+  bool _isPromoCodeApplied = false;
+  double _promoDiscountAmount = 0.0;
+
+  int _promoCodeUsageLimit = 300; // Maximum number of uses allowed
+  int _promoCodeUsageCount =
+      0; // Tracks the number of times the promo code has been used
+
   @override
   void initState() {
     super.initState();
     _initializeLocation();
     _loadUserEmail();
+    _loadPromoCodeUsageCount();
   }
 
   bool _isInLagos(double latitude, double longitude) {
@@ -1620,7 +1629,71 @@ class _MapPageState extends State<MapPage> {
   MoneyFormatterOutput? size75Formatted;
   MoneyFormatterOutput? size100Formatted;
 
-  double get paymentAmt => _getDeliveryCost() + _getPackagePrice();
+  double get paymentAmt {
+    double total = _getDeliveryCost() + _getPackagePrice();
+    if (_isPromoCodeApplied) {
+      total -= _promoDiscountAmount; // Subtract the promo discount
+    }
+    return total;
+  }
+
+  void _applyPromoCode() {
+    const List<String> validPromoCodes = [
+      "SAVE10",
+      "MICOSTARTDATE"
+    ]; // List of valid promo codes
+
+    if (_promoCodeUsageCount >= _promoCodeUsageLimit) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Promo code usage limit reached."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Check if the entered promo code exists in the validPromoCodes list
+    if (validPromoCodes
+        .contains(_promoCodeController.text.trim().toUpperCase())) {
+      setState(() {
+        _isPromoCodeApplied = true;
+        _promoDiscountAmount = paymentAmt * 0.1; // Apply 10% discount
+        _promoCodeUsageCount++; // Increment the usage count
+      });
+      _savePromoCodeUsageCount(); // Save the updated usage count
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Promo code applied successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      setState(() {
+        _isPromoCodeApplied = false;
+        _promoDiscountAmount = 0.0;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Invalid promo code."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _savePromoCodeUsageCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('promoCodeUsageCount', _promoCodeUsageCount);
+  }
+
+  Future<void> _loadPromoCodeUsageCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _promoCodeUsageCount = prefs.getInt('promoCodeUsageCount') ?? 0;
+    });
+  }
+
   String get formattedPaymentAmt => formatMoney(paymentAmt).symbolOnLeft;
   int get paymentParameter => (paymentAmt).toInt();
 
@@ -2536,6 +2609,86 @@ class _MapPageState extends State<MapPage> {
                                       ),
                                     ),
                                   const SizedBox(height: 30),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 12),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Enter Promo Code",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color.fromRGBO(0, 31, 62, 1),
+                                          ),
+                                        ),
+                                        SizedBox(height: 6),
+                                        Text(
+                                          "Promo code uses remaining: ${_promoCodeUsageLimit - _promoCodeUsageCount}",
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                        SizedBox(height: 12),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextField(
+                                                controller:
+                                                    _promoCodeController,
+                                                decoration: InputDecoration(
+                                                  hintText: "Enter promo code",
+                                                  border: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                  ),
+                                                  focusedBorder:
+                                                      OutlineInputBorder(
+                                                    borderSide: BorderSide(
+                                                      color: Color.fromRGBO(
+                                                          0, 31, 62, 1),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            SizedBox(width: 8),
+                                            ElevatedButton(
+                                              onPressed: () {
+                                                _applyPromoCode();
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Color.fromRGBO(
+                                                    0, 31, 62, 1),
+                                                foregroundColor: Colors.white,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                              ),
+                                              child: Text("Apply"),
+                                            ),
+                                          ],
+                                        ),
+                                        if (_isPromoCodeApplied)
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 8),
+                                            child: Text(
+                                              "Promo code applied! You saved ₦${_promoDiscountAmount.toStringAsFixed(2)}",
+                                              style: TextStyle(
+                                                color: Colors.green,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
                                   Container(
                                     width: double.infinity,
                                     margin:
@@ -2556,7 +2709,7 @@ class _MapPageState extends State<MapPage> {
                                         ),
                                       ),
                                       child: Text(
-                                        'Confirm Order',
+                                        'Confirm Order(${formatMoney(paymentAmt).symbolOnLeft})',
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
