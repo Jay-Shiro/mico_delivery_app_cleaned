@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -14,6 +15,12 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  // Stream controller for notification tap
+  final StreamController<String> _notificationStreamController =
+      StreamController<String>.broadcast();
+  Stream<String> get onNotificationTapped =>
+      _notificationStreamController.stream;
+
   Future<void> init() async {
     // Initialize timezone
     tz.initializeTimeZones();
@@ -24,7 +31,8 @@ class NotificationService {
 
     // Android initialization settings
     final AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/launcher_icon');
+        AndroidInitializationSettings(
+            '@mipmap/ic_launcher'); // Check the icon path
 
     // iOS initialization settings
     final DarwinInitializationSettings initializationSettingsIOS =
@@ -48,6 +56,10 @@ class NotificationService {
           (NotificationResponse notificationResponse) {
         // Handle notification tap
         debugPrint('Notification tapped: ${notificationResponse.payload}');
+        if (notificationResponse.payload != null) {
+          // Trigger a stream when a notification is tapped
+          _notificationStreamController.add(notificationResponse.payload!);
+        }
       },
     );
 
@@ -91,7 +103,7 @@ class NotificationService {
       importance: Importance.max,
       priority: Priority.high,
       showWhen: true,
-      icon: '@mipmap/ic_launcher',
+      icon: '@mipmap/ic_launcher', // Ensure this is correct
     );
 
     const DarwinNotificationDetails iOSPlatformChannelSpecifics =
