@@ -39,6 +39,8 @@
 	<string>We need your location to provide accurate route recommendation.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>This app requires access to the camera to scan QR codes and capture photos for deliveries.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to upload images for profile and delivery confirmation.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
