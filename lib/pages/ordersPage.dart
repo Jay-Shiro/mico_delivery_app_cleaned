@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:micollins_delivery_app/components/toggle_bar.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
+import 'package:micollins_delivery_app/services/notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -35,6 +38,16 @@ class _OrdersPageState extends State<OrdersPage> {
     super.initState();
     _loadUserData().then((_) {
       fetchDeliveries();
+    });
+
+    // Set up periodic check for completed deliveries
+    Timer.periodic(Duration(minutes: 1), (timer) {
+      checkForCompletedDeliveries();
+    });
+
+    // Check immediately on startup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkForCompletedDeliveries();
     });
   }
 
@@ -1014,6 +1027,38 @@ class _OrdersPageState extends State<OrdersPage> {
                                   ),
                                   child: Text('Receipt'),
                                 ),
+                                SizedBox(width: 8),
+                                // Add Rate Rider button
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    _showRatingDialog(delivery);
+                                  },
+                                  icon: Icon(
+                                    EvaIcons.starOutline,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
+                                  label: Text(
+                                    'Rate',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        Color.fromRGBO(0, 31, 62, 1),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                         ],
@@ -1024,6 +1069,320 @@ class _OrdersPageState extends State<OrdersPage> {
           )
         ],
       ),
+    );
+  }
+
+  void _showRatingDialog(dynamic delivery) {
+    final String riderId = delivery['rider_id'] ?? '';
+    if (riderId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Rider information not available')),
+      );
+      return;
+    }
+
+    double ratingValue = 5.0;
+    final commentController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              child: Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      spreadRadius: 5,
+                      blurRadius: 10,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header with icon
+                    Container(
+                      padding: EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Color.fromRGBO(0, 31, 62, 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        EvaIcons.starOutline,
+                        color: Color.fromRGBO(0, 31, 62, 1),
+                        size: 30,
+                      ),
+                    ),
+                    SizedBox(height: 15),
+
+                    // Title
+                    Text(
+                      'Rate Your Rider',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromRGBO(0, 31, 62, 1),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+
+                    // Subtitle
+                    Text(
+                      'How was your delivery experience?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    SizedBox(height: 20),
+
+                    // Star rating
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              ratingValue = index + 1.0;
+                            });
+                          },
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 5),
+                            child: Icon(
+                              index < ratingValue
+                                  ? Icons.star
+                                  : Icons.star_border,
+                              color: index < ratingValue
+                                  ? Colors.amber
+                                  : Colors.grey[400],
+                              size: 36,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    SizedBox(height: 20),
+
+                    // Comment field
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: TextField(
+                        controller: commentController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          hintText: 'Add your comments here...',
+                          hintStyle: TextStyle(color: Colors.grey[500]),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.all(15),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 25),
+
+                    // Submit button
+                    Container(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          _submitRiderRating(
+                            riderId,
+                            delivery['_id'],
+                            ratingValue,
+                            commentController.text,
+                          );
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color.fromRGBO(0, 31, 62, 1),
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Submit Rating',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+
+                    // Cancel button
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Method to submit the rider rating
+  Future<void> _submitRiderRating(
+    String riderId,
+    String deliveryId,
+    double rating,
+    String comment,
+  ) async {
+    try {
+      // Using the correct endpoint format as shown in the curl example
+      final response = await http.post(
+        Uri.parse(
+            'https://deliveryapi-ten.vercel.app/users/$userId/rate-rider/$riderId'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'rating': rating,
+          'comment': comment,
+          'delivery_id': deliveryId,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Thank you for rating your rider!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        debugPrint(
+            'Error submitting rating: ${response.statusCode}, ${response.body}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit rating. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Exception while submitting rating: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An error occurred. Please try again later.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> checkForCompletedDeliveries() async {
+    if (userId == null) return;
+
+    try {
+      debugPrint('Checking for completed deliveries...');
+
+      // Use the same endpoint that works in fetchDeliveries
+      final response = await http.get(
+        Uri.parse('https://deliveryapi-ten.vercel.app/deliveries'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['status'] == 'success' && data['deliveries'] != null) {
+          final List<dynamic> allDeliveries = data['deliveries'];
+          debugPrint('Found ${allDeliveries.length} total deliveries');
+
+          // Filter deliveries for the current user
+          final List<dynamic> userDeliveries = allDeliveries
+              .where((delivery) => delivery['user_id'] == userId)
+              .toList();
+
+          debugPrint(
+              'Found ${userDeliveries.length} deliveries for user $userId');
+
+          // Get previously notified deliveries from SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          final notifiedDeliveries =
+              prefs.getStringList('notified_deliveries') ?? [];
+
+          // Check for newly completed deliveries
+          for (var delivery in userDeliveries) {
+            final String deliveryId = delivery['_id'];
+
+            // Handle the nested status structure
+            final status = delivery['status'] is Map
+                ? delivery['status']['current']
+                : delivery['status'];
+
+            debugPrint('Delivery $deliveryId status: $status');
+
+            if (status == 'completed' &&
+                !notifiedDeliveries.contains(deliveryId)) {
+              debugPrint('New completed delivery found: $deliveryId');
+              // This is a newly completed delivery, send notification
+              _sendCompletionNotification(delivery);
+
+              // Add to notified list
+              notifiedDeliveries.add(deliveryId);
+              await prefs.setStringList(
+                  'notified_deliveries', notifiedDeliveries);
+            }
+          }
+        } else {
+          debugPrint('Unexpected response format: ${response.body}');
+        }
+      } else {
+        debugPrint(
+            'Error fetching deliveries: ${response.statusCode}, ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('Error checking for completed deliveries: $e');
+    }
+  }
+
+  // Add this method to send notifications for completed deliveries
+  void _sendCompletionNotification(dynamic delivery) {
+    final String shortId = delivery['_id'].toString().substring(0, 8);
+    final String title = 'Delivery Completed';
+    final String body =
+        'Your delivery (MC$shortId) has been completed successfully!';
+
+    debugPrint('Sending notification for delivery MC$shortId');
+
+    NotificationService().showNotification(
+      title: title,
+      body: body,
+      payload: json.encode({
+        'type': 'delivery_completed',
+        'delivery_id': delivery['_id'],
+      }),
     );
   }
 

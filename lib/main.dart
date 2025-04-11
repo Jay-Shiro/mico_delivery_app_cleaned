@@ -11,9 +11,13 @@ import 'package:micollins_delivery_app/pages/supportPage.dart';
 import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:micollins_delivery_app/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize notification service
+  await NotificationService().init();
 
   final prefs = await SharedPreferences.getInstance();
   final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;

@@ -66,70 +66,106 @@ class _MapPageState extends State<MapPage> {
 
       // Check if the user's location is within Lagos
       if (!_isInLagos(position.latitude, position.longitude)) {
-        // Show a short alert dialog
+        // Show a modern and visually appealing alert dialog
         showDialog(
           context: context,
           builder: (BuildContext context) {
-            return AlertDialog(
-              title: Center(
-                child: Text(
-                  'Service Unavailable',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color.fromRGBO(0, 31, 62, 1),
-                  ),
-                ),
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min, // Adjust size to fit content
-                children: [
-                  Icon(
-                    Icons.sentiment_dissatisfied, // Sad icon
-                    color: Colors.grey, // Icon color
-                    size: 50, // Icon size
-                  ),
-                  SizedBox(height: 10), // Add spacing between icon and text
-                  Text(
-                    'Our services are only limited to Lagos for now.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[700],
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              child: Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      spreadRadius: 5,
+                      blurRadius: 10,
+                      offset: Offset(0, 3),
                     ),
-                  ),
-                ],
-              ),
-              actions: [
-                Center(
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(); // Close the dialog
-                    },
-                    style: ButtonStyle(
-                      fixedSize: MaterialStateProperty.all(Size(100, 40)),
-                      backgroundColor: MaterialStateProperty.all(
-                        Color.fromRGBO(0, 31, 62, 1),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Color.fromRGBO(0, 31, 62, 0.1),
+                        shape: BoxShape.circle,
                       ),
-                      shape: MaterialStateProperty.all(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      child: Icon(
+                        Icons.location_off,
+                        color: Color.fromRGBO(0, 31, 62, 1),
+                        size: 40,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      'Service Unavailable',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromRGBO(0, 31, 62, 1),
+                      ),
+                    ),
+                    SizedBox(height: 15),
+                    Text(
+                      'Our services are currently only available in Lagos.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[700],
+                        height: 1.5,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      'We\'re working on expanding to more locations soon!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    SizedBox(height: 25),
+                    Container(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color.fromRGBO(0, 31, 62, 1),
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Got it',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                    child: Text(
-                      'OK',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             );
           },
         );
-        return; // Stop further execution
+        return;
       }
 
       if (mounted) {
