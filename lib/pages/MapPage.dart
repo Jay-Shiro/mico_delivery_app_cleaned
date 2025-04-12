@@ -216,7 +216,8 @@ class _MapPageState extends State<MapPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error getting location: $e'),
+            content: Text(
+                'Error getting location: please enter your Pickup Address'),
             backgroundColor: const Color.fromRGBO(255, 91, 82, 1),
           ),
         );
@@ -521,6 +522,16 @@ class _MapPageState extends State<MapPage> {
                 rate *= 5.2; // Use 3.2 multiplier for cars
               } else if (vehicleType == 'truck') {
                 rate *= 8.2; // Use 3.2 multiplier for cars
+              }
+            } else if (km > 10.5) {
+              if (vehicleType == 'bike') {
+                rate *= 1.8; // Use 2.2 multiplier for bikes
+              } else if (vehicleType == 'car') {
+                rate *= 2.4; // Use 3.2 multiplier for cars
+              } else if (vehicleType == 'bus') {
+                rate *= 3.2; // Use 3.2 multiplier for cars
+              } else if (vehicleType == 'truck') {
+                rate *= 4.6; // Use 3.2 multiplier for cars
               }
             }
 
