@@ -32,7 +32,7 @@ class NotificationService {
     // Android initialization settings
     final AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings(
-            '@mipmap/ic_launcher'); // Check the icon path
+            '@mipmap/launcher_icon'); // Check the icon path
 
     // iOS initialization settings
     final DarwinInitializationSettings initializationSettingsIOS =
@@ -103,7 +103,7 @@ class NotificationService {
       importance: Importance.max,
       priority: Priority.high,
       showWhen: true,
-      icon: '@mipmap/ic_launcher', // Ensure this is correct
+      icon: '@mipmap/launcher_icon', // Ensure this is correct
     );
 
     const DarwinNotificationDetails iOSPlatformChannelSpecifics =
