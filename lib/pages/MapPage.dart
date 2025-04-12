@@ -44,7 +44,7 @@ class _MapPageState extends State<MapPage> {
   bool _isPromoCodeApplied = false;
   double _promoDiscountAmount = 0.0;
 
-  int _promoCodeUsageLimit = 300; // Maximum number of uses allowed
+  int _promoCodeUsageLimit = 3; // Maximum number of uses allowed
   int _promoCodeUsageCount =
       0; // Tracks the number of times the promo code has been used
 
@@ -479,40 +479,141 @@ class _MapPageState extends State<MapPage> {
             _userDestinations.last.longitude,
           );
 
-          const double markdown = 0.96; // 4% off
-          final double surge = _isPeakHour() ? 1.3 : 1.0; // Dynamic surge
-          const double baseFare = 1000;
+          const double markdown = 0.96;
+          final double surge = _isPeakHour() ? 1.3 : 1.0;
+          const double minimumFare = 1000.0;
 
-          // Vehicle rate configs
-          final Map<String, double> baseRates = isIslandToMainland
-              ? {
-                  'bike': 550,
-                  'car': 1000,
-                  'bus': 600,
-                  'truck': 1200,
-                }
-              : {
-                  'bike': 500,
-                  'car': 850,
-                  'bus': 550,
-                  'truck': 1100,
-                };
+          // New pricing rules based on distance brackets
+          List<Map<String, dynamic>> pricingRules = [
+            {
+              'maxDistance': 1.5,
+              'rates': {
+                'bike': 450.0,
+                'car': isIslandToMainland ? 1100.0 : 1000.0,
+                'bus': isIslandToMainland ? 700.0 : 600.0
+              }
+            },
+            {
+              'maxDistance': 5,
+              'rates': {
+                'bike': isIslandToMainland ? 600.0 : 550.0,
+                'car': isIslandToMainland ? 1300.0 : 1200.0,
+                'bus': 700.0
+              }
+            },
+            {
+              'maxDistance': 10,
+              'rates': {
+                'bike': isIslandToMainland ? 850.0 : 750.0,
+                'car': 1500.0,
+                'bus': isIslandToMainland ? 800.0 : 750.0
+              }
+            },
+            {
+              'maxDistance': 15,
+              'rates': {
+                'bike': isIslandToMainland ? 1100.0 : 950.0,
+                'car': 1700.0,
+                'bus': isIslandToMainland ? 900.0 : 800.0
+              }
+            },
+            {
+              'maxDistance': 20,
+              'rates': {
+                'bike': isIslandToMainland ? 1300.0 : 1100.0,
+                'car': 1900.0,
+                'bus': 850.0
+              }
+            },
+            {
+              'maxDistance': 25,
+              'rates': {
+                'bike': isIslandToMainland ? 1500.0 : 1300.0,
+                'car': 2100.0,
+                'bus': 900.0
+              }
+            },
+            {
+              'maxDistance': 30,
+              'rates': {
+                'bike': isIslandToMainland ? 1700.0 : 1450.0,
+                'car': 2300.0,
+                'bus': 950.0
+              }
+            },
+            {
+              'maxDistance': 35,
+              'rates': {
+                'bike': isIslandToMainland ? 1850.0 : 1600.0,
+                'car': 2500.0,
+                'bus': 950.0
+              }
+            },
+            {
+              'maxDistance': 40,
+              'rates': {
+                'bike': isIslandToMainland ? 2000.0 : 1750.0,
+                'car': 2700.0,
+                'bus': 1000.0
+              }
+            },
+            {
+              'maxDistance': 45,
+              'rates': {
+                'bike': isIslandToMainland ? 2200.0 : 1850.0,
+                'car': 2900.0,
+                'bus': 1000.0
+              }
+            },
+            {
+              'maxDistance': 50,
+              'rates': {
+                'bike': isIslandToMainland ? 2400.0 : 2000.0,
+                'car': 3100.0,
+                'bus': 1050.0
+              }
+            },
+          ];
+
+          // New default per-km rates (fallback)
+          final defaultRates = {
+            'bike': isIslandToMainland ? 160.0 : 140.0,
+            'car': 160.0,
+            'bus': isIslandToMainland ? 110.0 : 100.0,
+            'truck': isIslandToMainland ? 250.0 : 220.0,
+          };
+
+          // Select applicable rates based on distance
+          Map<String, double> selectedRates = defaultRates;
+          for (final rule in pricingRules) {
+            if (roundDistanceKM <= rule['maxDistance']) {
+              selectedRates = Map<String, double>.from(rule['rates']);
+              break;
+            }
+          }
 
           // Dynamic cost calculator
           double calculateCost(double km, double rate) {
             double price = km * rate * markdown * surge;
-            return price < baseFare ? baseFare : price;
+            return price < minimumFare ? minimumFare : price;
           }
 
-          expressCost = calculateCost(roundDistanceKM, baseRates['bike']!);
+          // Final fare breakdown
+          expressCost = calculateCost(roundDistanceKM, selectedRates['bike']!);
           standardCost =
-              calculateCost(roundDistanceKM, baseRates['bike']! / 1.8);
-          carExpressCost = calculateCost(roundDistanceKM, baseRates['car']!);
+              calculateCost(roundDistanceKM, selectedRates['bike']! / 1.8);
+          carExpressCost =
+              calculateCost(roundDistanceKM, selectedRates['car']!);
           carStandardCost =
-              calculateCost(roundDistanceKM, baseRates['car']! / 1.8);
-          busCost = calculateCost(roundDistanceKM, baseRates['bus']!);
-          truckCost = calculateCost(roundDistanceKM, baseRates['truck']!);
+              calculateCost(roundDistanceKM, selectedRates['car']! / 1.8);
+          busCost = calculateCost(roundDistanceKM, selectedRates['bus']!);
+          truckCost = calculateCost(
+              roundDistanceKM,
+              selectedRates.containsKey('truck')
+                  ? selectedRates['truck']!
+                  : defaultRates['truck']!);
 
+          // Format money
           standardFormatted = formatMoney(standardCost);
           expressFormatted = formatMoney(expressCost);
           carExpressFormatted = formatMoney(carExpressCost);
