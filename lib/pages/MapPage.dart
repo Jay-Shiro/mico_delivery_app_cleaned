@@ -469,7 +469,7 @@ class _MapPageState extends State<MapPage> {
         }
 
         setState(() {
-          finalDistance = totalDistance / 1000; // Convert to kilometers
+          finalDistance = totalDistance / 1000; // Convert to km
           roundDistanceKM = double.parse(finalDistance.toStringAsFixed(1));
 
           bool isIslandToMainland = _isIslandToMainland(
@@ -481,139 +481,71 @@ class _MapPageState extends State<MapPage> {
 
           const double markdown = 0.96;
           final double surge = _isPeakHour() ? 1.3 : 1.0;
-          const double minimumFare = 1000.0;
 
-          // New pricing rules based on distance brackets
-          List<Map<String, dynamic>> pricingRules = [
-            {
-              'maxDistance': 1.5,
-              'rates': {
-                'bike': 450.0,
-                'car': isIslandToMainland ? 1100.0 : 1000.0,
-                'bus': isIslandToMainland ? 700.0 : 600.0
-              }
-            },
-            {
-              'maxDistance': 5,
-              'rates': {
-                'bike': isIslandToMainland ? 600.0 : 550.0,
-                'car': isIslandToMainland ? 1300.0 : 1200.0,
-                'bus': 700.0
-              }
-            },
-            {
-              'maxDistance': 10,
-              'rates': {
-                'bike': isIslandToMainland ? 850.0 : 750.0,
-                'car': 1500.0,
-                'bus': isIslandToMainland ? 800.0 : 750.0
-              }
-            },
-            {
-              'maxDistance': 15,
-              'rates': {
-                'bike': isIslandToMainland ? 1100.0 : 950.0,
-                'car': 1700.0,
-                'bus': isIslandToMainland ? 900.0 : 800.0
-              }
-            },
-            {
-              'maxDistance': 20,
-              'rates': {
-                'bike': isIslandToMainland ? 1300.0 : 1100.0,
-                'car': 1900.0,
-                'bus': 850.0
-              }
-            },
-            {
-              'maxDistance': 25,
-              'rates': {
-                'bike': isIslandToMainland ? 1500.0 : 1300.0,
-                'car': 2100.0,
-                'bus': 900.0
-              }
-            },
-            {
-              'maxDistance': 30,
-              'rates': {
-                'bike': isIslandToMainland ? 1700.0 : 1450.0,
-                'car': 2300.0,
-                'bus': 950.0
-              }
-            },
-            {
-              'maxDistance': 35,
-              'rates': {
-                'bike': isIslandToMainland ? 1850.0 : 1600.0,
-                'car': 2500.0,
-                'bus': 950.0
-              }
-            },
-            {
-              'maxDistance': 40,
-              'rates': {
-                'bike': isIslandToMainland ? 2000.0 : 1750.0,
-                'car': 2700.0,
-                'bus': 1000.0
-              }
-            },
-            {
-              'maxDistance': 45,
-              'rates': {
-                'bike': isIslandToMainland ? 2200.0 : 1850.0,
-                'car': 2900.0,
-                'bus': 1000.0
-              }
-            },
-            {
-              'maxDistance': 50,
-              'rates': {
-                'bike': isIslandToMainland ? 2400.0 : 2000.0,
-                'car': 3100.0,
-                'bus': 1050.0
-              }
-            },
-          ];
-
-          // New default per-km rates (fallback)
-          final defaultRates = {
-            'bike': isIslandToMainland ? 160.0 : 140.0,
-            'car': 160.0,
-            'bus': isIslandToMainland ? 110.0 : 100.0,
-            'truck': isIslandToMainland ? 250.0 : 220.0,
+          // Base fares (₦)
+          final baseFares = {
+            'bike': 300.0,
+            'car': 500.0,
+            'bus': 700.0,
+            'truck': 1000.0,
           };
 
-          // Select applicable rates based on distance
-          Map<String, double> selectedRates = defaultRates;
-          for (final rule in pricingRules) {
-            if (roundDistanceKM <= rule['maxDistance']) {
-              selectedRates = Map<String, double>.from(rule['rates']);
-              break;
+          // Per km rates (₦)
+          final perKmRates = isIslandToMainland
+              ? {
+                  'bike': 130.0,
+                  'car': 160.0,
+                  'bus': 110.0,
+                  'truck': 250.0,
+                }
+              : {
+                  'bike': 120.0,
+                  'car': 150.0,
+                  'bus': 180.0,
+                  'truck': 220.0,
+                };
+
+          // Fare calculator with dynamic minimum brackets
+          double calculateFare(
+              double km, double baseFare, double rate, String vehicleType) {
+            const double markdown = 0.96;
+            final double surge = _isPeakHour() ? 1.3 : 1.0;
+
+            // Use higher rates for distances below 7.5 km
+            if (km < 7.5) {
+              if (vehicleType == 'bike') {
+                rate *= 2.2; // Use 2.2 multiplier for bikes
+              } else if (vehicleType == 'car') {
+                rate *= 3.2; // Use 3.2 multiplier for cars
+              } else if (vehicleType == 'bus') {
+                rate *= 5.2; // Use 3.2 multiplier for cars
+              } else if (vehicleType == 'truck') {
+                rate *= 8.2; // Use 3.2 multiplier for cars
+              }
             }
+
+            double price = (baseFare + (km * rate)) * markdown * surge;
+
+            // Regular minimum fare for longer trips
+            return price < 1000 ? 1000 : price;
           }
 
-          // Dynamic cost calculator
-          double calculateCost(double km, double rate) {
-            double price = km * rate * markdown * surge;
-            return price < minimumFare ? minimumFare : price;
-          }
+          // Fare breakdown
+          // Fare breakdown
+          expressCost = calculateFare(
+              roundDistanceKM, baseFares['bike']!, perKmRates['bike']!, 'bike');
+          standardCost = calculateFare(roundDistanceKM, baseFares['bike']!,
+              perKmRates['bike']! / 1.8, 'bike');
+          carExpressCost = calculateFare(
+              roundDistanceKM, baseFares['car']!, perKmRates['car']!, 'car');
+          carStandardCost = calculateFare(roundDistanceKM, baseFares['car']!,
+              perKmRates['car']! / 1.8, 'car');
+          busCost = calculateFare(
+              roundDistanceKM, baseFares['bus']!, perKmRates['bus']!, 'bus');
+          truckCost = calculateFare(roundDistanceKM, baseFares['truck']!,
+              perKmRates['truck']!, 'truck');
 
-          // Final fare breakdown
-          expressCost = calculateCost(roundDistanceKM, selectedRates['bike']!);
-          standardCost =
-              calculateCost(roundDistanceKM, selectedRates['bike']! / 1.8);
-          carExpressCost =
-              calculateCost(roundDistanceKM, selectedRates['car']!);
-          carStandardCost =
-              calculateCost(roundDistanceKM, selectedRates['car']! / 1.8);
-          busCost = calculateCost(roundDistanceKM, selectedRates['bus']!);
-          truckCost = calculateCost(
-              roundDistanceKM,
-              selectedRates.containsKey('truck')
-                  ? selectedRates['truck']!
-                  : defaultRates['truck']!);
-
-          // Format money
+          // Format results for display
           standardFormatted = formatMoney(standardCost);
           expressFormatted = formatMoney(expressCost);
           carExpressFormatted = formatMoney(carExpressCost);
