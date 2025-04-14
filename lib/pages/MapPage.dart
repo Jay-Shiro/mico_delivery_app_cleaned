@@ -480,9 +480,6 @@ class _MapPageState extends State<MapPage> {
             _userDestinations.last.longitude,
           );
 
-          const double markdown = 0.96;
-          final double surge = _isPeakHour() ? 1.3 : 1.0;
-
           // Base fares (₦)
           final baseFares = {
             'bike': 300.0,
@@ -510,7 +507,7 @@ class _MapPageState extends State<MapPage> {
           double calculateFare(
               double km, double baseFare, double rate, String vehicleType) {
             const double markdown = 0.96;
-            final double surge = _isPeakHour() ? 1.3 : 1.0;
+            final double surge = _isPeakHour() ? 1.5 : 1.0;
 
             // Use higher rates for distances below 7.5 km
             if (km < 8.5) {
@@ -577,7 +574,7 @@ class _MapPageState extends State<MapPage> {
   bool _isPeakHour() {
     final now = DateTime.now();
     final hour = now.hour;
-    return (hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 20);
+    return (hour >= 7 && hour <= 10) || (hour >= 17 && hour <= 20);
   }
 
   bool _isIslandToMainland(
