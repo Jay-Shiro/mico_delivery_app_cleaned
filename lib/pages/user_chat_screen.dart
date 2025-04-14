@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:async'; // Add this import
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
@@ -101,6 +100,7 @@ class _UserChatScreenState extends State<UserChatScreen> {
         List<Map<String, dynamic>> newMessages = [];
 
         if (data is List) {
+          // Direct array of messages
           for (var msg in data) {
             final timestamp = DateTime.parse(msg['timestamp']);
 
@@ -114,6 +114,7 @@ class _UserChatScreenState extends State<UserChatScreen> {
             });
           }
         } else if (data['messages'] != null) {
+          // Response with 'messages' property
           for (var msg in data['messages']) {
             final timestamp = DateTime.parse(msg['timestamp']);
 
@@ -126,23 +127,12 @@ class _UserChatScreenState extends State<UserChatScreen> {
               'id': msg['_id'],
             });
           }
+        } else {
+          print('No messages found in the API response');
         }
 
+        // Only update state if there are new messages or if this is the initial load
         if (newMessages.isNotEmpty || _messages.isEmpty) {
-          // Check for new messages
-          final latestMessage = newMessages.last;
-          if (_lastMessageId != latestMessage['id'] &&
-              latestMessage['isUser'] == false) {
-            // Trigger notification for new message
-            _showNotification(
-              title: 'Message from Rider',
-              body: latestMessage['text'] ?? 'You have a new message',
-            );
-
-            // Update the last message ID
-            _lastMessageId = latestMessage['id'];
-          }
-
           setState(() {
             _messages.clear();
             _messages.addAll(newMessages);
@@ -170,22 +160,6 @@ class _UserChatScreenState extends State<UserChatScreen> {
         });
       }
     }
-  }
-
-  void _showNotification({required String title, required String body}) async {
-    final payload = {
-      'deliveryId': widget.deliveryId,
-      'senderId': widget.senderId,
-      'receiverId': widget.receiverId,
-      'userName': widget.userName,
-      'userImage': widget.userImage,
-    };
-
-    await NotificationService().showNotification(
-      title: title,
-      body: body,
-      payload: payload,
-    );
   }
 
   Future<void> _markMessagesAsRead() async {
