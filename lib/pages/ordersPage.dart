@@ -42,6 +42,9 @@ class _OrdersPageState extends State<OrdersPage> {
       fetchDeliveries();
     });
 
+    // Start listening for messages
+    listenForMessages();
+
     // Set up periodic check for completed deliveries
     Timer.periodic(Duration(minutes: 1), (timer) {
       checkForCompletedDeliveries();
@@ -50,6 +53,25 @@ class _OrdersPageState extends State<OrdersPage> {
     // Check immediately on startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       checkForCompletedDeliveries();
+    });
+  }
+
+  void listenForMessages() {
+    // Example: Simulate receiving a message from a rider
+    Timer.periodic(Duration(seconds: 10), (timer) {
+      // Simulate a new message
+      final message = {
+        'riderName': 'John Doe',
+        'message': 'Your delivery is on the way!',
+      };
+
+      // Trigger a notification
+      NotificationService notificationService = NotificationService();
+      notificationService.showNotification(
+        title: 'Message from ${message['riderName']}',
+        body: message['message'] ?? 'No message available',
+        payload: json.encode(message),
+      );
     });
   }
 

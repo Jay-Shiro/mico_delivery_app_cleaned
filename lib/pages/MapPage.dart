@@ -983,16 +983,12 @@ class _MapPageState extends State<MapPage> {
 
     if (isCashorTransfer == true && isOnlinePayment == false) {
       FocusManager.instance.primaryFocus?.unfocus();
-
-      // Close the payment dialog first
       Navigator.of(context).pop();
-
-      // Call submit delivery function for cash/transfer payments
-      // This will show the success modal
       await _submitDelivery();
+      return;
+    }
 
-      // Navigation to orders page will happen in the success modal's OK button
-    } else if (isOnlinePayment == true && isCashorTransfer == false) {
+    if (isOnlinePayment == true && isCashorTransfer == false) {
       if (userEmail == null || userEmail!.isEmpty) {
         if (_isMounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1013,7 +1009,7 @@ class _MapPageState extends State<MapPage> {
           secretKey: 'sk_live_a1515a0c961e99da11a126e34574ca5a112afd64',
           amount: paymentParameter * 100,
           email: userEmail!,
-          callbackUrl: 'https://callback.com',
+          callbackUrl: 'https://yourdomain.com/paystack/callback',
           showProgressBar: true,
           paymentOptions: [
             PaymentOption.card,
@@ -1026,47 +1022,76 @@ class _MapPageState extends State<MapPage> {
             "end_point": _destinationController.text,
             "delivery_price": paymentAmt,
           },
-          onSuccess: (paystackCallback) {
+          onSuccess: (paystackCallback) async {
             if (!_isMounted) return;
 
-            // Log the successful transaction details
-            debugPrint('💳 PAYMENT SUCCESSFUL');
+            // Verify the transaction with Paystack server
+            final verificationResponse = await http.get(
+              Uri.parse(
+                  'https://api.paystack.co/transaction/verify/${paystackCallback.reference}'),
+              headers: {
+                'Authorization':
+                    'Bearer sk_live_a1515a0c961e99da11a126e34574ca5a112afd64',
+                'Content-Type': 'application/json',
+              },
+            );
+
+            if (verificationResponse.statusCode == 200) {
+              final verificationData = jsonDecode(verificationResponse.body);
+              final status = verificationData['data']['status'];
+
+              if (status == 'success') {
+                debugPrint('💳 PAYMENT VERIFIED SUCCESSFULLY');
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                        'Transaction Verified: ${paystackCallback.reference}'),
+                    backgroundColor: Color.fromRGBO(0, 31, 62, 1),
+                  ),
+                );
+
+                Navigator.of(context).pop();
+
+                _submitDelivery(
+                  paymentReference: paystackCallback.reference,
+                  paymentStatus: 'paid',
+                  paymentDate: DateTime.now().toIso8601String(),
+                  amountPaid: paymentAmt,
+                );
+              } else {
+                debugPrint('❌ PAYMENT VERIFICATION FAILED: $status');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content:
+                        Text('Payment verification failed. Please try again.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            } else {
+              debugPrint(
+                  '❌ ERROR VERIFYING PAYMENT: ${verificationResponse.body}');
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content:
+                      Text('Error verifying payment. Please contact support.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          onCancelled: (paystackCallback) {
+            if (!_isMounted) return;
+
+            debugPrint('❌ PAYMENT CANCELLED');
             debugPrint(
                 '📝 Transaction Reference: ${paystackCallback.reference}');
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                    'Transaction Successful: ${paystackCallback.reference}'),
-                backgroundColor: Color.fromRGBO(0, 31, 62, 1),
-              ),
-            );
-            FocusManager.instance.primaryFocus?.unfocus();
-
-            // Close the payment dialog first
-            Navigator.of(context).pop();
-
-            // Call submit delivery function after successful payment
-            // This will show the success modal
-            _submitDelivery(
-              paymentReference: paystackCallback.reference,
-              paymentStatus: 'paid',
-              paymentDate: DateTime.now().toIso8601String(),
-              amountPaid: paymentAmt,
-            );
-          },
-          onCancelled: (paystackCallback) {
-            if (!_isMounted) return;
-
-            // Log the failed transaction details
-            debugPrint('❌ PAYMENT FAILED');
-            debugPrint(
-                '📝 Transaction Reference: ${paystackCallback.reference}');
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content:
-                    Text('Transaction Failed: ${paystackCallback.reference}'),
+                    'Transaction Cancelled: ${paystackCallback.reference}'),
                 backgroundColor: Color.fromRGBO(255, 91, 82, 1),
               ),
             );
@@ -1074,6 +1099,12 @@ class _MapPageState extends State<MapPage> {
         );
       } catch (e) {
         debugPrint('❌ Payment error: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment error occurred. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } else {
       if (_isMounted) {
