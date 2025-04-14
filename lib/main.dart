@@ -9,6 +9,7 @@ import 'package:micollins_delivery_app/pages/profilePage.dart';
 import 'package:micollins_delivery_app/pages/splash_screen.dart';
 import 'package:micollins_delivery_app/pages/supportPage.dart';
 import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
+import 'package:path/path.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:micollins_delivery_app/services/notification_service.dart';

@@ -42,9 +42,6 @@ class _OrdersPageState extends State<OrdersPage> {
       fetchDeliveries();
     });
 
-    // Start listening for messages
-    listenForMessages();
-
     // Set up periodic check for completed deliveries
     Timer.periodic(Duration(minutes: 1), (timer) {
       checkForCompletedDeliveries();
@@ -56,24 +53,7 @@ class _OrdersPageState extends State<OrdersPage> {
     });
   }
 
-  void listenForMessages() {
-    // Example: Simulate receiving a message from a rider
-    Timer.periodic(Duration(seconds: 10), (timer) {
-      // Simulate a new message
-      final message = {
-        'riderName': 'John Doe',
-        'message': 'Your delivery is on the way!',
-      };
-
-      // Trigger a notification
-      NotificationService notificationService = NotificationService();
-      notificationService.showNotification(
-        title: 'Message from ${message['riderName']}',
-        body: message['message'] ?? 'No message available',
-        payload: json.encode(message),
-      );
-    });
-  }
+  final Set<String> notifiedMessageIds = {};
 
   Future<void> _loadUserData() async {
     try {
@@ -1403,10 +1383,13 @@ class _OrdersPageState extends State<OrdersPage> {
     NotificationService().showNotification(
       title: title,
       body: body,
-      payload: json.encode({
+      payload: {
         'type': 'delivery_completed',
-        'delivery_id': delivery['_id'],
-      }),
+        'deliveryId': delivery['_id'],
+        'orderId': shortId,
+        'userName': delivery['user_name'] ?? '',
+        'userImage': delivery['user_image'] ?? '',
+      },
     );
   }
 
@@ -2015,8 +1998,8 @@ class _OrdersPageState extends State<OrdersPage> {
                       destinationLng,
                     ); // Distance in meters
 
-                    // Assume an average speed of 40 km/h (11.11 m/s)
-                    const double averageSpeedMetersPerSecond = 11.11;
+                    // Assume an average speed of 40 km/h (convert to meters per second)
+                    const double averageSpeedMetersPerSecond = 40 * 1000 / 3600;
 
                     // Calculate ETA in seconds
                     final int etaSeconds =
@@ -2026,8 +2009,12 @@ class _OrdersPageState extends State<OrdersPage> {
                     // Convert ETA to minutes
                     final int etaMinutes = (etaSeconds / 60).ceil();
 
+                    // Cap the ETA to a reasonable maximum (e.g., 120 minutes)
+                    final int cappedEtaMinutes =
+                        etaMinutes > 120 ? 120 : etaMinutes;
+
                     return Text(
-                      "Estimated arrival: $etaMinutes minutes",
+                      "Estimated arrival: $cappedEtaMinutes minutes",
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[700],
