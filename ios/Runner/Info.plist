@@ -24,31 +24,70 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+
+	<!-- Google Places API Key -->
 	<key>GMSPlacesAPIKey</key>
 	<string>AIzaSyC_Op-lSfNmmGPzKvsdImneVuL1jzYfNoM</string>
+
+	<!-- URL Schemes -->
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>https</string>
 		<string>http</string>
 	</array>
+
+	<!-- Required Device Capabilities -->
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+
+	<!-- Location Permissions -->
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>We need your location to provide accurate route recommendation.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need your location to provide accurate route recommendation.</string>
+
+	<!-- Camera and Photos -->
 	<key>NSCameraUsageDescription</key>
 	<string>This app requires access to the camera to scan QR codes and capture photos for deliveries.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs photo library access to upload images for profile and delivery confirmation.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app needs permission to save images to your photo library.</string>
+
+	<!-- Microphone -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app requires microphone access for voice calls and voice notes.</string>
+
+	<!-- Bluetooth -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>This app uses Bluetooth to connect to nearby devices for proximity-based services.</string>
+
+	<!-- Push Notifications -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+
+	<!-- App Transport Security (if HTTP is used anywhere) -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+
+	<!-- System Settings -->
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+
+	<!-- Storyboards -->
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+
+	<!-- Supported Orientations -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

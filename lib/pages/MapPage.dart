@@ -513,7 +513,7 @@ class _MapPageState extends State<MapPage> {
             final double surge = _isPeakHour() ? 1.3 : 1.0;
 
             // Use higher rates for distances below 7.5 km
-            if (km < 7.5) {
+            if (km < 8.5) {
               if (vehicleType == 'bike') {
                 rate *= 2.2; // Use 2.2 multiplier for bikes
               } else if (vehicleType == 'car') {
@@ -523,15 +523,15 @@ class _MapPageState extends State<MapPage> {
               } else if (vehicleType == 'truck') {
                 rate *= 8.2; // Use 3.2 multiplier for cars
               }
-            } else if (km > 10.5) {
+            } else if (km > 8.6) {
               if (vehicleType == 'bike') {
-                rate *= 1.8; // Use 2.2 multiplier for bikes
+                rate *= 1.9; // Use 2.2 multiplier for bikes
               } else if (vehicleType == 'car') {
-                rate *= 2.4; // Use 3.2 multiplier for cars
+                rate *= 2.6; // Use 3.2 multiplier for cars
               } else if (vehicleType == 'bus') {
-                rate *= 3.2; // Use 3.2 multiplier for cars
+                rate *= 3.4; // Use 3.2 multiplier for cars
               } else if (vehicleType == 'truck') {
-                rate *= 4.6; // Use 3.2 multiplier for cars
+                rate *= 4.8; // Use 3.2 multiplier for cars
               }
             }
 
