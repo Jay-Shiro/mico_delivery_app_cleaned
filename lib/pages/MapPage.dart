@@ -1013,7 +1013,7 @@ class _MapPageState extends State<MapPage> {
 
         PaystackFlutter().pay(
           context: context,
-          secretKey: 'sk_test_c69312cc47b0d93bd17d0407d4292f11ee38e2fb',
+          secretKey: 'pk_live_288510bb525b31bb65c4a3c116c4d35de6b6df59',
           amount: paymentParameter * 100,
           email: userEmail!,
           callbackUrl: 'https://callback.com',
