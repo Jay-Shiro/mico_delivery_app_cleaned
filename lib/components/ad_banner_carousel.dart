@@ -21,11 +21,11 @@ class _AdBannerCarouselState extends State<AdBannerCarousel> {
       ),
     },
     {
-      'image': 'assets/images/advert_2.png',
-      'title': 'Fast and Reliable',
-      'subtitle': 'Quick delivery in 30 minutes or less',
+      'image': 'assets/images/advert_3.png',
+      'title': '',
+      'subtitle': '',
       'gradient': LinearGradient(
-        colors: [Color(0xff161414), Color(0xff897b68)],
+        colors: [Color(0xffdbe64b), Color(0xffdbe64b)],
         begin: Alignment.topRight,
         end: Alignment.bottomLeft,
       ),
@@ -44,6 +44,9 @@ class _AdBannerCarouselState extends State<AdBannerCarousel> {
 
   Widget _buildAdBanner(
       String imagePath, String title, String subtitle, Gradient gradient) {
+    // Check if the current ad is "Advert 3"
+    bool isFullWidthAd = imagePath == 'assets/images/advert_3.png';
+
     return Container(
       decoration: BoxDecoration(
         gradient: gradient,
@@ -56,41 +59,52 @@ class _AdBannerCarouselState extends State<AdBannerCarousel> {
           ),
         ],
       ),
-      margin: EdgeInsets.symmetric(horizontal: 4),
-      child: Row(
-        children: [
-          Image.asset(
-            imagePath,
-            cacheHeight: 210,
-            cacheWidth: 218,
-          ),
-          SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+      margin: EdgeInsets.symmetric(
+          horizontal: isFullWidthAd ? 0 : 4), // No margin for full-width ad
+      child: isFullWidthAd
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(
+                imagePath,
+                fit: BoxFit.cover,
+                width: double.infinity, // Full width
+                height: 180, // Match carousel height
+              ),
+            )
+          : Row(
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
+                Image.asset(
+                  imagePath,
+                  cacheHeight: 210,
+                  cacheWidth: 218,
                 ),
-                SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 14,
+                SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
