@@ -11,11 +11,11 @@ class _AdBannerCarouselState extends State<AdBannerCarousel> {
 
   final List<Map<String, dynamic>> adData = [
     {
-      'image': 'assets/images/advert_2.png',
+      'image': 'assets/images/advert_4.png',
       'title': 'Express Delivery',
       'subtitle': 'Get 10% off your first order',
       'gradient': LinearGradient(
-        colors: [Color(0xFF001F3E), Color(0xFF004643)],
+        colors: [Color(0xFF001F3E), Color(0xFF001F3E)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
@@ -31,7 +31,7 @@ class _AdBannerCarouselState extends State<AdBannerCarousel> {
       ),
     },
     {
-      'image': 'assets/images/advert_2.png',
+      'image': 'assets/images/advert_5.png',
       'title': 'New Service',
       'subtitle': 'Try our premium delivery option',
       'gradient': LinearGradient(
@@ -45,7 +45,9 @@ class _AdBannerCarouselState extends State<AdBannerCarousel> {
   Widget _buildAdBanner(
       String imagePath, String title, String subtitle, Gradient gradient) {
     // Check if the current ad is "Advert 3"
-    bool isFullWidthAd = imagePath == 'assets/images/advert_3.png';
+    bool isFullWidthAd = imagePath == 'assets/images/advert_3.png' ||
+        imagePath == 'assets/images/advert_4.png' ||
+        imagePath == 'assets/images/advert_5.png';
 
     return Container(
       decoration: BoxDecoration(
