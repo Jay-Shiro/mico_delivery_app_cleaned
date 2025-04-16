@@ -34,6 +34,7 @@ class _OrdersPageState extends State<OrdersPage> {
   String? userId;
   String searchQuery = '';
   TextEditingController searchController = TextEditingController();
+  Timer? _locationTimer;
 
   @override
   void initState() {
@@ -310,6 +311,23 @@ class _OrdersPageState extends State<OrdersPage> {
     }
   }
 
+  void startFetchingLocation(
+    String deliveryId,
+    Function(Map<String, dynamic>) onLocationUpdated,
+  ) {
+    _locationTimer?.cancel(); // Cancel existing timer if any
+
+    _locationTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      final location = await _fetchRiderLocation(deliveryId);
+      onLocationUpdated(location); // Pass the new location to your callback
+    });
+  }
+
+  void stopFetchingLocation() {
+    _locationTimer?.cancel();
+    _locationTimer = null;
+  }
+
   Future<double> _fetchRiderRating(String riderId) async {
     try {
       final response = await http.get(
@@ -339,7 +357,7 @@ class _OrdersPageState extends State<OrdersPage> {
       final response = await http.get(
         url,
         headers: {
-          'Accept': 'application/json', // Use 'Accept' as per your API example
+          'Accept': 'application/json',
         },
       );
 

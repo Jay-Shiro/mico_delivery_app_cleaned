@@ -35,7 +35,7 @@ class _AdBannerCarouselState extends State<AdBannerCarousel> {
       'title': 'New Service',
       'subtitle': 'Try our premium delivery option',
       'gradient': LinearGradient(
-        colors: [Color(0xFFF77F00), Color(0xFFD62828)],
+        colors: [Color(0xFFF77F00), Color(0xFFF77F00)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
