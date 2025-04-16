@@ -1322,74 +1322,26 @@ class _OrdersPageState extends State<OrdersPage> {
     }
   }
 
+  // Update this method to check for completed deliveries
   Future<void> checkForCompletedDeliveries() async {
-    if (userId == null) return;
+    if (deliveries.isEmpty) return;
 
-    try {
-      debugPrint('Checking for completed deliveries...');
+    for (var delivery in deliveries) {
+      final String deliveryId = delivery['_id'];
+      final String status = delivery['status']['current'] ?? '';
 
-      // Use the same endpoint that works in fetchDeliveries
-      final response = await http.get(
-        Uri.parse('https://deliveryapi-ten.vercel.app/deliveries'),
-        headers: {'Content-Type': 'application/json'},
-      );
+      // Check if this is a newly completed delivery that we haven't notified about yet
+      if (status == 'completed' && !notifiedMessageIds.contains(deliveryId)) {
+        // Add to our set of notified IDs
+        notifiedMessageIds.add(deliveryId);
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        if (data['status'] == 'success' && data['deliveries'] != null) {
-          final List<dynamic> allDeliveries = data['deliveries'];
-          debugPrint('Found ${allDeliveries.length} total deliveries');
-
-          // Filter deliveries for the current user
-          final List<dynamic> userDeliveries = allDeliveries
-              .where((delivery) => delivery['user_id'] == userId)
-              .toList();
-
-          debugPrint(
-              'Found ${userDeliveries.length} deliveries for user $userId');
-
-          // Get previously notified deliveries from SharedPreferences
-          final prefs = await SharedPreferences.getInstance();
-          final notifiedDeliveries =
-              prefs.getStringList('notified_deliveries') ?? [];
-
-          // Check for newly completed deliveries
-          for (var delivery in userDeliveries) {
-            final String deliveryId = delivery['_id'];
-
-            // Handle the nested status structure
-            final status = delivery['status'] is Map
-                ? delivery['status']['current']
-                : delivery['status'];
-
-            debugPrint('Delivery $deliveryId status: $status');
-
-            if (status == 'completed' &&
-                !notifiedDeliveries.contains(deliveryId)) {
-              debugPrint('New completed delivery found: $deliveryId');
-              // This is a newly completed delivery, send notification
-              _sendCompletionNotification(delivery);
-
-              // Add to notified list
-              notifiedDeliveries.add(deliveryId);
-              await prefs.setStringList(
-                  'notified_deliveries', notifiedDeliveries);
-            }
-          }
-        } else {
-          debugPrint('Unexpected response format: ${response.body}');
-        }
-      } else {
-        debugPrint(
-            'Error fetching deliveries: ${response.statusCode}, ${response.body}');
+        // Send the notification using our fixed method
+        _sendCompletionNotification(delivery);
       }
-    } catch (e) {
-      debugPrint('Error checking for completed deliveries: $e');
     }
   }
 
-  // Add this method to send notifications for completed deliveries
+  // Fix the method to send notifications for completed deliveries
   void _sendCompletionNotification(dynamic delivery) {
     final String shortId = delivery['_id'].toString().substring(0, 8);
     final String title = 'Delivery Completed';
@@ -1398,7 +1350,7 @@ class _OrdersPageState extends State<OrdersPage> {
 
     debugPrint('Sending notification for delivery MC$shortId');
 
-    NotificationService().showNotification(
+    NotificationService().showMessageNotification(
       title: title,
       body: body,
       payload: {

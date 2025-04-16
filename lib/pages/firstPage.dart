@@ -68,6 +68,18 @@ class _FirstPageState extends State<FirstPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Wrap the Scaffold with ChangeNotifierProvider
+    return ChangeNotifierProvider(
+      create: (context) => IndexProvider(),
+      child: _FirstPageContent(),
+    );
+  }
+}
+
+// Create a separate widget for the content to use the provider
+class _FirstPageContent extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
     final selectedIndex = context.watch<IndexProvider>().selectedIndex;
 
     Widget getPage() {
