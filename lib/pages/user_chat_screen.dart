@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 import 'dart:convert';
 import 'dart:async'; // Add this import
 import 'package:flutter/material.dart';
@@ -9,6 +8,7 @@ import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:micollins_delivery_app/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shimmer/shimmer.dart';
 
 class UserChatScreen extends StatefulWidget {
@@ -16,9 +16,9 @@ class UserChatScreen extends StatefulWidget {
   final String? userImage;
   final String? orderId;
   final String? deliveryId;
-  final String? senderId; // User ID
-  final String? receiverId; // Rider ID
-  final bool isDeliveryCompleted; // Add this parameter
+  final String? senderId;
+  final String? receiverId;
+  final bool isDeliveryCompleted;
 
   const UserChatScreen({
     super.key,
@@ -28,241 +28,82 @@ class UserChatScreen extends StatefulWidget {
     this.deliveryId,
     this.senderId,
     this.receiverId,
-    this.isDeliveryCompleted = false, // Default to false
+    this.isDeliveryCompleted = false,
   });
 
   @override
   State<UserChatScreen> createState() => _UserChatScreenState();
 }
 
-class _UserChatScreenState extends State<UserChatScreen>
-    with WidgetsBindingObserver {
+class _UserChatScreenState extends State<UserChatScreen> {
+  bool _userHasScrolledUp = false;
   final TextEditingController _messageController = TextEditingController();
   List<Map<String, dynamic>> _messages = [];
   final ImagePicker _picker = ImagePicker();
   final ScrollController _scrollController = ScrollController();
-  bool _isOnline = true;
+  // bool _isOnline = true;
   bool _isLoading = true;
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
-  // Define the color scheme
   final Color primaryColor = const Color.fromRGBO(0, 31, 62, 1);
   final Color secondaryColor = const Color.fromRGBO(0, 31, 62, 0.2);
   final Color aliceBlue = const Color(0xFFE6F0FF);
 
-  // Add this variable to the class
   Timer? _refreshTimer;
 
-  String? _lastMessageId; // Tracks the last message ID
+  String? _lastMessageId;
 
-  // Add this variable to track if the chat is active
   bool _isActiveChat = true;
-  DateTime? _lastProcessedMessageTime;
-  Set<String> _notifiedMessageIds = {};
 
   @override
   void initState() {
     super.initState();
-    // Register this object as an observer
-    WidgetsBinding.instance.addObserver(this);
-
     _isActiveChat = true;
 
-    // Initialize the set of notified message IDs
-    _notifiedMessageIds = <String>{};
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    final DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings();
+    final InitializationSettings initializationSettings =
+        InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
+    );
+    flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
-    // Set the last processed time to now when the chat is opened
-    // This prevents old messages from triggering notifications
-    _lastProcessedMessageTime =
-        DateTime.now().subtract(const Duration(minutes: 5));
-    print(
-        'DEBUG: Initialized last processed time to $_lastProcessedMessageTime');
+    _scrollController.addListener(() {
+      if (_scrollController.hasClients) {
+        final threshold = 100.0;
+        final distanceFromBottom = _scrollController.position.maxScrollExtent -
+            _scrollController.offset;
+        if (distanceFromBottom > threshold) {
+          _userHasScrolledUp = true;
+        } else {
+          _userHasScrolledUp = false;
+        }
+      }
+    });
 
     _fetchChatHistory();
 
-    // Set up periodic refresh
     _refreshTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (mounted) {
         _fetchChatHistory(silent: true);
       }
     });
 
-    // Start polling for new messages
     _startMessagePolling();
   }
 
-  @override
-  void dispose() {
-    // Remove this object as an observer
-    WidgetsBinding.instance.removeObserver(this);
-
-    _refreshTimer?.cancel();
-    _scrollController.dispose();
-    _messageController.dispose();
-    _isActiveChat = false;
-    super.dispose();
-  }
-
-  // Now this is a proper override of the WidgetsBindingObserver method
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-
-    print("App lifecycle state changed to: $state");
-
-    if (state == AppLifecycleState.resumed) {
-      print("DEBUG: App resumed - setting chat as active");
-      setState(() {
-        _isActiveChat = true;
-      });
-      // Refresh messages when app is resumed
-      _fetchChatHistory(silent: true);
-    } else {
-      // For any other state (paused, inactive, detached, hidden)
-      print("DEBUG: App not in foreground - setting chat as inactive");
-      setState(() {
-        _isActiveChat = false;
-      });
-    }
-  }
-
   void _startMessagePolling() {
-    // Create a separate timer for background polling
-    Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (mounted) {
-        // Always check for new messages, regardless of active state
+    Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (mounted && _isActiveChat) {
         _checkForNewMessages();
       } else {
         timer.cancel();
       }
     });
-  }
-
-  Future<void> _checkForNewMessages() async {
-    if (widget.deliveryId == null || widget.senderId == null) {
-      print('DEBUG: deliveryId or senderId is null, cannot check for messages');
-      return;
-    }
-
-    try {
-      print(
-          'DEBUG: Checking for new messages for delivery ${widget.deliveryId}');
-      final response = await http.get(
-        Uri.parse(
-            'https://deliveryapi-ten.vercel.app/chat/${widget.deliveryId}'),
-        headers: {
-          'Accept': 'application/json',
-        },
-      );
-
-      print('DEBUG: Chat API response status: ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        // Get messages from the response
-        List<dynamic> messages = [];
-        if (data is List) {
-          messages = data;
-        } else if (data['messages'] != null) {
-          messages = data['messages'];
-        }
-
-        print('DEBUG: Processing ${messages.length} messages');
-
-        // Find the most recent message from the other user
-        Map<String, dynamic>? latestMessage;
-        DateTime? latestTimestamp;
-
-        for (var msg in messages) {
-          // Only consider messages from the other user (not from current user)
-          if (msg['sender_id'] != widget.senderId) {
-            // Parse the timestamp and convert to local time zone
-            final String timestampStr = msg['timestamp'];
-            final DateTime serverTime = DateTime.parse(timestampStr);
-
-            // Convert to local time
-            final DateTime localTime = serverTime.toLocal();
-
-            print(
-                'DEBUG: Message time - Server: $serverTime, Local: $localTime');
-
-            // If we haven't set a latest message yet, or this one is newer
-            if (latestMessage == null || localTime.isAfter(latestTimestamp!)) {
-              latestMessage = msg;
-              latestTimestamp = localTime;
-            }
-          }
-        }
-
-        // If we found a message and it's newer than our last processed message
-        if (latestMessage != null && latestTimestamp != null) {
-          final String messageId = latestMessage['_id'];
-          final String messageText = latestMessage['message'];
-
-          print(
-              'DEBUG: Latest message from other user - ID: $messageId, Time: $latestTimestamp, Text: $messageText');
-
-          // Check if this message is new and hasn't been notified yet
-          bool isNewMessage = !_notifiedMessageIds.contains(messageId) &&
-              (_lastProcessedMessageTime == null ||
-                  latestTimestamp.isAfter(_lastProcessedMessageTime!));
-
-          print(
-              'DEBUG: Is this a new message? $isNewMessage (Last processed time: $_lastProcessedMessageTime)');
-
-          if (isNewMessage) {
-            // Add to notified messages
-            _notifiedMessageIds.add(messageId);
-            _lastProcessedMessageTime = latestTimestamp;
-
-            print('DEBUG: This is a new message that needs notification');
-
-            // Only show notification if app is not in foreground or chat is not active
-            final bool shouldShowNotification = !_isActiveChat;
-            print(
-                'DEBUG: Should show notification? $shouldShowNotification (isActiveChat: $_isActiveChat)');
-
-            if (shouldShowNotification) {
-              print('DEBUG: Showing notification for message: $messageText');
-
-              try {
-                await NotificationService().showMessageNotification(
-                  title: 'New message from ${widget.userName ?? "Rider"}',
-                  body: messageText,
-                  payload: {
-                    'type': 'message',
-                    'deliveryId': widget.deliveryId,
-                    'senderId': widget.receiverId,
-                    'receiverId': widget.senderId,
-                    'userName': widget.userName,
-                    'userImage': widget.userImage,
-                    'orderId': widget.orderId,
-                  },
-                );
-                print('DEBUG: Notification service called successfully');
-              } catch (e) {
-                print('DEBUG: Error calling notification service: $e');
-              }
-            } else {
-              print('DEBUG: Not showing notification because chat is active');
-            }
-
-            // Refresh the chat history silently
-            _fetchChatHistory(silent: true);
-          } else {
-            print(
-                'DEBUG: Message already processed or not new enough for notification');
-          }
-        } else {
-          print('DEBUG: No messages from the other user found');
-        }
-      } else {
-        print(
-            'DEBUG: Failed to fetch chat data: ${response.statusCode} - ${response.body}');
-      }
-    } catch (e) {
-      print('DEBUG: Error checking for new messages: $e');
-    }
   }
 
   @override
@@ -271,7 +112,116 @@ class _UserChatScreenState extends State<UserChatScreen>
     _isActiveChat = true;
   }
 
-  // Modify _fetchChatHistory to handle message IDs better
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _scrollController.dispose();
+    _messageController.dispose();
+    _isActiveChat = false;
+    super.dispose();
+  }
+
+  Future<void> _checkForNewMessages() async {
+    if (widget.deliveryId == null || widget.senderId == null) return;
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'https://deliveryapi-ten.vercel.app/chat/${widget.deliveryId}'),
+        headers: {
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        List<Map<String, dynamic>> fetchedMessages = [];
+
+        if (data is List) {
+          for (var msg in data) {
+            final timestamp = DateTime.parse(msg['timestamp']);
+            fetchedMessages.add({
+              'text': msg['message'],
+              'image': null,
+              'isUser': msg['sender_id'] == widget.senderId,
+              'timestamp': timestamp,
+              'displayTime': DateFormat('hh:mm a').format(timestamp),
+              'status': msg['read'] ? 'read' : 'delivered',
+              'id': msg['_id'],
+            });
+          }
+        } else if (data['messages'] != null) {
+          for (var msg in data['messages']) {
+            final timestamp = DateTime.parse(msg['timestamp']);
+            fetchedMessages.add({
+              'text': msg['message'],
+              'image': null,
+              'isUser': msg['sender_id'] == widget.senderId,
+              'timestamp': timestamp,
+              'displayTime': DateFormat('hh:mm a').format(timestamp),
+              'status': msg['read'] ? 'read' : 'delivered',
+              'id': msg['_id'],
+            });
+          }
+        }
+
+        final Map<String, Map<String, dynamic>> uniqueMessages = {};
+        for (var msg in fetchedMessages) {
+          uniqueMessages[msg['id']] = msg;
+        }
+
+        final sortedMessages = uniqueMessages.values.toList()
+          ..sort((a, b) => a['timestamp'].compareTo(b['timestamp']));
+
+        // Detect new message
+        bool hasNewMessage = false;
+        if (_messages.isNotEmpty && sortedMessages.isNotEmpty) {
+          if (_messages.last['id'] != sortedMessages.last['id']) {
+            hasNewMessage = true;
+          }
+        } else if (_messages.isEmpty && sortedMessages.isNotEmpty) {
+          hasNewMessage = true;
+        }
+
+        setState(() {
+          _messages = sortedMessages;
+        });
+
+        if (sortedMessages.isNotEmpty) {
+          _lastMessageId = sortedMessages.last['id'];
+        }
+
+        // if (hasNewMessage && !sortedMessages.last['isUser']) {
+        //   flutterLocalNotificationsPlugin.show(
+        //     0,
+        //     'New message from ${widget.userName ?? "Rider"}',
+        //     sortedMessages.last['text'],
+        //     NotificationDetails(
+        //       android: AndroidNotificationDetails(
+        //         'chat_channel',
+        //         'Chat Messages',
+        //         channelDescription: 'Channel for chat message notifications',
+        //         importance: Importance.max,
+        //         priority: Priority.high,
+        //       ),
+        //       iOS: DarwinNotificationDetails(),
+        //     ),
+        //   );
+        // }
+
+        _markMessagesAsRead();
+
+        if (!_userHasScrolledUp) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToBottom();
+          });
+        }
+      }
+    } catch (e) {
+      print('Error checking for new messages: $e');
+    }
+  }
+
   Future<void> _fetchChatHistory({bool silent = false}) async {
     if (!silent) {
       setState(() {
@@ -297,85 +247,61 @@ class _UserChatScreenState extends State<UserChatScreen>
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         List<Map<String, dynamic>> fetchedMessages = [];
-        Set<String> messageIds = {}; // Track message IDs to avoid duplicates
 
         if (data is List) {
-          // Direct array of messages
           for (var msg in data) {
-            final String msgId = msg['_id'];
-
-            // Skip if we've already processed this message
-            if (messageIds.contains(msgId)) continue;
-            messageIds.add(msgId);
-
             final timestamp = DateTime.parse(msg['timestamp']);
-
             fetchedMessages.add({
               'text': msg['message'],
               'image': null,
               'isUser': msg['sender_id'] == widget.senderId,
-              'timestamp': DateFormat('hh:mm a').format(timestamp),
+              'timestamp': timestamp,
+              'displayTime': DateFormat('hh:mm a').format(timestamp),
               'status': msg['read'] ? 'read' : 'delivered',
-              'id': msgId,
+              'id': msg['_id'],
             });
           }
         } else if (data['messages'] != null) {
-          // Response with 'messages' property
           for (var msg in data['messages']) {
-            final String msgId = msg['_id'];
-
-            // Skip if we've already processed this message
-            if (messageIds.contains(msgId)) continue;
-            messageIds.add(msgId);
-
             final timestamp = DateTime.parse(msg['timestamp']);
-
             fetchedMessages.add({
               'text': msg['message'],
               'image': null,
               'isUser': msg['sender_id'] == widget.senderId,
-              'timestamp': DateFormat('hh:mm a').format(timestamp),
+              'timestamp': timestamp,
+              'displayTime': DateFormat('hh:mm a').format(timestamp),
               'status': msg['read'] ? 'read' : 'delivered',
-              'id': msgId,
+              'id': msg['_id'],
             });
           }
         } else {
           print('No messages found in the API response');
         }
 
-        // Only update state if there are messages
-        if (fetchedMessages.isNotEmpty) {
-          // Sort messages by timestamp to ensure correct order
-          fetchedMessages.sort((a, b) {
-            final timeA = DateFormat('hh:mm a').parse(a['timestamp']);
-            final timeB = DateFormat('hh:mm a').parse(b['timestamp']);
-            return timeA.compareTo(timeB);
-          });
+        // Deduplicate by message ID
+        final Map<String, Map<String, dynamic>> uniqueMessages = {};
+        for (var msg in fetchedMessages) {
+          uniqueMessages[msg['id']] = msg;
+        }
 
-          // Update the messages list
-          setState(() {
-            _messages = fetchedMessages;
-            _isLoading = false;
-          });
+        // Always sort by timestamp (oldest to newest)
+        final sortedMessages = uniqueMessages.values.toList()
+          ..sort((a, b) => a['timestamp'].compareTo(b['timestamp']));
 
-          // Store the ID of the last message
-          if (fetchedMessages.isNotEmpty) {
-            _lastMessageId = fetchedMessages.last['id'];
-          }
+        setState(() {
+          _messages = sortedMessages;
+          _isLoading = false;
+        });
 
-          // Mark messages as read
-          _markMessagesAsRead();
+        if (sortedMessages.isNotEmpty) {
+          _lastMessageId = sortedMessages.last['id'];
+        }
 
-          // Scroll to bottom on new messages
-          if (fetchedMessages.isNotEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _scrollToBottom();
-            });
-          }
-        } else if (_messages.isEmpty) {
-          // Only set empty state if we haven't loaded any messages yet
-          setState(() {
-            _isLoading = false;
+        _markMessagesAsRead();
+
+        if (!_userHasScrolledUp) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToBottom();
           });
         }
       } else {
@@ -415,7 +341,7 @@ class _UserChatScreenState extends State<UserChatScreen>
   Future<void> _sendMessage({String? text, File? image}) async {
     if ((text == null || text.trim().isEmpty) && image == null) return;
 
-    final String timestamp = DateFormat('hh:mm a').format(DateTime.now());
+    final DateTime timestamp = DateTime.now();
 
     // Add message to UI immediately for better UX
     setState(() {
@@ -430,7 +356,6 @@ class _UserChatScreenState extends State<UserChatScreen>
 
     _messageController.clear();
 
-    // Scroll to bottom after sending message
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
@@ -780,7 +705,6 @@ class _UserChatScreenState extends State<UserChatScreen>
                       ),
           ),
 
-          // Completed delivery notice or message input area
           widget.isDeliveryCompleted
               ? _buildCompletedDeliveryNotice()
               : Container(
@@ -1007,21 +931,13 @@ class _UserChatScreenState extends State<UserChatScreen>
           Flexible(
             child: Container(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width *
-                    0.65, // Reduced bubble size
+                maxWidth: MediaQuery.of(context).size.width * 0.65,
               ),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 8), // Smaller padding
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: isUser
-                    ? primaryColor
-                    : Colors.white, // White for received messages
-                borderRadius: BorderRadius.circular(18), // All rounded corners
-                border: isUser
-                    ? null
-                    : Border.all(
-                        color:
-                            Colors.grey.shade200), // Border for white bubbles
+                color: isUser ? primaryColor : Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: isUser ? null : Border.all(color: Colors.grey.shade200),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
@@ -1037,7 +953,7 @@ class _UserChatScreenState extends State<UserChatScreen>
                     Text(
                       message['text'],
                       style: TextStyle(
-                        fontSize: 15, // Slightly smaller text
+                        fontSize: 15,
                         color: isUser ? Colors.white : primaryColor,
                       ),
                     ),
@@ -1060,9 +976,16 @@ class _UserChatScreenState extends State<UserChatScreen>
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Text(
-                        message['timestamp'],
+                        // Always format from DateTime
+                        DateFormat('hh:mm a').format(
+                          message['timestamp'] is DateTime
+                              ? message['timestamp']
+                              : DateTime.tryParse(
+                                      message['timestamp'].toString()) ??
+                                  DateTime.now(),
+                        ),
                         style: TextStyle(
-                          fontSize: 10, // Smaller timestamp
+                          fontSize: 10,
                           color: isUser ? Colors.white70 : Colors.black54,
                         ),
                       ),

@@ -152,7 +152,7 @@ class NotificationService {
       showWhen: true,
       enableVibration: true,
       playSound: true,
-      icon: '@mipmap/launcher_icon',
+      icon: '@mipmap/ic_launcher',
       channelShowBadge: true,
       category: AndroidNotificationCategory.message,
       fullScreenIntent: true,
