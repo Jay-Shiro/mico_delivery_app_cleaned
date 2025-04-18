@@ -35,6 +35,7 @@ class _OrdersPageState extends State<OrdersPage> {
   String searchQuery = '';
   TextEditingController searchController = TextEditingController();
   Timer? _locationTimer;
+  Timer? _riderLocationTimer;
 
   @override
   void initState() {
@@ -328,6 +329,25 @@ class _OrdersPageState extends State<OrdersPage> {
     _locationTimer = null;
   }
 
+  void startRiderLocationUpdates(String deliveryId) {
+    // Cancel any existing timer
+    _riderLocationTimer?.cancel();
+
+    // Start a new timer to fetch location every 3 minutes
+    _riderLocationTimer = Timer.periodic(Duration(minutes: 3), (timer) async {
+      final location = await _fetchRiderLocation(deliveryId);
+      setState(() {
+        // Update the UI with the new location
+        // You can store the location in a state variable if needed
+      });
+    });
+  }
+
+  void stopRiderLocationUpdates() {
+    _riderLocationTimer?.cancel();
+    _riderLocationTimer = null;
+  }
+
   Future<double> _fetchRiderRating(String riderId) async {
     try {
       final response = await http.get(
@@ -388,7 +408,94 @@ class _OrdersPageState extends State<OrdersPage> {
     }
   }
 
-// Helper function to return a consistent empty location response
+  Widget _buildProgressIndicator(dynamic delivery) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _fetchRiderLocation(delivery['_id']),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return LinearProgressIndicator(
+            value: null, // Indeterminate progress while loading
+            backgroundColor: Colors.grey[300],
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Color.fromRGBO(0, 31, 62, 1),
+            ),
+          );
+        } else if (snapshot.hasError ||
+            !snapshot.hasData ||
+            snapshot.data!.isEmpty) {
+          return LinearProgressIndicator(
+            value: 0.0, // No progress if there's an error or no data
+            backgroundColor: Colors.grey,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Colors.red, // Red to indicate an error
+            ),
+          );
+        } else {
+          final riderLocation = snapshot.data!;
+          final double riderLat = riderLocation['latitude'];
+          final double riderLng = riderLocation['longitude'];
+          final double pickupLat = delivery['pickup_lat'] ?? 0.0;
+          final double pickupLng = delivery['pickup_lng'] ?? 0.0;
+          final double destinationLat = delivery['endpoint_lat'] ?? 0.0;
+          final double destinationLng = delivery['endpoint_lng'] ?? 0.0;
+
+          // Calculate distances
+          final double distanceToPickup = Geolocator.distanceBetween(
+            riderLat,
+            riderLng,
+            pickupLat,
+            pickupLng,
+          );
+
+          final double totalDistanceToDestination = Geolocator.distanceBetween(
+            pickupLat,
+            pickupLng,
+            destinationLat,
+            destinationLng,
+          );
+
+          final double remainingDistanceToDestination =
+              Geolocator.distanceBetween(
+            riderLat,
+            riderLng,
+            destinationLat,
+            destinationLng,
+          );
+
+          // Determine progress
+          double progress;
+          if (distanceToPickup > 10) {
+            // Rider is still on the way to the pickup location
+            final double totalDistanceToPickup = Geolocator.distanceBetween(
+              pickupLat,
+              pickupLng,
+              riderLat,
+              riderLng,
+            );
+            progress = ((totalDistanceToPickup - distanceToPickup) /
+                    totalDistanceToPickup)
+                .clamp(0.0, 1.0);
+          } else {
+            // Rider has reached the pickup location, calculate progress to destination
+            progress =
+                ((totalDistanceToDestination - remainingDistanceToDestination) /
+                        totalDistanceToDestination)
+                    .clamp(0.0, 1.0);
+          }
+
+          return LinearProgressIndicator(
+            value: progress,
+            backgroundColor: Colors.grey[300],
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Color.fromRGBO(0, 31, 62, 1),
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  // Helper function to return a consistent empty location response
   Map<String, dynamic> _emptyLocation() {
     return {
       'latitude': 0.0,
@@ -1431,6 +1538,8 @@ class _OrdersPageState extends State<OrdersPage> {
     final String shortId = delivery['_id'].toString().substring(0, 8);
     final String riderId = delivery['rider_id'] ?? '';
 
+    startRiderLocationUpdates(delivery['_id']);
+
     // Show loading state first
     showModalBottomSheet(
       context: context,
@@ -1740,115 +1849,7 @@ class _OrdersPageState extends State<OrdersPage> {
                           ),
                           SizedBox(width: 8),
                           Expanded(
-                            child: FutureBuilder<Map<String, dynamic>>(
-                              future: _fetchRiderLocation(
-                                  delivery['_id']), // Fetch rider location
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return LinearProgressIndicator(
-                                    value:
-                                        null, // Indeterminate progress while loading
-                                    backgroundColor: Colors.grey[300],
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Color.fromRGBO(0, 31, 62, 1),
-                                    ),
-                                    borderRadius: BorderRadius.circular(10),
-                                  );
-                                } else if (snapshot.hasError ||
-                                    !snapshot.hasData ||
-                                    snapshot.data!.isEmpty) {
-                                  return LinearProgressIndicator(
-                                    value:
-                                        0.0, // No progress if there's an error or no data
-                                    backgroundColor: Colors.grey,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.red, // Red to indicate an error
-                                    ),
-                                    borderRadius: BorderRadius.circular(10),
-                                  );
-                                } else {
-                                  final riderLocation = snapshot.data!;
-                                  final double riderLat =
-                                      riderLocation['latitude'];
-                                  final double riderLng =
-                                      riderLocation['longitude'];
-                                  final double pickupLat =
-                                      delivery['pickup_lat'] ?? 0.0;
-                                  final double pickupLng =
-                                      delivery['pickup_lng'] ?? 0.0;
-                                  final double destinationLat =
-                                      delivery['endpoint_lat'] ?? 0.0;
-                                  final double destinationLng =
-                                      delivery['endpoint_lng'] ?? 0.0;
-
-                                  // Convert rider location to LatLng
-                                  final LatLng riderLatLng =
-                                      LatLng(riderLat, riderLng);
-                                  final LatLng pickupLatLng =
-                                      LatLng(pickupLat, pickupLng);
-                                  final LatLng destinationLatLng =
-                                      LatLng(destinationLat, destinationLng);
-
-                                  // Calculate distances
-                                  final double distanceToPickup =
-                                      Geolocator.distanceBetween(
-                                    riderLatLng.latitude,
-                                    riderLatLng.longitude,
-                                    pickupLatLng.latitude,
-                                    pickupLatLng.longitude,
-                                  );
-
-                                  final double totalDistanceToDestination =
-                                      Geolocator.distanceBetween(
-                                    pickupLatLng.latitude,
-                                    pickupLatLng.longitude,
-                                    destinationLatLng.latitude,
-                                    destinationLatLng.longitude,
-                                  );
-
-                                  final double remainingDistanceToDestination =
-                                      Geolocator.distanceBetween(
-                                    riderLatLng.latitude,
-                                    riderLatLng.longitude,
-                                    destinationLatLng.latitude,
-                                    destinationLatLng.longitude,
-                                  );
-
-                                  // Determine progress
-                                  double progress;
-                                  if (distanceToPickup > 10) {
-                                    // Rider is still on the way to the pickup location
-                                    final double totalDistanceToPickup =
-                                        Geolocator.distanceBetween(
-                                      pickupLatLng.latitude,
-                                      pickupLatLng.longitude,
-                                      riderLatLng.latitude,
-                                      riderLatLng.longitude,
-                                    );
-                                    progress = ((totalDistanceToPickup -
-                                                distanceToPickup) /
-                                            totalDistanceToPickup)
-                                        .clamp(0.0, 1.0);
-                                  } else {
-                                    // Rider has reached the pickup location, calculate progress to destination
-                                    progress = ((totalDistanceToDestination -
-                                                remainingDistanceToDestination) /
-                                            totalDistanceToDestination)
-                                        .clamp(0.0, 1.0);
-                                  }
-
-                                  return LinearProgressIndicator(
-                                    value: progress,
-                                    backgroundColor: Colors.grey[300],
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Color.fromRGBO(0, 31, 62, 1),
-                                    ),
-                                    borderRadius: BorderRadius.circular(10),
-                                  );
-                                }
-                              },
-                            ),
+                            child: _buildProgressIndicator(delivery),
                           ),
                         ],
                       ),
@@ -2314,6 +2315,13 @@ class _OrdersPageState extends State<OrdersPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Processing payment...')),
     );
+  }
+
+  @override
+  void dispose() {
+    stopRiderLocationUpdates();
+    _locationTimer?.cancel();
+    super.dispose();
   }
 }
 
