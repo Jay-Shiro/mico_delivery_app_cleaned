@@ -88,7 +88,7 @@ class GlobalMessageService {
               showWhen: true,
               enableVibration: true,
               playSound: true,
-              icon: '@mipmap/ic_launcher',
+              icon: '@mipmap/launcher_icon',
             );
 
             const DarwinNotificationDetails iOSDetails =
