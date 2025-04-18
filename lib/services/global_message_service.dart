@@ -65,18 +65,40 @@ class GlobalMessageService {
 
         if (messages.isNotEmpty) {
           final lastMsg = messages.last;
+
+          // Adjust the timestamp to account for the 1-hour discrepancy
+          if (lastMsg['timestamp'] != null) {
+            final originalTimestamp = DateTime.parse(lastMsg['timestamp']);
+            final adjustedTimestamp = originalTimestamp.add(Duration(hours: 1));
+            lastMsg['timestamp'] = adjustedTimestamp.toIso8601String();
+          }
+
           final lastMsgId = lastMsg['_id'];
           final isUser = lastMsg['sender_id'] == senderId;
 
           print(
               'Last message ID: $lastMsgId, isUser: $isUser, _lastMessageId: $_lastMessageId');
 
-          if (!isUser) {
+          // Ensure notification is triggered for new messages
+          if (!isUser &&
+              (_lastMessageId == null || _lastMessageId != lastMsgId)) {
             print('Triggering DIRECT notification for message from rider!');
 
             final FlutterLocalNotificationsPlugin
                 flutterLocalNotificationsPlugin =
                 FlutterLocalNotificationsPlugin();
+
+            // Initialize the plugin if not already initialized
+            const AndroidInitializationSettings androidInitSettings =
+                AndroidInitializationSettings('@mipmap/launcher_icon');
+            const DarwinInitializationSettings iOSInitSettings =
+                DarwinInitializationSettings();
+            const InitializationSettings initSettings = InitializationSettings(
+              android: androidInitSettings,
+              iOS: iOSInitSettings,
+            );
+
+            await flutterLocalNotificationsPlugin.initialize(initSettings);
 
             const AndroidNotificationDetails androidDetails =
                 AndroidNotificationDetails(
@@ -124,8 +146,10 @@ class GlobalMessageService {
                 'orderId': orderId,
               },
             );
+
+            // Update the last message ID to prevent duplicate notifications
+            _lastMessageId = lastMsgId;
           }
-          _lastMessageId = lastMsgId;
         }
       }
     } catch (e) {
