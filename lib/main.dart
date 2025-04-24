@@ -10,46 +10,58 @@ import 'package:micollins_delivery_app/pages/profilePage.dart';
 import 'package:micollins_delivery_app/pages/splash_screen.dart';
 import 'package:micollins_delivery_app/pages/supportPage.dart';
 import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:micollins_delivery_app/services/notification_service.dart';
 import 'package:micollins_delivery_app/services/global_message_service.dart';
+import 'package:micollins_delivery_app/services/onesignal_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await NotificationService().init();
+  // Initialize OneSignal
+  await OneSignalService().init();
 
   final prefs = await SharedPreferences.getInstance();
   final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
 
-  NotificationService().onNotificationTapped.listen((payloadString) {
+  // Declare userString variable here
+  final String? userString = prefs.getString('user');
+
+  // Listen for notification taps
+  OneSignalService().onNotificationTapped.listen((payloadString) {
     _handleNotificationTap(payloadString);
   });
 
   // --- Add this block before runApp ---
   if (isLoggedIn) {
-    final userString = prefs.getString('user');
-    final deliveryId = prefs.getString('deliveryId');
-    final orderId = prefs.getString('orderId');
-    if (userString != null && deliveryId != null && orderId != null) {
+    if (userString != null) {
       final userData = json.decode(userString);
       final userId = userData['_id'];
-      final userName = userData['name'];
-      final userImage = userData['image'];
-      final riderId = prefs.getString('riderId') ?? '';
-
-      GlobalMessageService().startPolling(
-        deliveryId: deliveryId,
-        senderId: userId,
-        receiverId: riderId,
-        userName: userName,
-        userImage: userImage,
-        orderId: orderId,
-      );
+      // Set external user ID for OneSignal
+      if (userId != null) {
+        await OneSignalService().setExternalUserId(userId);
+      }
     }
+  }
+
+  final deliveryId = prefs.getString('deliveryId');
+  final orderId = prefs.getString('orderId');
+  if (userString != null && deliveryId != null && orderId != null) {
+    final userData = json.decode(userString);
+    final userId = userData['_id'];
+    final userName = userData['name'];
+    final userImage = userData['image'];
+    final riderId = prefs.getString('riderId') ?? '';
+
+    GlobalMessageService().startPolling(
+      deliveryId: deliveryId,
+      senderId: userId,
+      receiverId: riderId,
+      userName: userName,
+      userImage: userImage,
+      orderId: orderId,
+    );
   }
 
   runApp(MyApp(isLoggedIn: isLoggedIn));

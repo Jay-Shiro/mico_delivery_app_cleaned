@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:micollins_delivery_app/services/notification_service.dart';
+import 'package:micollins_delivery_app/services/onesignal_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shimmer/shimmer.dart';
@@ -60,17 +61,6 @@ class _UserChatScreenState extends State<UserChatScreen> {
   void initState() {
     super.initState();
     _isActiveChat = true;
-
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    final DarwinInitializationSettings initializationSettingsIOS =
-        DarwinInitializationSettings();
-    final InitializationSettings initializationSettings =
-        InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
-    flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
     _scrollController.addListener(() {
       if (_scrollController.hasClients) {

@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:micollins_delivery_app/services/notification_service.dart';
+import 'package:micollins_delivery_app/services/onesignal_service.dart';
 
 class GlobalMessageService {
   static final GlobalMessageService _instance =
@@ -79,26 +80,12 @@ class GlobalMessageService {
           print(
               'Last message ID: $lastMsgId, isUser: $isUser, _lastMessageId: $_lastMessageId');
 
-          // Ensure notification is triggered for new messages
-          if (!isUser &&
-              (_lastMessageId == null || _lastMessageId != lastMsgId)) {
+          if (!isUser) {
             print('Triggering DIRECT notification for message from rider!');
 
             final FlutterLocalNotificationsPlugin
                 flutterLocalNotificationsPlugin =
                 FlutterLocalNotificationsPlugin();
-
-            // Initialize the plugin if not already initialized
-            const AndroidInitializationSettings androidInitSettings =
-                AndroidInitializationSettings('@mipmap/launcher_icon');
-            const DarwinInitializationSettings iOSInitSettings =
-                DarwinInitializationSettings();
-            const InitializationSettings initSettings = InitializationSettings(
-              android: androidInitSettings,
-              iOS: iOSInitSettings,
-            );
-
-            await flutterLocalNotificationsPlugin.initialize(initSettings);
 
             const AndroidNotificationDetails androidDetails =
                 AndroidNotificationDetails(
@@ -110,7 +97,7 @@ class GlobalMessageService {
               showWhen: true,
               enableVibration: true,
               playSound: true,
-              icon: '@mipmap/launcher_icon',
+              icon: '@mipmap/ic_launcher',
             );
 
             const DarwinNotificationDetails iOSDetails =
@@ -135,9 +122,9 @@ class GlobalMessageService {
             // Also try the service approach
             await NotificationService().showMessageNotification(
               title: 'New message from ${userName ?? "Rider"}',
-              body: lastMsg['message'],
+              body: lastMsg['message'] ?? 'You have a new message',
               payload: {
-                'type': 'message',
+                'type': 'chat',
                 'deliveryId': deliveryId,
                 'senderId': receiverId,
                 'receiverId': senderId,
@@ -146,6 +133,7 @@ class GlobalMessageService {
                 'orderId': orderId,
               },
             );
+            ;
 
             // Update the last message ID to prevent duplicate notifications
             _lastMessageId = lastMsgId;
@@ -153,7 +141,7 @@ class GlobalMessageService {
         }
       }
     } catch (e) {
-      print('GlobalMessageService error: $e');
+      print('Error checking for new messages: $e');
     }
   }
 }

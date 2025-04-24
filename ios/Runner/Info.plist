@@ -68,7 +68,6 @@
 		<string>remote-notification</string>
 	</array>
 
-	<!-- App Transport Security (if HTTP is used anywhere) -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
