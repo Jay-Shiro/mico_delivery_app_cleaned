@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:micollins_delivery_app/services/notification_service.dart';
+import 'package:micollins_delivery_app/services/onesignal_service.dart';
 
 class GlobalMessageService {
   static final GlobalMessageService _instance =
@@ -72,64 +73,29 @@ class GlobalMessageService {
               'Last message ID: $lastMsgId, isUser: $isUser, _lastMessageId: $_lastMessageId');
 
           if (!isUser) {
-            print('Triggering DIRECT notification for message from rider!');
-
-            final FlutterLocalNotificationsPlugin
-                flutterLocalNotificationsPlugin =
-                FlutterLocalNotificationsPlugin();
-
-            const AndroidNotificationDetails androidDetails =
-                AndroidNotificationDetails(
-              'direct_channel',
-              'Direct Messages',
-              channelDescription: 'Direct notifications for testing',
-              importance: Importance.max,
-              priority: Priority.max,
-              showWhen: true,
-              enableVibration: true,
-              playSound: true,
-              icon: '@mipmap/ic_launcher',
-            );
-
-            const DarwinNotificationDetails iOSDetails =
-                DarwinNotificationDetails(
-              presentAlert: true,
-              presentBadge: true,
-              presentSound: true,
-            );
-
-            const NotificationDetails platformDetails = NotificationDetails(
-              android: androidDetails,
-              iOS: iOSDetails,
-            );
-
-            await flutterLocalNotificationsPlugin.show(
-              DateTime.now().millisecondsSinceEpoch % 100000,
-              'New message from ${userName ?? "Rider"}',
-              lastMsg['message'],
-              platformDetails,
-            );
-
-            // Also try the service approach
-            await NotificationService().showMessageNotification(
+            print('Triggering notification for message from rider!');
+            
+            // Use OneSignal for local notification
+            await OneSignalService().sendLocalNotification(
               title: 'New message from ${userName ?? "Rider"}',
-              body: lastMsg['message'],
-              payload: {
-                'type': 'message',
-                'deliveryId': deliveryId,
-                'senderId': receiverId,
-                'receiverId': senderId,
-                'userName': userName,
-                'userImage': userImage,
-                'orderId': orderId,
+              body: lastMsg['message'] ?? 'You have a new message',
+              additionalData: {
+                'payload': json.encode({
+                  'type': 'chat',
+                  'deliveryId': deliveryId,
+                  'senderId': receiverId,
+                  'receiverId': senderId,
+                  'userName': userName,
+                  'userImage': userImage,
+                  'orderId': orderId,
+                }),
               },
             );
           }
-          _lastMessageId = lastMsgId;
         }
       }
     } catch (e) {
-      print('GlobalMessageService error: $e');
+      print('Error checking for new messages: $e');
     }
   }
 }

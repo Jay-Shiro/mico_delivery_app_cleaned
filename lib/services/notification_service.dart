@@ -4,127 +4,80 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:micollins_delivery_app/services/onesignal_service.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
-  NotificationService._internal();
-
-  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
+  
+  // Add the FlutterLocalNotificationsPlugin instance
+  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = 
       FlutterLocalNotificationsPlugin();
+  
+  NotificationService._internal() {
+    // Initialize timezone data
+    tz_data.initializeTimeZones();
+  }
 
   final StreamController<String> _notificationStreamController =
       StreamController<String>.broadcast();
-  Stream<String> get onNotificationTapped =>
-      _notificationStreamController.stream;
+  Stream<String> get onNotificationTapped => _notificationStreamController.stream;
 
   Future<void> init() async {
-    tz.initializeTimeZones();
-
-    // Request permissions
-    await _requestPermissions();
-
-    // Initialize notification settings
-    const AndroidInitializationSettings androidSettings =
-        AndroidInitializationSettings('@mipmap/launcher_icon');
-
-    final DarwinInitializationSettings iOSSettings =
+    // Initialize OneSignal through our service
+    await OneSignalService().init();
+    
+    // Forward notification taps from OneSignal service
+    OneSignalService().onNotificationTapped.listen((payload) {
+      _notificationStreamController.add(payload);
+    });
+    
+    // Initialize Flutter Local Notifications
+    const AndroidInitializationSettings androidInitSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    
+    const DarwinInitializationSettings iosInitSettings =
         DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
-      requestCriticalPermission: true, // Add this for critical notifications
     );
-
-    final InitializationSettings initSettings = InitializationSettings(
-      android: androidSettings,
-      iOS: iOSSettings,
+    
+    const InitializationSettings initSettings = InitializationSettings(
+      android: androidInitSettings,
+      iOS: iosInitSettings,
     );
-
-    // Initialize the plugin
+    
     await _flutterLocalNotificationsPlugin.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        print('Received notification response: ${response.payload}');
         if (response.payload != null) {
           _notificationStreamController.add(response.payload!);
         }
       },
     );
-
-    // Create notification channels for Android
-    if (Platform.isAndroid) {
-      await _createNotificationChannels();
-    }
-
+    
     print('Notification service initialized successfully');
   }
 
-  // Add this method to create notification channels for Android
-  Future<void> _createNotificationChannels() async {
-    const AndroidNotificationChannel messagesChannel =
-        AndroidNotificationChannel(
-      'messages_channel',
-      'Messages',
-      description: 'Notifications for new messages',
-      importance: Importance.max,
-      playSound: true,
-      enableVibration: true,
-      showBadge: true,
+  Future<void> showNotification({
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    // Use OneSignal for notifications
+    await OneSignalService().sendLocalNotification(
+      title: title,
+      body: body,
+      additionalData: payload != null ? {'payload': payload} : null,
     );
-
-    const AndroidNotificationChannel fallbackChannel =
-        AndroidNotificationChannel(
-      'fallback_channel',
-      'Fallback Channel',
-      description: 'Fallback channel for notifications',
-      importance: Importance.max,
-      playSound: true,
-      enableVibration: true,
-      showBadge: true,
-    );
-
-    await _flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(messagesChannel);
-
-    await _flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(fallbackChannel);
-
-    print('Android notification channels created');
   }
 
-  Future<void> _requestPermissions() async {
-    if (Platform.isIOS) {
-      await _flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-            critical: true,
-          );
-      print('iOS notification permissions requested');
-    } else if (Platform.isAndroid) {
-      await _flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
-      print('Android notification permissions requested');
-    }
-  }
-
-  Future<bool> isAppInForeground() async {
-    return true;
-  }
-
+  // Other methods can be updated to use OneSignal as needed
   Future<void> showMessageNotification({
     required String title,
     required String body,
@@ -142,6 +95,20 @@ class NotificationService {
     print('DEBUG: Attempting to show notification: $title - $body');
     print('DEBUG: Payload: ${json.encode(payload)}');
 
+    // Try to send via OneSignal first
+    try {
+      await OneSignalService().sendLocalNotification(
+        title: title,
+        body: body,
+        additionalData: {'payload': json.encode(payload)},
+      );
+      print('DEBUG: OneSignal notification sent successfully');
+    } catch (e) {
+      print('DEBUG: Error sending OneSignal notification: $e');
+      // Fall back to Flutter Local Notifications
+    }
+
+    // Also send via Flutter Local Notifications as backup
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
       'messages_channel',
@@ -175,9 +142,7 @@ class NotificationService {
     );
 
     final int notificationId = DateTime.now().millisecondsSinceEpoch % 10000;
-
     final String payloadStr = json.encode(payload);
-
     print('DEBUG: Using notification ID: $notificationId');
 
     try {

@@ -4,6 +4,7 @@ import 'package:micollins_delivery_app/components/user_cache.dart';
 import 'package:micollins_delivery_app/pages/notification_page.dart';
 import 'package:micollins_delivery_app/pages/profile_edit.dart';
 import 'package:micollins_delivery_app/pages/security_page.dart';
+import 'package:micollins_delivery_app/services/onesignal_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -20,7 +21,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String? firstName;
   String? lastName;
   String? userEmail;
-  String? userId;
+  String? _userId;  // Changed to private
   String? profilePictureUrl; // Add this to store the profile picture URL
   double userRating = 0.0;
   int totalRatings = 0;
@@ -43,14 +44,27 @@ class _ProfilePageState extends State<ProfilePage> {
         userEmail = userData['email'];
         firstName = userData['firstname'];
         lastName = userData['lastname'];
-        userId = userData['_id']; // Store user ID
+        _userId = userData['_id']; // Store user ID
         profilePictureUrl =
             userData['profile_picture_url']; // Get profile picture URL
         isLoading = false;
+        
+        // Register user with OneSignal
+        if (_userId != null) {
+          OneSignalService().setExternalUserId(_userId!);
+          
+          // Add tags for better targeting
+          if (firstName != null && lastName != null) {
+            OneSignalService().tagUser(key: 'name', value: '$firstName $lastName');
+          }
+          if (userEmail != null) {
+            OneSignalService().tagUser(key: 'email', value: userEmail!);
+          }
+        }
       });
 
       // Debug print for user ID
-      print('Debug - User ID: $userId');
+      print('Debug - User ID: $_userId');
       print('Debug - Profile Picture URL: $profilePictureUrl');
 
       // Fetch user details including join date
@@ -68,12 +82,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
   // New method to fetch user details including join date
   Future<void> _fetchUserDetails() async {
-    if (userId == null) return;
+    if (_userId == null) return;
 
     try {
-      print('Fetching user details for ID: $userId');
+      print('Fetching user details for ID: $_userId');
       final response = await http
-          .get(Uri.parse('https://deliveryapi-ten.vercel.app/users/$userId'));
+          .get(Uri.parse('https://deliveryapi-ten.vercel.app/users/$_userId'));
 
       print('User details response status: ${response.statusCode}');
       print('User details response body: ${response.body}');
@@ -147,11 +161,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _fetchUserRating() async {
-    if (userId == null) return;
+    if (_userId == null) return;
 
     try {
       final response = await http.get(Uri.parse(
-          'https://deliveryapi-ten.vercel.app/users/$userId/overall-rating'));
+          'https://deliveryapi-ten.vercel.app/users/$_userId/overall-rating'));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -166,11 +180,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _deleteAccount() async {
-    if (userId == null) return;
+    if (_userId == null) return;
 
     try {
       final response = await http.delete(
-        Uri.parse('https://deliveryapi-ten.vercel.app/users/$userId/delete'),
+        Uri.parse('https://deliveryapi-ten.vercel.app/users/$_userId/delete'),
       );
 
       if (response.statusCode == 200) {
@@ -311,8 +325,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 4),
                     // Add user ID here with better null handling
                     Text(
-                      userId != null && userId!.isNotEmpty
-                          ? 'ID: ${userId!.substring(0, min(userId!.length, 8))}...'
+                      _userId != null && _userId!.isNotEmpty
+                          ? 'ID: ${_userId!.substring(0, min(_userId!.length, 8))}...'
                           : 'ID: Not available',
                       style: const TextStyle(
                         fontSize: 10,
