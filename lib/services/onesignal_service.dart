@@ -52,21 +52,11 @@ class OneSignalService {
 
       print("Attempting to send notification: $title - $body");
 
-      // In OneSignal 5.0+, we can't directly send local notifications
-      // Instead, we can use tags to trigger notifications from the dashboard
-      // or use the REST API to send notifications
-
-      // Option 1: Set a temporary tag that could trigger a notification
-      // (requires setting up notification triggers in OneSignal dashboard)
       await OneSignal.User.addTags({
         'last_notification_title': title,
         'last_notification_body': body,
         'notification_timestamp': notificationId,
       });
-
-      // Option 2: Use a local notification fallback if available
-      // This is not directly supported by OneSignal SDK, but we can
-      // implement it separately if needed
 
       print("Notification data set with ID: $notificationId");
       print(

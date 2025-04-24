@@ -8,6 +8,7 @@ import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:micollins_delivery_app/services/notification_service.dart';
 import 'package:micollins_delivery_app/services/onesignal_service.dart';
+import 'package:micollins_delivery_app/services/global_message_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shimmer/shimmer.dart';
@@ -77,13 +78,17 @@ class _UserChatScreenState extends State<UserChatScreen> {
 
     _fetchChatHistory();
 
-    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      if (mounted) {
-        _fetchChatHistory(silent: true);
-      }
-    });
-
-    _startMessagePolling();
+    // Use GlobalMessageService instead of local timer
+    if (widget.deliveryId != null && widget.senderId != null && widget.receiverId != null) {
+      GlobalMessageService().startPolling(
+        deliveryId: widget.deliveryId!,
+        senderId: widget.senderId!,
+        receiverId: widget.receiverId!,
+        userName: widget.userName,
+        userImage: widget.userImage,
+        orderId: widget.orderId,
+      );
+    }
   }
 
   void _startMessagePolling() {
@@ -104,10 +109,12 @@ class _UserChatScreenState extends State<UserChatScreen> {
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
-    _scrollController.dispose();
     _messageController.dispose();
+    _scrollController.dispose();
+    _refreshTimer?.cancel();
     _isActiveChat = false;
+    // Stop the global polling when leaving the chat
+    GlobalMessageService().stopPolling();
     super.dispose();
   }
 
@@ -332,6 +339,7 @@ class _UserChatScreenState extends State<UserChatScreen> {
     if ((text == null || text.trim().isEmpty) && image == null) return;
 
     final DateTime timestamp = DateTime.now();
+    final String messageId = DateTime.now().millisecondsSinceEpoch.toString();
 
     // Add message to UI immediately for better UX
     setState(() {
@@ -340,50 +348,74 @@ class _UserChatScreenState extends State<UserChatScreen> {
         'image': image,
         'isUser': true,
         'timestamp': timestamp,
+        'displayTime': DateFormat('hh:mm a').format(timestamp),
         'status': 'sending',
+        'id': messageId,
       });
     });
 
-    _messageController.clear();
-
+    // Scroll to bottom to show the new message
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
 
-    // Send message to API
-    if (widget.deliveryId != null &&
-        widget.senderId != null &&
-        widget.receiverId != null &&
-        text != null) {
-      try {
-        final response = await http.post(
-          Uri.parse(
-              'https://deliveryapi-ten.vercel.app/chat/${widget.deliveryId}/${widget.senderId}/${widget.receiverId}'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode({
-            'message': text,
-          }),
-        );
+    try {
+      final Map<String, dynamic> messageData = {
+        'sender_id': widget.senderId,
+        'receiver_id': widget.receiverId,
+        'delivery_id': widget.deliveryId,
+        'message': text,
+        'timestamp': timestamp.toIso8601String(),
+      };
 
-        if (response.statusCode == 200) {
-          setState(() {
-            _messages.last['status'] = 'sent';
-          });
+      final response = await http.post(
+        Uri.parse('https://deliveryapi-ten.vercel.app/chat/send'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(messageData),
+      );
 
-          // Refresh chat history silently without showing loading indicator
-          _fetchChatHistory(silent: true);
-        } else {
-          print('Failed to send message: ${response.body}');
-          setState(() {
-            _messages.last['status'] = 'error';
-          });
-        }
-      } catch (e) {
-        print('Error sending message: $e');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = json.decode(response.body);
+        
+        // Update the message status and ID with the one from the server
         setState(() {
-          _messages.last['status'] = 'error';
+          final index = _messages.indexWhere((msg) => 
+            msg['timestamp'] == timestamp && msg['isUser'] == true);
+          
+          if (index != -1) {
+            _messages[index]['status'] = 'delivered';
+            _messages[index]['id'] = responseData['_id'] ?? messageId;
+          }
         });
+        
+        // Immediately fetch messages to ensure both sides are updated
+        _fetchChatHistory(silent: true);
+        
+        // Clear the message input
+        _messageController.clear();
+      } else {
+        // Handle error
+        setState(() {
+          final index = _messages.indexWhere((msg) => 
+            msg['timestamp'] == timestamp && msg['isUser'] == true);
+          
+          if (index != -1) {
+            _messages[index]['status'] = 'error';
+          }
+        });
+        print('Failed to send message: ${response.statusCode}');
       }
+    } catch (e) {
+      // Handle exception
+      setState(() {
+        final index = _messages.indexWhere((msg) => 
+          msg['timestamp'] == timestamp && msg['isUser'] == true);
+        
+        if (index != -1) {
+          _messages[index]['status'] = 'error';
+        }
+      });
+      print('Error sending message: $e');
     }
   }
 

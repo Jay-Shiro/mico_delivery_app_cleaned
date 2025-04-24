@@ -49,49 +49,62 @@ class GlobalMessageService {
     required String? orderId,
   }) async {
     try {
-      print('Polling for new messages...');
       final response = await http.get(
         Uri.parse('https://deliveryapi-ten.vercel.app/chat/$deliveryId'),
-        headers: {'Accept': 'application/json'},
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        List<dynamic> messages = [];
-        if (data is List) {
-          messages = data;
-        } else if (data['messages'] != null) {
-          messages = data['messages'];
-        }
-
-        if (messages.isNotEmpty) {
-          final lastMsg = messages.last;
-          final lastMsgId = lastMsg['_id'];
-          final isUser = lastMsg['sender_id'] == senderId;
-
-          print(
-              'Last message ID: $lastMsgId, isUser: $isUser, _lastMessageId: $_lastMessageId');
-
-          if (!isUser) {
-            print('Triggering notification for message from rider!');
-            
-            // Use OneSignal for local notification
-            await OneSignalService().sendLocalNotification(
-              title: 'New message from ${userName ?? "Rider"}',
-              body: lastMsg['message'] ?? 'You have a new message',
-              additionalData: {
-                'payload': json.encode({
-                  'type': 'chat',
-                  'deliveryId': deliveryId,
-                  'senderId': receiverId,
-                  'receiverId': senderId,
-                  'userName': userName,
-                  'userImage': userImage,
-                  'orderId': orderId,
-                }),
-              },
-            );
+        String? latestMessageId;
+        bool hasNewMessage = false;
+        
+        // Process messages to find the latest one
+        if (data is List && data.isNotEmpty) {
+          final latestMessage = data.last;
+          latestMessageId = latestMessage['_id'];
+          
+          // Check if this is a new message
+          if (_lastMessageId != latestMessageId && 
+              latestMessage['sender_id'] != senderId) {
+            hasNewMessage = true;
           }
+        } else if (data['messages'] != null && data['messages'].isNotEmpty) {
+          final latestMessage = data['messages'].last;
+          latestMessageId = latestMessage['_id'];
+          
+          // Check if this is a new message
+          if (_lastMessageId != latestMessageId && 
+              latestMessage['sender_id'] != senderId) {
+            hasNewMessage = true;
+          }
+        }
+        
+        // Update the last message ID
+        if (latestMessageId != null) {
+          _lastMessageId = latestMessageId;
+        }
+        
+        // If there's a new message and it's not from the current user, show a notification
+        if (hasNewMessage) {
+          // Mark messages as read if the chat is currently open
+          await http.put(
+            Uri.parse('https://deliveryapi-ten.vercel.app/chat/$deliveryId/$senderId/mark-read'),
+          );
+          
+          // Send a local notification
+          NotificationService().showMessageNotification(
+            title: 'New message from ${userName ?? "User"}',
+            body: 'You have a new message',
+            payload: {
+              'type': 'chat',
+              'deliveryId': deliveryId,
+              'senderId': receiverId, // Swap sender and receiver for the notification
+              'receiverId': senderId,
+              'userName': userName,
+              'userImage': userImage,
+              'orderId': orderId,
+            },
+          );
         }
       }
     } catch (e) {

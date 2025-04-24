@@ -986,98 +986,109 @@ class _OrdersPageState extends State<OrdersPage> {
                           if (displayStatus == 'completed')
                             Row(
                               children: [
-                                OutlinedButton(
-                                  onPressed: () {
-                                    // Navigate to chat screen with delivery info
-                                    final String riderId =
-                                        delivery['rider_id'] ?? '';
-                                    if (riderId.isNotEmpty) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => UserChatScreen(
-                                            userName: "Rider",
-                                            userImage: null,
-                                            orderId: "MC$shortId",
-                                            deliveryId: delivery['_id'],
-                                            senderId: userId,
-                                            receiverId: riderId,
-                                            isDeliveryCompleted:
-                                                true, // Set to true for completed deliveries
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () {
+                                      // Navigate to chat screen with delivery info
+                                      final String riderId =
+                                          delivery['rider_id'] ?? '';
+                                      if (riderId.isNotEmpty) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                UserChatScreen(
+                                              userName: "Rider",
+                                              userImage: null,
+                                              orderId: "MC$shortId",
+                                              deliveryId: delivery['_id'],
+                                              senderId: userId,
+                                              receiverId: riderId,
+                                              isDeliveryCompleted:
+                                                  true, // Set to true for completed deliveries
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    } else {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                            content: Text(
-                                                'Rider information not available')),
-                                      );
-                                    }
-                                  },
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor:
-                                        Color.fromRGBO(0, 31, 62, 1),
-                                    side: BorderSide(
-                                        color: Color.fromRGBO(0, 31, 62, 1)),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                              content: Text(
+                                                  'Rider information not available')),
+                                        );
+                                      }
+                                    },
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor:
+                                          Color.fromRGBO(0, 31, 62, 1),
+                                      side: BorderSide(
+                                          color: Color.fromRGBO(0, 31, 62, 1)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 8),
                                     ),
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
+                                    child: Icon(EvaIcons.messageCircleOutline,
+                                        size: 16),
                                   ),
-                                  child: Icon(EvaIcons.messageCircleOutline,
-                                      size: 18),
                                 ),
-                                SizedBox(width: 8),
-                                OutlinedButton(
-                                  onPressed: () {
-                                    _showReceiptPrompt(
-                                        context, shortId, delivery);
-                                  },
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor:
-                                        Color.fromRGBO(0, 31, 62, 1),
-                                    side: BorderSide(
-                                        color: Color.fromRGBO(0, 31, 62, 1)),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                                SizedBox(width: 4),
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () {
+                                      _showReceiptPrompt(
+                                          context, shortId, delivery);
+                                    },
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor:
+                                          Color.fromRGBO(0, 31, 62, 1),
+                                      side: BorderSide(
+                                          color: Color.fromRGBO(0, 31, 62, 1)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 8),
                                     ),
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
+                                    child: Text(
+                                      'Receipt',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
                                   ),
-                                  child: Text('Receipt'),
                                 ),
-                                SizedBox(width: 8),
+                                SizedBox(width: 4),
                                 // Add Rate Rider button
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    _showRatingDialog(delivery);
-                                  },
-                                  icon: Icon(
-                                    EvaIcons.starOutline,
-                                    size: 18,
-                                    color: Colors.white,
-                                  ),
-                                  label: Text(
-                                    'Rate',
-                                    style: TextStyle(
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      _showRatingDialog(delivery);
+                                    },
+                                    icon: Icon(
+                                      EvaIcons.starOutline,
+                                      size: 16,
                                       color: Colors.white,
-                                      fontWeight: FontWeight.w500,
                                     ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Color.fromRGBO(0, 31, 62, 1),
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                                    label: Text(
+                                      'Rate',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 12,
+                                      ),
                                     ),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          Color.fromRGBO(0, 31, 62, 1),
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 8,
+                                      ),
                                     ),
                                   ),
                                 ),
