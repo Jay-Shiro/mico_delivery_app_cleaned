@@ -60,8 +60,8 @@ class _MapPageState extends State<MapPage> {
     // Define the approximate latitude and longitude boundaries of Lagos
     const double lagosMinLat = 6.4000;
     const double lagosMaxLat = 6.7000;
-    const double lagosMinLng = 3.2000;
-    const double lagosMaxLng = 3.6000;
+    const double lagosMinLng = 3.6000;
+    const double lagosMaxLng = 4.1000;
 
     return latitude >= lagosMinLat &&
         latitude <= lagosMaxLat &&
