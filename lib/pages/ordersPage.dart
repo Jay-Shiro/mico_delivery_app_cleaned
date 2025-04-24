@@ -1977,15 +1977,14 @@ class _OrdersPageState extends State<OrdersPage> {
                         (distanceToDestination / averageSpeedMetersPerSecond)
                             .round();
 
-                    // Convert ETA to minutes
+                    // Convert ETA to minutes and format it
                     final int etaMinutes = (etaSeconds / 60).ceil();
-
-                    // Cap the ETA to a reasonable maximum (e.g., 120 minutes)
-                    final int cappedEtaMinutes =
-                        etaMinutes > 120 ? 120 : etaMinutes;
+                    final String formattedEta = etaMinutes > 1
+                        ? "$etaMinutes minutes"
+                        : "$etaMinutes minute";
 
                     return Text(
-                      "Estimated arrival: $cappedEtaMinutes minutes",
+                      "Estimated arrival: $formattedEta",
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[700],
