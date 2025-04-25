@@ -2,6 +2,7 @@ C/C++ Structured Logá
 Ñ
 Å/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/Debug/4a5g5m41/x86/additional_project_files.txtC
 A
+<<<<<<< HEAD
 ?com.android.build.gradle.internal.cxx.io.EncodedFileFingerPrint	äâÛ¿Ê2 ∑Ê®ß‡2É
 Ä
 ~/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/Debug/4a5g5m41/x86/android_gradle_build.json	äâÛ¿Ê2¸ πÊ®ß‡2â
@@ -26,3 +27,29 @@ w/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.c
 |/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/Debug/4a5g5m41/x86/symbol_folder_index.txt	ãâÛ¿Ê2s ºÊ®ß‡2W
 U
 S/Users/macuser/flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt	ãâÛ¿Ê2§ ˚˜ˆ∑‹2
+=======
+?com.android.build.gradle.internal.cxx.io.EncodedFileFingerPrint	®Å˜»Ê2 ¢ê‹»Ê2É
+Ä
+~/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/Debug/4a5g5m41/x86/android_gradle_build.json	®Å˜»Ê2¸ •ê‹»Ê2â
+Ü
+É/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/Debug/4a5g5m41/x86/android_gradle_build_mini.json	®Å˜»Ê2É ßê‹»Ê2t
+r
+p/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/Debug/4a5g5m41/x86/build.ninja	®Å˜»Ê2€… Èè‹»Ê2x
+v
+t/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/Debug/4a5g5m41/x86/build.ninja.txt	®Å˜»Ê2}
+{
+y/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/Debug/4a5g5m41/x86/build_file_index.txt	®Å˜»Ê2S ©ê‹»Ê2~
+|
+z/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/Debug/4a5g5m41/x86/compile_commands.json	®Å˜»Ê2É
+Ä
+~/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/Debug/4a5g5m41/x86/compile_commands.json.bin	®Å˜»Ê2	ä
+á
+Ñ/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/Debug/4a5g5m41/x86/metadata_generation_command.txt	®Å˜»Ê2
+Ó ®ê‹»Ê2{
+y
+w/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/Debug/4a5g5m41/x86/prefab_config.json	®Å˜»Ê2( ®ê‹»Ê2Ä
+~
+|/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/Debug/4a5g5m41/x86/symbol_folder_index.txt	®Å˜»Ê2s ©ê‹»Ê2W
+U
+S/Users/macuser/flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt	©Å˜»Ê2§ ˚˜ˆ∑‹2
+>>>>>>> 81b03a63441fff41aa6173fe3c20cbe2430e79e1
