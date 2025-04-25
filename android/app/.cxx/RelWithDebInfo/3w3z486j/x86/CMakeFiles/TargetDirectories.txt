@@ -1,2 +1,0 @@
-/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/RelWithDebInfo/3w3z486j/x86/CMakeFiles/edit_cache.dir
-/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/android/app/.cxx/RelWithDebInfo/3w3z486j/x86/CMakeFiles/rebuild_cache.dir

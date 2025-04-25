@@ -23,7 +23,7 @@ class MapPage extends StatefulWidget {
   State<MapPage> createState() => _MapPageState();
 }
 
-class _MapPageState extends State<MapPage> {
+class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   late GoogleMapController _mapController;
   LatLng? _userCurrentLocation;
   final Set<Marker> _userMarkers = {};
@@ -51,9 +51,69 @@ class _MapPageState extends State<MapPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // Add observer for app lifecycle
     _initializeLocation();
     _loadUserEmail();
     _loadPromoCodeUsageCount();
+    _restoreAppState(); // Restore app state when the app starts
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Remove observer
+    _saveAppState(); // Save app state when the app is minimized or closed
+    _mapController.dispose();
+    _startPointController.dispose();
+    _destinationController.dispose();
+    _controller1.dispose();
+    _controller2.dispose();
+    _startPointFN.dispose();
+    _endPointFN.dispose();
+    _isMounted = false;
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _saveAppState(); // Save app state when app is minimized
+    } else if (state == AppLifecycleState.resumed) {
+      _restoreAppState(); // Restore app state when app is reopened
+    }
+  }
+
+  Future<void> _saveAppState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('startPoint', _startPointController.text);
+    await prefs.setString('destination', _destinationController.text);
+    await prefs.setStringList('stops',
+        _stopControllers.map((controller) => controller.text).toList());
+    await prefs.setString('selectedVehicleType', selectedVehicleType);
+    await prefs.setBool('isExpressSelected', isExpressSelected ?? false);
+    await prefs.setBool('isStandardSelected', isStandardSelected ?? false);
+    await prefs.setBool('isPromoCodeApplied', _isPromoCodeApplied);
+    await prefs.setDouble('promoDiscountAmount', _promoDiscountAmount);
+    debugPrint('MapPage state saved.');
+  }
+
+  Future<void> _restoreAppState() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _startPointController.text = prefs.getString('startPoint') ?? '';
+      _destinationController.text = prefs.getString('destination') ?? '';
+      List<String>? stops = prefs.getStringList('stops');
+      if (stops != null) {
+        _stopControllers =
+            stops.map((stop) => TextEditingController(text: stop)).toList();
+        _stopFocusNodes = List.generate(stops.length, (_) => FocusNode());
+      }
+      selectedVehicleType = prefs.getString('selectedVehicleType') ?? 'bike';
+      isExpressSelected = prefs.getBool('isExpressSelected') ?? false;
+      isStandardSelected = prefs.getBool('isStandardSelected') ?? false;
+      _isPromoCodeApplied = prefs.getBool('isPromoCodeApplied') ?? false;
+      _promoDiscountAmount = prefs.getDouble('promoDiscountAmount') ?? 0.0;
+    });
+    debugPrint('MapPage state restored.');
   }
 
   bool _isInLagos(double latitude, double longitude) {
@@ -254,19 +314,6 @@ class _MapPageState extends State<MapPage> {
 
   final FocusNode _startPointFN = FocusNode();
   final FocusNode _endPointFN = FocusNode();
-
-  @override
-  void dispose() {
-    _mapController.dispose();
-    _startPointController.dispose();
-    _destinationController.dispose();
-    _controller1.dispose();
-    _controller2.dispose();
-    _startPointFN.dispose();
-    _endPointFN.dispose();
-    _isMounted = false;
-    super.dispose();
-  }
 
   List<LatLng> _userDestinations = []; // List to store multiple destinations
 

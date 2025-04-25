@@ -26,7 +26,7 @@ class OrdersPage extends StatefulWidget {
   State<OrdersPage> createState() => _OrdersPageState();
 }
 
-class _OrdersPageState extends State<OrdersPage> {
+class _OrdersPageState extends State<OrdersPage> with WidgetsBindingObserver {
   String currentStatus = 'all';
   List<dynamic> deliveries = [];
   bool isLoading = true;
@@ -39,6 +39,7 @@ class _OrdersPageState extends State<OrdersPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // Add observer for app lifecycle
     _loadUserData().then((_) {
       fetchDeliveries();
     });
@@ -52,6 +53,38 @@ class _OrdersPageState extends State<OrdersPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       checkForCompletedDeliveries();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Remove observer
+    _locationTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _saveAppState(); // Save app state when app is minimized
+    } else if (state == AppLifecycleState.resumed) {
+      _restoreAppState(); // Restore app state when app is reopened
+    }
+  }
+
+  Future<void> _saveAppState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('currentStatus', currentStatus);
+    await prefs.setString('searchQuery', searchQuery);
+    debugPrint('App state saved.');
+  }
+
+  Future<void> _restoreAppState() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      currentStatus = prefs.getString('currentStatus') ?? 'all';
+      searchQuery = prefs.getString('searchQuery') ?? '';
+    });
+    debugPrint('App state restored.');
   }
 
   final Set<String> notifiedMessageIds = {};

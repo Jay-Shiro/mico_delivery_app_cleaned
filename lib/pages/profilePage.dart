@@ -21,7 +21,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String? firstName;
   String? lastName;
   String? userEmail;
-  String? _userId;  // Changed to private
+  String? _userId; // Changed to private
   String? profilePictureUrl; // Add this to store the profile picture URL
   double userRating = 0.0;
   int totalRatings = 0;
@@ -48,14 +48,15 @@ class _ProfilePageState extends State<ProfilePage> {
         profilePictureUrl =
             userData['profile_picture_url']; // Get profile picture URL
         isLoading = false;
-        
+
         // Register user with OneSignal
         if (_userId != null) {
           OneSignalService().setExternalUserId(_userId!);
-          
+
           // Add tags for better targeting
           if (firstName != null && lastName != null) {
-            OneSignalService().tagUser(key: 'name', value: '$firstName $lastName');
+            OneSignalService()
+                .tagUser(key: 'name', value: '$firstName $lastName');
           }
           if (userEmail != null) {
             OneSignalService().tagUser(key: 'email', value: userEmail!);
