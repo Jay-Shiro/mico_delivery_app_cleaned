@@ -26,7 +26,7 @@ class OrdersPage extends StatefulWidget {
   State<OrdersPage> createState() => _OrdersPageState();
 }
 
-class _OrdersPageState extends State<OrdersPage> with WidgetsBindingObserver {
+class _OrdersPageState extends State<OrdersPage> {
   String currentStatus = 'all';
   List<dynamic> deliveries = [];
   bool isLoading = true;
@@ -39,7 +39,6 @@ class _OrdersPageState extends State<OrdersPage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this); // Add observer for app lifecycle
     _loadUserData().then((_) {
       fetchDeliveries();
     });
@@ -53,38 +52,6 @@ class _OrdersPageState extends State<OrdersPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       checkForCompletedDeliveries();
     });
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this); // Remove observer
-    _locationTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      _saveAppState(); // Save app state when app is minimized
-    } else if (state == AppLifecycleState.resumed) {
-      _restoreAppState(); // Restore app state when app is reopened
-    }
-  }
-
-  Future<void> _saveAppState() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('currentStatus', currentStatus);
-    await prefs.setString('searchQuery', searchQuery);
-    debugPrint('App state saved.');
-  }
-
-  Future<void> _restoreAppState() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      currentStatus = prefs.getString('currentStatus') ?? 'all';
-      searchQuery = prefs.getString('searchQuery') ?? '';
-    });
-    debugPrint('App state restored.');
   }
 
   final Set<String> notifiedMessageIds = {};
@@ -1561,558 +1528,238 @@ class _OrdersPageState extends State<OrdersPage> with WidgetsBindingObserver {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          padding: EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                margin: EdgeInsets.only(bottom: 20),
-              ),
-              Text(
-                "Tracking Your Delivery",
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color.fromRGBO(0, 31, 62, 1)),
-              ),
-              SizedBox(height: 20),
+        return FutureBuilder<Map<String, dynamic>>(
+          future: _fetchRiderLocation(delivery['_id']),
+          builder: (context, snapshot) {
+            final riderLocation = snapshot.data;
+            final loading = snapshot.connectionState == ConnectionState.waiting;
+            final error = snapshot.hasError ||
+                riderLocation == null ||
+                riderLocation.isEmpty;
 
-              // Rider profile image
-              riderDetails['facial_picture_url'] != null
-                  ? CircleAvatar(
-                      radius: 40,
-                      backgroundImage: NetworkImage(
-                        (riderDetails['facial_picture_url'] ?? '').replaceFirst(
-                            'deliveryapi-plum', 'deliveryapi-ten'),
-                      ),
-                      backgroundColor: Color.fromRGBO(0, 31, 62, 0.1),
-                    )
-                  : CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Color.fromRGBO(0, 31, 62, 0.1),
-                      child: Icon(
-                        EvaIcons.personOutline,
-                        size: 40,
-                        color: Color.fromRGBO(0, 31, 62, 1),
-                      ),
-                    ),
-              SizedBox(height: 16),
+            double riderLat = riderLocation?['latitude'] ?? 0.0;
+            double riderLng = riderLocation?['longitude'] ?? 0.0;
+            double pickupLat = delivery['pickup_lat'] ?? 0.0;
+            double pickupLng = delivery['pickup_lng'] ?? 0.0;
+            double destinationLat = delivery['endpoint_lat'] ?? 0.0;
+            double destinationLng = delivery['endpoint_lng'] ?? 0.0;
 
-              // Rider name and rating
-              Text(
-                "${riderDetails['firstname'] ?? ''} ${riderDetails['lastname'] ?? ''}",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.star,
-                    color: Colors.amber,
-                    size: 18,
-                  ),
-                  SizedBox(width: 4),
-                  Text(
-                    "${riderRating.toStringAsFixed(1)} Rating",
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                  ),
-                ],
-              ),
-              SizedBox(height: 4),
-              Text(
-                riderDetails['phone'] ?? "No phone number",
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              ),
-              SizedBox(height: 8),
-              Text(
-                "Vehicle: ${riderDetails['vehicle_type']?.toString().toUpperCase() ?? 'Bike'}",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Color.fromRGBO(0, 31, 62, 1),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: 24),
+            int? etaMinutes;
+            if (!loading && !error) {
+              const double averageSpeedMps = 40 * 1000 / 3600;
+              final double distance = Geolocator.distanceBetween(
+                riderLat,
+                riderLng,
+                destinationLat,
+                destinationLng,
+              );
+              final int etaSeconds = (distance / averageSpeedMps).round();
+              etaMinutes = (etaSeconds / 60).ceil().clamp(1, 120);
+            }
 
-              // Delivery progress
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Color.fromRGBO(0, 31, 62, 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              padding: EdgeInsets.all(20),
+              child: SingleChildScrollView(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Rider's current location
-                    FutureBuilder<Map<String, dynamic>>(
-                      future: _fetchRiderLocation(delivery['_id']),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return Row(
-                            children: [
-                              Icon(EvaIcons.pinOutline,
-                                  color: Color.fromRGBO(0, 31, 62, 1),
-                                  size: 20),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  "Fetching rider's location...",
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.grey[600]),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          );
-                        } else if (snapshot.hasError ||
-                            !snapshot.hasData ||
-                            snapshot.data!.isEmpty) {
-                          return Row(
-                            children: [
-                              Icon(EvaIcons.pinOutline,
-                                  color: Color.fromRGBO(0, 31, 62, 1),
-                                  size: 20),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  "Rider's location unavailable",
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.red),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          );
-                        } else {
-                          final riderLocation = snapshot.data!;
-                          final double latitude = riderLocation['latitude'];
-                          final double longitude = riderLocation['longitude'];
-
-                          return FutureBuilder<List<Placemark>>(
-                            future:
-                                placemarkFromCoordinates(latitude, longitude),
-                            builder: (context, addressSnapshot) {
-                              if (addressSnapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return Row(
-                                  children: [
-                                    Icon(EvaIcons.pinOutline,
-                                        color: Color.fromRGBO(0, 31, 62, 1),
-                                        size: 20),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        "Converting coordinates to address...",
-                                        style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey[600]),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              } else if (addressSnapshot.hasError ||
-                                  !addressSnapshot.hasData ||
-                                  addressSnapshot.data!.isEmpty) {
-                                return Row(
-                                  children: [
-                                    Icon(EvaIcons.pinOutline,
-                                        color: Color.fromRGBO(0, 31, 62, 1),
-                                        size: 20),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        "Address unavailable",
-                                        style: TextStyle(
-                                            fontSize: 14, color: Colors.red),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              } else {
-                                final placemark = addressSnapshot.data!.first;
-                                final riderAddress = [
-                                  placemark.street,
-                                  placemark.subLocality,
-                                  placemark.locality,
-                                  placemark.administrativeArea,
-                                  placemark.country,
-                                ]
-                                    .where((element) =>
-                                        element != null && element.isNotEmpty)
-                                    .join(', ');
-
-                                return Row(
-                                  children: [
-                                    Icon(EvaIcons.pinOutline,
-                                        color: Color.fromRGBO(0, 31, 62, 1),
-                                        size: 20),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        riderAddress,
-                                        style: TextStyle(fontSize: 14),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }
-                            },
-                          );
-                        }
-                      },
-                    ),
-                    SizedBox(height: 8),
-
-                    // Progress bar
                     Container(
-                      height: 40,
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 20,
-                            alignment: Alignment.center,
-                            child: Container(
-                              width: 1,
-                              height: 40,
-                              color: Color.fromRGBO(0, 31, 62, 1),
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: FutureBuilder<Map<String, dynamic>>(
-                              future: _fetchRiderLocation(
-                                  delivery['_id']), // Fetch rider location
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return LinearProgressIndicator(
-                                    value:
-                                        null, // Indeterminate progress while loading
-                                    backgroundColor: Colors.grey[300],
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Color.fromRGBO(0, 31, 62, 1),
-                                    ),
-                                    borderRadius: BorderRadius.circular(10),
-                                  );
-                                } else if (snapshot.hasError ||
-                                    !snapshot.hasData ||
-                                    snapshot.data!.isEmpty) {
-                                  return LinearProgressIndicator(
-                                    value:
-                                        0.0, // No progress if there's an error or no data
-                                    backgroundColor: Colors.grey,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.red, // Red to indicate an error
-                                    ),
-                                    borderRadius: BorderRadius.circular(10),
-                                  );
-                                } else {
-                                  final riderLocation = snapshot.data!;
-                                  final double riderLat =
-                                      riderLocation['latitude'];
-                                  final double riderLng =
-                                      riderLocation['longitude'];
-                                  final double pickupLat =
-                                      delivery['pickup_lat'] ?? 0.0;
-                                  final double pickupLng =
-                                      delivery['pickup_lng'] ?? 0.0;
-                                  final double destinationLat =
-                                      delivery['endpoint_lat'] ?? 0.0;
-                                  final double destinationLng =
-                                      delivery['endpoint_lng'] ?? 0.0;
-
-                                  // Convert rider location to LatLng
-                                  final LatLng riderLatLng =
-                                      LatLng(riderLat, riderLng);
-                                  final LatLng pickupLatLng =
-                                      LatLng(pickupLat, pickupLng);
-                                  final LatLng destinationLatLng =
-                                      LatLng(destinationLat, destinationLng);
-
-                                  // Calculate distances
-                                  final double distanceToPickup =
-                                      Geolocator.distanceBetween(
-                                    riderLatLng.latitude,
-                                    riderLatLng.longitude,
-                                    pickupLatLng.latitude,
-                                    pickupLatLng.longitude,
-                                  );
-
-                                  final double totalDistanceToDestination =
-                                      Geolocator.distanceBetween(
-                                    pickupLatLng.latitude,
-                                    pickupLatLng.longitude,
-                                    destinationLatLng.latitude,
-                                    destinationLatLng.longitude,
-                                  );
-
-                                  final double remainingDistanceToDestination =
-                                      Geolocator.distanceBetween(
-                                    riderLatLng.latitude,
-                                    riderLatLng.longitude,
-                                    destinationLatLng.latitude,
-                                    destinationLatLng.longitude,
-                                  );
-
-                                  // Determine progress
-                                  double progress;
-                                  if (distanceToPickup > 10) {
-                                    // Rider is still on the way to the pickup location
-                                    final double totalDistanceToPickup =
-                                        Geolocator.distanceBetween(
-                                      pickupLatLng.latitude,
-                                      pickupLatLng.longitude,
-                                      riderLatLng.latitude,
-                                      riderLatLng.longitude,
-                                    );
-                                    progress = ((totalDistanceToPickup -
-                                                distanceToPickup) /
-                                            totalDistanceToPickup)
-                                        .clamp(0.0, 1.0);
-                                  } else {
-                                    // Rider has reached the pickup location, calculate progress to destination
-                                    progress = ((totalDistanceToDestination -
-                                                remainingDistanceToDestination) /
-                                            totalDistanceToDestination)
-                                        .clamp(0.0, 1.0);
-                                  }
-
-                                  return LinearProgressIndicator(
-                                    value: progress,
-                                    backgroundColor: Colors.grey[300],
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Color.fromRGBO(0, 31, 62, 1),
-                                    ),
-                                    borderRadius: BorderRadius.circular(10),
-                                  );
-                                }
-                              },
-                            ),
-                          ),
-                        ],
+                      width: 40,
+                      height: 5,
+                      margin: EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    SizedBox(height: 8),
+                    Text(
+                      "Tracking Your Delivery",
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color.fromRGBO(0, 31, 62, 1)),
+                    ),
+                    SizedBox(height: 20),
 
-                    // Pickup or Delivery endpoint
-                    Row(
-                      children: [
-                        Icon(
-                          EvaIcons.pinOutline,
-                          color: Color.fromRGBO(0, 31, 62, 1),
-                          size: 20,
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: FutureBuilder<Map<String, dynamic>>(
-                            future: _fetchRiderLocation(delivery['_id']),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return Text(
-                                  "Fetching location...",
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.grey[600]),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                );
-                              } else if (snapshot.hasError ||
-                                  !snapshot.hasData ||
-                                  snapshot.data!.isEmpty) {
-                                return Text(
-                                  "Location unavailable",
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.red),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                );
-                              } else {
-                                final riderLocation = snapshot.data!;
-                                final double riderLat =
-                                    riderLocation['latitude'];
-                                final double riderLng =
-                                    riderLocation['longitude'];
-                                final double pickupLat =
-                                    delivery['pickup_lat'] ?? 0.0;
-                                final double pickupLng =
-                                    delivery['pickup_lng'] ?? 0.0;
-
-                                // Check if rider is at the pickup location
-                                if (riderLat == pickupLat &&
-                                    riderLng == pickupLng) {
-                                  return Text(
-                                    delivery['startpoint'],
-                                    style: TextStyle(fontSize: 14),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  );
-                                } else {
-                                  return Text(
-                                    delivery['endpoint'],
-                                    style: TextStyle(fontSize: 14),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  );
-                                }
-                              }
-                            },
+                    // Rider Profile Image
+                    riderDetails['facial_picture_url'] != null
+                        ? CircleAvatar(
+                            radius: 40,
+                            backgroundImage: NetworkImage(
+                              (riderDetails['facial_picture_url'] ?? '')
+                                  .replaceFirst(
+                                      'deliveryapi-plum', 'deliveryapi-ten'),
+                            ),
+                            backgroundColor: Color.fromRGBO(0, 31, 62, 0.1),
+                          )
+                        : CircleAvatar(
+                            radius: 40,
+                            backgroundColor: Color.fromRGBO(0, 31, 62, 0.1),
+                            child: Icon(EvaIcons.personOutline,
+                                size: 40, color: Color.fromRGBO(0, 31, 62, 1)),
                           ),
+                    SizedBox(height: 16),
+
+                    Text(
+                      "${riderDetails['firstname'] ?? ''} ${riderDetails['lastname'] ?? ''}",
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.star, color: Colors.amber, size: 18),
+                        SizedBox(width: 4),
+                        Text("${riderRating.toStringAsFixed(1)} Rating",
+                            style: TextStyle(
+                                fontSize: 14, color: Colors.grey[700])),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      riderDetails['phone'] ?? "No phone number",
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      "Vehicle: ${riderDetails['vehicle_type']?.toString().toUpperCase() ?? 'Bike'}",
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Color.fromRGBO(0, 31, 62, 1),
+                          fontWeight: FontWeight.w500),
+                    ),
+                    SizedBox(height: 16),
+
+                    // Google Map or Error/Loader
+                    if (loading)
+                      CircularProgressIndicator(
+                          color: Color.fromRGBO(0, 31, 62, 1))
+                    else if (error)
+                      Text('Failed to load map data',
+                          style: TextStyle(color: Colors.red))
+                    else
+                      Container(
+                        height: 200,
+                        child: GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: LatLng(riderLat, riderLng),
+                            zoom: 14,
+                          ),
+                          markers: {
+                            Marker(
+                              markerId: MarkerId('rider'),
+                              position: LatLng(riderLat, riderLng),
+                              infoWindow: InfoWindow(title: "Rider's Location"),
+                            ),
+                            Marker(
+                              markerId: MarkerId('pickup'),
+                              position: LatLng(pickupLat, pickupLng),
+                              infoWindow: InfoWindow(title: "Pickup Location"),
+                            ),
+                            Marker(
+                              markerId: MarkerId('destination'),
+                              position: LatLng(destinationLat, destinationLng),
+                              infoWindow: InfoWindow(title: "Destination"),
+                            ),
+                          },
+                          polylines: {
+                            Polyline(
+                              polylineId: PolylineId('route'),
+                              points: [
+                                LatLng(pickupLat, pickupLng),
+                                LatLng(destinationLat, destinationLng),
+                              ],
+                              color: Color.fromRGBO(0, 31, 62, 1),
+                              width: 4,
+                            ),
+                          },
+                        ),
+                      ),
+
+                    SizedBox(height: 16),
+                    if (loading)
+                      Text("Calculating estimated arrival...",
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[700],
+                              fontWeight: FontWeight.w500))
+                    else if (error)
+                      Text("Unable to calculate arrival time",
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.red,
+                              fontWeight: FontWeight.w500))
+                    else
+                      Text(
+                        "Estimated arrival: $etaMinutes minutes",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    SizedBox(height: 20),
+
+                    // Action Buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildActionButton(
+                          icon: EvaIcons.phoneOutline,
+                          label: "Call",
+                          onPressed: () {
+                            final phone = riderDetails['phone'] ?? '';
+                            if (phone.isNotEmpty) {
+                              launchUrl(Uri.parse('tel:$phone'));
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content:
+                                        Text('Phone number not available')),
+                              );
+                            }
+                          },
+                        ),
+                        _buildActionButton(
+                          icon: EvaIcons.messageCircleOutline,
+                          label: "Chat",
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => UserChatScreen(
+                                  userName:
+                                      "${riderDetails['firstname'] ?? ''} ${riderDetails['lastname'] ?? ''}",
+                                  userImage: riderDetails['facial_picture_url'],
+                                  orderId: "MC$shortId",
+                                  deliveryId: delivery['_id'],
+                                  senderId: userId,
+                                  receiverId: riderId,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildActionButton(
+                          icon: EvaIcons.closeCircleOutline,
+                          label: "Cancel",
+                          onPressed: () {
+                            _showCancelConfirmation(context, delivery);
+                          },
                         ),
                       ],
                     ),
+                    SizedBox(height: 20),
                   ],
                 ),
               ),
-
-              SizedBox(height: 16),
-              FutureBuilder<Map<String, dynamic>>(
-                future: _fetchRiderLocation(
-                    delivery['_id']), // Fetch rider location
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Text(
-                      "Calculating estimated arrival...",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    );
-                  } else if (snapshot.hasError ||
-                      !snapshot.hasData ||
-                      snapshot.data!.isEmpty) {
-                    return Text(
-                      "Unable to calculate arrival time",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.red,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    );
-                  } else {
-                    final riderLocation = snapshot.data!;
-                    final double riderLat = riderLocation['latitude'];
-                    final double riderLng = riderLocation['longitude'];
-                    final double destinationLat =
-                        delivery['endpoint_lat'] ?? 0.0;
-                    final double destinationLng =
-                        delivery['endpoint_lng'] ?? 0.0;
-
-                    // Calculate the distance to the destination
-                    final double distanceToDestination =
-                        Geolocator.distanceBetween(
-                      riderLat,
-                      riderLng,
-                      destinationLat,
-                      destinationLng,
-                    ); // Distance in meters
-
-                    // Assume an average speed of 40 km/h (convert to meters per second)
-                    const double averageSpeedMetersPerSecond = 40 * 1000 / 3600;
-
-                    // Calculate ETA in seconds
-                    final int etaSeconds =
-                        (distanceToDestination / averageSpeedMetersPerSecond)
-                            .round();
-
-                    // Convert ETA to minutes
-                    final int etaMinutes = (etaSeconds / 60).ceil();
-
-                    // Cap the ETA to a reasonable maximum (e.g., 120 minutes)
-                    final int cappedEtaMinutes =
-                        etaMinutes > 120 ? 120 : etaMinutes;
-
-                    return Text(
-                      "Estimated arrival: $cappedEtaMinutes minutes",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    );
-                  }
-                },
-              ),
-              SizedBox(height: 24),
-
-              // Action buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildActionButton(
-                    icon: EvaIcons.phoneOutline,
-                    label: "Call",
-                    onPressed: () {
-                      // Implement call functionality with rider's phone
-                      final phone = riderDetails['phone'] ?? '';
-                      Navigator.pop(context);
-                      if (phone.isNotEmpty) {
-                        // Launch phone call
-                        launchUrl(Uri.parse('tel:$phone'));
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Phone number not available')),
-                        );
-                      }
-                    },
-                  ),
-                  _buildActionButton(
-                    icon: EvaIcons.messageCircleOutline,
-                    label: "Chat",
-                    onPressed: () {
-                      // Navigate to chat screen with rider info
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => UserChatScreen(
-                            userName:
-                                "${riderDetails['firstname'] ?? ''} ${riderDetails['lastname'] ?? ''}",
-                            userImage: riderDetails['facial_picture_url'],
-                            orderId: "MC$shortId",
-                            deliveryId: delivery['_id'],
-                            senderId: userId,
-                            receiverId: riderId,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildActionButton(
-                    icon: EvaIcons.closeCircleOutline,
-                    label: "Cancel",
-                    onPressed: () {
-                      // Implement cancel functionality
-                      Navigator.pop(context);
-                      _showCancelConfirmation(context, delivery);
-                    },
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-            ],
-          ),
+            );
+          },
         );
       },
     );
