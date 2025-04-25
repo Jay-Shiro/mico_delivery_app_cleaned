@@ -57,11 +57,11 @@ class _MapPageState extends State<MapPage> {
   }
 
   bool _isInLagos(double latitude, double longitude) {
-    // Define the approximate latitude and longitude boundaries of Lagos
-    const double lagosMinLat = 6.4000;
-    const double lagosMaxLat = 6.7000;
-    const double lagosMinLng = 3.2000;
-    const double lagosMaxLng = 3.6000;
+    // Updated latitude and longitude boundaries to include more remote areas like Badagry
+    const double lagosMinLat = 6.3500; // Extended southward to include Badagry
+    const double lagosMaxLat = 6.8000;
+    const double lagosMinLng = 2.7000; // Extended westward to include Badagry
+    const double lagosMaxLng = 4.1000;
 
     return latitude >= lagosMinLat &&
         latitude <= lagosMaxLat &&

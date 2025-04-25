@@ -13,11 +13,11 @@ import 'package:micollins_delivery_app/services/onesignal_service.dart';
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
-  
+
   // Add the FlutterLocalNotificationsPlugin instance
-  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = 
+  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
-  
+
   NotificationService._internal() {
     // Initialize timezone data
     tz_data.initializeTimeZones();
@@ -25,33 +25,34 @@ class NotificationService {
 
   final StreamController<String> _notificationStreamController =
       StreamController<String>.broadcast();
-  Stream<String> get onNotificationTapped => _notificationStreamController.stream;
+  Stream<String> get onNotificationTapped =>
+      _notificationStreamController.stream;
 
   Future<void> init() async {
     // Initialize OneSignal through our service
     await OneSignalService().init();
-    
+
     // Forward notification taps from OneSignal service
     OneSignalService().onNotificationTapped.listen((payload) {
       _notificationStreamController.add(payload);
     });
-    
+
     // Initialize Flutter Local Notifications
     const AndroidInitializationSettings androidInitSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    
+        AndroidInitializationSettings('@mipmap/launcher_icon');
+
     const DarwinInitializationSettings iosInitSettings =
         DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
     );
-    
+
     const InitializationSettings initSettings = InitializationSettings(
       android: androidInitSettings,
       iOS: iosInitSettings,
     );
-    
+
     await _flutterLocalNotificationsPlugin.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
@@ -60,7 +61,7 @@ class NotificationService {
         }
       },
     );
-    
+
     print('Notification service initialized successfully');
   }
 

@@ -15,12 +15,21 @@ import flutter_local_notifications
     UNUserNotificationCenter.current().delegate = self
 
     // Provide Google Maps API Key
-    GMSServices.provideAPIKey("AIzaSyAGpi5xRhCSbDFkoj25FlDkzGXDhILXRow")
+    GMSServices.provideAPIKey("AIzaSyC_Op-lSfNmmGPzKvsdImneVuL1jzYfNoM")
 
     // Register Flutter plugins
     GeneratedPluginRegistrant.register(with: self)
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  // Handle notifications when app is in foreground
+  override func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    completionHandler([.alert, .badge, .sound]) // Ensure notifications are shown
   }
 }
 
@@ -57,15 +66,3 @@ func presentImagePicker(sourceType: UIImagePickerController.SourceType) {
         // Fallback on earlier versions
     }
 }
-
-
-// extension AppDelegate: UNUserNotificationCenterDelegate {
-//   // Handle notifications when app is in foreground
-//   func userNotificationCenter(
-//     _ center: UNUserNotificationCenter,
-//     willPresent notification: UNNotification,
-//     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
-//   ) {
-//     completionHandler([.alert, .badge, .sound])
-//   }
-// }

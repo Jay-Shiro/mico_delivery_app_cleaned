@@ -57,40 +57,41 @@ class GlobalMessageService {
         final data = json.decode(response.body);
         String? latestMessageId;
         bool hasNewMessage = false;
-        
+
         // Process messages to find the latest one
         if (data is List && data.isNotEmpty) {
           final latestMessage = data.last;
           latestMessageId = latestMessage['_id'];
-          
+
           // Check if this is a new message
-          if (_lastMessageId != latestMessageId && 
+          if (_lastMessageId != latestMessageId &&
               latestMessage['sender_id'] != senderId) {
             hasNewMessage = true;
           }
         } else if (data['messages'] != null && data['messages'].isNotEmpty) {
           final latestMessage = data['messages'].last;
           latestMessageId = latestMessage['_id'];
-          
+
           // Check if this is a new message
-          if (_lastMessageId != latestMessageId && 
+          if (_lastMessageId != latestMessageId &&
               latestMessage['sender_id'] != senderId) {
             hasNewMessage = true;
           }
         }
-        
+
         // Update the last message ID
         if (latestMessageId != null) {
           _lastMessageId = latestMessageId;
         }
-        
+
         // If there's a new message and it's not from the current user, show a notification
         if (hasNewMessage) {
           // Mark messages as read if the chat is currently open
           await http.put(
-            Uri.parse('https://deliveryapi-ten.vercel.app/chat/$deliveryId/$senderId/mark-read'),
+            Uri.parse(
+                'https://deliveryapi-ten.vercel.app/chat/$deliveryId/$senderId/mark-read'),
           );
-          
+
           // Send a local notification
           NotificationService().showMessageNotification(
             title: 'New message from ${userName ?? "User"}',
@@ -98,7 +99,8 @@ class GlobalMessageService {
             payload: {
               'type': 'chat',
               'deliveryId': deliveryId,
-              'senderId': receiverId, // Swap sender and receiver for the notification
+              'senderId':
+                  receiverId, // Swap sender and receiver for the notification
               'receiverId': senderId,
               'userName': userName,
               'userImage': userImage,

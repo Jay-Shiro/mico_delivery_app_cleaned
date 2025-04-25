@@ -739,14 +739,11 @@ class _OrdersPageState extends State<OrdersPage> {
   }
 
   Widget _buildDeliveryCard(dynamic delivery) {
-    // Add null checks for status fields
     final String actualStatus =
         delivery['status'] != null && delivery['status']['current'] != null
             ? delivery['status']['current']
             : 'pending';
 
-    // Display status - show 'pending' for UI if status is 'ongoing'
-    // Also show 'in_transit' for 'inprogress' status
     final String displayStatus;
     if (actualStatus == 'ongoing') {
       displayStatus = 'pending';
@@ -765,7 +762,6 @@ class _OrdersPageState extends State<OrdersPage> {
       decimalDigits: 2,
     ).format(price);
 
-    // Check if tracking is available - enable tracking for 'ongoing' status
     final bool canTrack = actualStatus == 'accepted' ||
         actualStatus == 'in_progress' ||
         actualStatus == 'ongoing' ||
@@ -854,7 +850,7 @@ class _OrdersPageState extends State<OrdersPage> {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        EvaIcons.pinOutline, // Changed to Eva Icons
+                        EvaIcons.pinOutline,
                         color: Color.fromRGBO(0, 31, 62, 1),
                         size: 14,
                       ),
@@ -910,7 +906,7 @@ class _OrdersPageState extends State<OrdersPage> {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        EvaIcons.pinOutline, // Changed to Eva Icons
+                        EvaIcons.pinOutline,
                         color: Colors.red,
                         size: 14,
                       ),
@@ -943,160 +939,180 @@ class _OrdersPageState extends State<OrdersPage> {
 
                 SizedBox(height: 16),
 
-                // Price and action buttons
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // Action buttons
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Text(
-                        formattedPrice,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color.fromRGBO(0, 31, 62, 1),
+                      if (displayStatus != 'completed')
+                        Text(
+                          formattedPrice,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color.fromRGBO(0, 31, 62, 1),
+                          ),
                         ),
-                      ),
-                      Row(
-                        children: [
-                          // Show different buttons based on status
-                          if (displayStatus == 'pending' ||
-                              displayStatus == 'in_transit')
-                            OutlinedButton(
-                              onPressed: canTrack
-                                  ? () {
-                                      _showTrackingSheet(context, delivery);
-                                    }
-                                  : null, // Disable button if order not accepted
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: canTrack
-                                    ? Color.fromRGBO(0, 31, 62, 1)
-                                    : Colors.grey,
-                                side: BorderSide(
-                                    color: canTrack
-                                        ? Color.fromRGBO(0, 31, 62, 1)
-                                        : Colors.grey.shade300),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
+                      if (displayStatus == 'pending' ||
+                          displayStatus == 'in_transit')
+                        Padding(
+                          padding: EdgeInsets.only(left: 16),
+                          child: OutlinedButton(
+                            onPressed: canTrack
+                                ? () {
+                                    _showTrackingSheet(context, delivery);
+                                  }
+                                : null,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: canTrack
+                                  ? Color.fromRGBO(0, 31, 62, 1)
+                                  : Colors.grey,
+                              side: BorderSide(
+                                  color: canTrack
+                                      ? Color.fromRGBO(0, 31, 62, 1)
+                                      : Colors.grey.shade300),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Text('Track'),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
                             ),
-
-                          if (displayStatus == 'completed')
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton(
-                                    onPressed: () {
-                                      // Navigate to chat screen with delivery info
-                                      final String riderId =
-                                          delivery['rider_id'] ?? '';
-                                      if (riderId.isNotEmpty) {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                UserChatScreen(
-                                              userName: "Rider",
-                                              userImage: null,
-                                              orderId: "MC$shortId",
-                                              deliveryId: delivery['_id'],
-                                              senderId: userId,
-                                              receiverId: riderId,
-                                              isDeliveryCompleted:
-                                                  true, // Set to true for completed deliveries
-                                            ),
-                                          ),
-                                        );
-                                      } else {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                              content: Text(
-                                                  'Rider information not available')),
-                                        );
-                                      }
-                                    },
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor:
-                                          Color.fromRGBO(0, 31, 62, 1),
-                                      side: BorderSide(
-                                          color: Color.fromRGBO(0, 31, 62, 1)),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 8),
-                                    ),
-                                    child: Icon(EvaIcons.messageCircleOutline,
-                                        size: 16),
+                            child: Text('Track'),
+                          ),
+                        ),
+                      if (displayStatus == 'completed') ...[
+                        SizedBox(width: 4),
+                        OutlinedButton(
+                          onPressed: () {
+                            final String riderId = delivery['rider_id'] ?? '';
+                            if (riderId.isNotEmpty) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => UserChatScreen(
+                                    userName: "Rider",
+                                    userImage: null,
+                                    orderId: "MC$shortId",
+                                    deliveryId: delivery['_id'],
+                                    senderId: userId,
+                                    receiverId: riderId,
+                                    isDeliveryCompleted: true,
                                   ),
                                 ),
-                                SizedBox(width: 4),
-                                Expanded(
-                                  child: OutlinedButton(
-                                    onPressed: () {
-                                      _showReceiptPrompt(
-                                          context, shortId, delivery);
-                                    },
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor:
-                                          Color.fromRGBO(0, 31, 62, 1),
-                                      side: BorderSide(
-                                          color: Color.fromRGBO(0, 31, 62, 1)),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 8),
-                                    ),
-                                    child: Text(
-                                      'Receipt',
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: 4),
-                                // Add Rate Rider button
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: () {
-                                      _showRatingDialog(delivery);
-                                    },
-                                    icon: Icon(
-                                      EvaIcons.starOutline,
-                                      size: 16,
-                                      color: Colors.white,
-                                    ),
-                                    label: Text(
-                                      'Rate',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          Color.fromRGBO(0, 31, 62, 1),
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 8,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(
+                                        'Rider information not available')),
+                              );
+                            }
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Color.fromRGBO(0, 31, 62, 1),
+                            side:
+                                BorderSide(color: Color.fromRGBO(0, 31, 62, 1)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                        ],
-                      ),
-                    ]),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                          ),
+                          child: Icon(EvaIcons.messageCircleOutline, size: 18),
+                        ),
+                        SizedBox(width: 8),
+                        OutlinedButton(
+                          onPressed: () {
+                            _showReceiptPrompt(context, shortId, delivery);
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Color.fromRGBO(0, 31, 62, 1),
+                            side:
+                                BorderSide(color: Color.fromRGBO(0, 31, 62, 1)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(EvaIcons.fileTextOutline, size: 16),
+                              SizedBox(width: 4),
+                              Text('Receipt'),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        OutlinedButton(
+                          onPressed: () async {
+                            const url =
+                                'https://tawk.to/chat/67d9b700ceba8418ffbf99f7/1iml75og6';
+                            if (await canLaunch(url)) {
+                              await launch(url);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content:
+                                        Text('Could not launch support chat')),
+                              );
+                            }
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Color.fromRGBO(0, 31, 62, 1),
+                            side:
+                                BorderSide(color: Color.fromRGBO(0, 31, 62, 1)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(EvaIcons.micOutline, size: 16),
+                              SizedBox(width: 4),
+                              Text('Support'),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            _showRatingDialog(delivery);
+                          },
+                          icon: Icon(
+                            EvaIcons.starOutline,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                          label: Text(
+                            'Rate',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color.fromRGBO(0, 31, 62, 1),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ],
             ),
           )
