@@ -48,14 +48,15 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   int _promoCodeUsageCount =
       0; // Tracks the number of times the promo code has been used
 
+  bool _isFetchingLocation = true; // Add a flag to track location fetching
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this); // Add observer for app lifecycle
     _initializeLocation();
     _loadUserEmail();
-    _loadPromoCodeUsageCount();
-    _restoreAppState(); // Restore app state when the app starts
+    _loadPromoCodeUsageCount(); // Restore app state when the app starts
   }
 
   @override
@@ -130,6 +131,9 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
 
   Future<void> _initializeLocation() async {
+    setState(() {
+      _isFetchingLocation = true; // Start fetching location
+    });
     try {
       Position position = await _determinePosition();
 
@@ -281,6 +285,12 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
             backgroundColor: const Color.fromRGBO(255, 91, 82, 1),
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFetchingLocation = false; // Stop fetching location
+        });
       }
     }
   }
@@ -1682,8 +1692,6 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
     bool isPickupField = false,
   }) {
     return StatefulBuilder(builder: (context, setState) {
-      // Remove the listener setup from here
-
       return Container(
         margin: EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
@@ -1698,49 +1706,66 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
             ),
           ],
         ),
-        child: GooglePlaceAutoCompleteTextField(
-          focusNode: focusNode,
-          textEditingController: controller,
-          debounceTime: 600,
-          googleAPIKey: key,
-          isLatLngRequired: true,
-          countries: isPickupField ? ['ng'] : null,
-          getPlaceDetailWithLatLng: onGetDetailWithLatLng,
-          itemClick: onItemClick,
-          inputDecoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: TextStyle(
-              color: Colors.grey.shade400,
-              fontSize: 15,
+        child: Stack(
+          alignment: Alignment.centerRight,
+          children: [
+            GooglePlaceAutoCompleteTextField(
+              focusNode: focusNode,
+              textEditingController: controller,
+              debounceTime: 600,
+              googleAPIKey: key,
+              isLatLngRequired: true,
+              countries: isPickupField ? ['ng'] : null,
+              getPlaceDetailWithLatLng: onGetDetailWithLatLng,
+              itemClick: onItemClick,
+              inputDecoration: InputDecoration(
+                hintText: hintText,
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 15,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: Colors.transparent),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: Colors.transparent),
+                ),
+                prefixIcon: Icon(
+                  Icons.location_on_rounded,
+                  color: Color.fromRGBO(0, 31, 62, 1),
+                ),
+                suffixIcon: controller.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.close, color: Colors.white),
+                        onPressed: () {
+                          controller.clear();
+                          setState(() {});
+                        },
+                      )
+                    : null,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+              ),
             ),
-            filled: true,
-            fillColor: Colors.white,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: Colors.transparent),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: Colors.transparent),
-            ),
-            prefixIcon: Icon(
-              Icons.location_on_rounded,
-              color: Color.fromRGBO(0, 31, 62, 1),
-            ),
-            suffixIcon: controller.text.isNotEmpty
-                ? IconButton(
-                    icon: Icon(Icons.close, color: Colors.white),
-                    onPressed: () {
-                      controller.clear();
-                      setState(() {});
-                    },
-                  )
-                : null,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-          ),
+            if (isPickupField && _isFetchingLocation)
+              Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color.fromRGBO(0, 31, 62, 1),
+                  ),
+                ),
+              ),
+          ],
         ),
       );
     });
@@ -1985,7 +2010,9 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                             _buildInputField(
                               controller: _startPointController,
                               focusNode: _startPointFN,
-                              hintText: 'Pickup Location',
+                              hintText: _isFetchingLocation
+                                  ? 'Fetching your location...'
+                                  : 'Pickup Location',
                               isPickupField: true,
                               onItemClick: (prediction) async {
                                 setState(() {

@@ -109,6 +109,10 @@ flutter:
   assets:
     - assets/images/
     - assets/animations/
+    - assets/icons/bike.png
+    - assets/icons/car.png
+    - assets/icons/truck.png
+    - assets/icons/pin.png
     
   #   - images/a_dot_ham.jpeg
 

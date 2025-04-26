@@ -18,6 +18,7 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
@@ -35,6 +36,24 @@ class _OrdersPageState extends State<OrdersPage> {
   String searchQuery = '';
   TextEditingController searchController = TextEditingController();
   Timer? _locationTimer;
+
+  late GoogleMapController _mapController;
+
+  void _onMapCreated(GoogleMapController controller) {
+    _mapController = controller;
+  }
+
+  void _moveToLocation(LatLng location) {
+    _mapController.animateCamera(CameraUpdate.newLatLng(location));
+  }
+
+  void _zoomIn() {
+    _mapController.animateCamera(CameraUpdate.zoomIn());
+  }
+
+  void _zoomOut() {
+    _mapController.animateCamera(CameraUpdate.zoomOut());
+  }
 
   @override
   void initState() {
@@ -1454,6 +1473,90 @@ class _OrdersPageState extends State<OrdersPage> {
     );
   }
 
+  Future<void> _convertAddressToLatLng(
+      String address, Function(LatLng) onLatLngConverted) async {
+    try {
+      List<Location> locations = await locationFromAddress(address);
+      if (locations.isNotEmpty) {
+        LatLng latLng =
+            LatLng(locations.first.latitude, locations.first.longitude);
+        onLatLngConverted(latLng);
+      }
+    } catch (e) {
+      debugPrint('Error converting address to LatLng: $e');
+    }
+  }
+
+  Future<void> _updatePolylineAndMarkers({
+    required LatLng riderLatLng,
+    required LatLng pickupLatLng,
+    required LatLng destinationLatLng,
+    required Function(Set<Marker>) onMarkersUpdated,
+    required Function(Set<Polyline>) onPolylinesUpdated,
+  }) async {
+    try {
+      // Load custom pin icon for pickup and destination
+      BitmapDescriptor pinIcon = await BitmapDescriptor.fromAssetImage(
+        ImageConfiguration(size: Size(48, 48)),
+        'assets/icons/pin.png',
+      );
+
+      // Create markers
+      Set<Marker> markers = {
+        Marker(
+          markerId: MarkerId('rider'),
+          position: riderLatLng,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          infoWindow: InfoWindow(title: "Rider's Location"),
+        ),
+        Marker(
+          markerId: MarkerId('pickup'),
+          position: pickupLatLng,
+          icon: pinIcon, // Use custom pin icon for pickup
+          infoWindow: InfoWindow(title: "Pickup Location"),
+        ),
+        Marker(
+          markerId: MarkerId('destination'),
+          position: destinationLatLng,
+          icon: pinIcon, // Use custom pin icon for destination
+          infoWindow: InfoWindow(title: "Destination"),
+        ),
+      };
+
+      // Create polyline
+      PolylinePoints polylinePoints = PolylinePoints();
+      PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+        googleApiKey: 'AIzaSyC_Op-lSfNmmGPzKvsdImneVuL1jzYfNoM',
+        request: PolylineRequest(
+          origin: PointLatLng(pickupLatLng.latitude, pickupLatLng.longitude),
+          destination: PointLatLng(
+              destinationLatLng.latitude, destinationLatLng.longitude),
+          mode: TravelMode.driving,
+        ),
+      );
+
+      if (result.points.isNotEmpty) {
+        List<LatLng> polylineCoordinates = result.points
+            .map((point) => LatLng(point.latitude, point.longitude))
+            .toList();
+
+        Set<Polyline> polylines = {
+          Polyline(
+            polylineId: PolylineId('route'),
+            points: polylineCoordinates,
+            color: Color.fromRGBO(0, 31, 62, 1),
+            width: 4,
+          ),
+        };
+
+        onMarkersUpdated(markers);
+        onPolylinesUpdated(polylines);
+      }
+    } catch (e) {
+      debugPrint('Error updating polyline and markers: $e');
+    }
+  }
+
   void _showTrackingSheet(BuildContext context, dynamic delivery) async {
     final String shortId = delivery['_id'].toString().substring(0, 8);
     final String riderId = delivery['rider_id'] ?? '';
@@ -1500,7 +1603,7 @@ class _OrdersPageState extends State<OrdersPage> {
       },
     );
 
-    // Fetch rider details
+    // Fetch rider details and locations
     if (riderId.isEmpty) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1511,51 +1614,126 @@ class _OrdersPageState extends State<OrdersPage> {
 
     final riderDetails = await _fetchRiderDetails(riderId);
     final riderRating = await _fetchRiderRating(riderId);
+    final riderLocation = await _fetchRiderLocation(delivery['_id']);
 
-    // Close the loading sheet
-    Navigator.pop(context);
-
-    if (riderDetails.isEmpty) {
+    if (riderDetails.isEmpty || riderLocation.isEmpty) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load rider details')),
+        SnackBar(content: Text('Failed to load rider details or location')),
       );
       return;
     }
+
+    LatLng riderLatLng =
+        LatLng(riderLocation['latitude'], riderLocation['longitude']);
+    LatLng? pickupLatLng;
+    LatLng? destinationLatLng;
+
+    await _convertAddressToLatLng(delivery['startpoint'], (latLng) {
+      pickupLatLng = latLng;
+    });
+
+    await _convertAddressToLatLng(delivery['endpoint'], (latLng) {
+      destinationLatLng = latLng;
+    });
+
+    if (pickupLatLng == null || destinationLatLng == null) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to convert addresses to coordinates')),
+      );
+      return;
+    }
+
+    // Determine the appropriate marker icon based on the vehicle type
+    BitmapDescriptor riderIcon;
+    switch (riderDetails['vehicle_type']?.toLowerCase()) {
+      case 'car':
+        riderIcon = await BitmapDescriptor.fromAssetImage(
+            ImageConfiguration(size: Size(48, 48)), 'assets/icons/car.png');
+        break;
+      case 'truck':
+        riderIcon = await BitmapDescriptor.fromAssetImage(
+            ImageConfiguration(size: Size(48, 48)), 'assets/icons/truck.png');
+        break;
+      case 'bike':
+      default:
+        riderIcon = await BitmapDescriptor.fromAssetImage(
+            ImageConfiguration(size: Size(48, 48)), 'assets/icons/bike.png');
+        break;
+    }
+
+    // Close the loading sheet
+    Navigator.pop(context);
 
     // Show the actual tracking sheet with rider details
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      isDismissible: false, // Prevent dismissal on touch
+      enableDrag: false, // Disable drag to prevent refresh
       builder: (context) {
-        return FutureBuilder<Map<String, dynamic>>(
-          future: _fetchRiderLocation(delivery['_id']),
-          builder: (context, snapshot) {
-            final riderLocation = snapshot.data;
-            final loading = snapshot.connectionState == ConnectionState.waiting;
-            final error = snapshot.hasError ||
-                riderLocation == null ||
-                riderLocation.isEmpty;
+        Set<Marker> markers = {};
+        Set<Polyline> polylines = {};
+        String etaText = "Calculating ETA...";
 
-            double riderLat = riderLocation?['latitude'] ?? 0.0;
-            double riderLng = riderLocation?['longitude'] ?? 0.0;
-            double pickupLat = delivery['pickup_lat'] ?? 0.0;
-            double pickupLng = delivery['pickup_lng'] ?? 0.0;
-            double destinationLat = delivery['endpoint_lat'] ?? 0.0;
-            double destinationLng = delivery['endpoint_lng'] ?? 0.0;
+        // Use a StatefulBuilder to manage state without refreshing the entire modal
+        return StatefulBuilder(
+          builder: (context, setState) {
+            _updatePolylineAndMarkers(
+              riderLatLng: riderLatLng,
+              pickupLatLng: pickupLatLng!,
+              destinationLatLng: destinationLatLng!,
+              onMarkersUpdated: (updatedMarkers) {
+                setState(() {
+                  markers = updatedMarkers;
+                });
+              },
+              onPolylinesUpdated: (updatedPolylines) {
+                setState(() {
+                  polylines = updatedPolylines;
+                });
+              },
+            );
 
-            int? etaMinutes;
-            if (!loading && !error) {
-              const double averageSpeedMps = 40 * 1000 / 3600;
-              final double distance = Geolocator.distanceBetween(
-                riderLat,
-                riderLng,
-                destinationLat,
-                destinationLng,
-              );
-              final int etaSeconds = (distance / averageSpeedMps).round();
-              etaMinutes = (etaSeconds / 60).ceil().clamp(1, 120);
-            }
+            // Start tracking the rider's location
+            startFetchingLocation(delivery['_id'], (newLocation) async {
+              LatLng newRiderLatLng =
+                  LatLng(newLocation['latitude'], newLocation['longitude']);
+              setState(() {
+                markers
+                    .removeWhere((marker) => marker.markerId.value == 'rider');
+                markers.add(
+                  Marker(
+                    markerId: MarkerId('rider'),
+                    position: newRiderLatLng,
+                    icon: riderIcon,
+                    infoWindow: InfoWindow(title: "Rider's Location"),
+                  ),
+                );
+              });
+
+              // Update ETA text
+              if ((newRiderLatLng.latitude - pickupLatLng!.latitude).abs() <
+                      0.001 &&
+                  (newRiderLatLng.longitude - pickupLatLng!.longitude).abs() <
+                      0.001) {
+                // Rider has reached the pickup location
+                etaText =
+                    "ETA to destination: ${newLocation['eta_time'] ?? 'Unknown'}";
+              } else {
+                // Rider is on the way to the pickup location
+                etaText =
+                    "ETA to pickup: ${newLocation['eta_time'] ?? 'Unknown'}";
+              }
+
+              setState(() {});
+
+              // Move the camera to follow the rider
+              _mapController
+                  .animateCamera(CameraUpdate.newLatLng(newRiderLatLng));
+            });
 
             return Container(
               decoration: BoxDecoration(
@@ -1563,200 +1741,199 @@ class _OrdersPageState extends State<OrdersPage> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               padding: EdgeInsets.all(20),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 5,
-                      margin: EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    Text(
-                      "Tracking Your Delivery",
-                      style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color.fromRGBO(0, 31, 62, 1)),
-                    ),
-                    SizedBox(height: 20),
+                    margin: EdgeInsets.only(bottom: 20),
+                  ),
+                  Text(
+                    "Tracking Your Delivery",
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromRGBO(0, 31, 62, 1)),
+                  ),
+                  SizedBox(height: 20),
 
-                    // Rider Profile Image
-                    riderDetails['facial_picture_url'] != null
-                        ? CircleAvatar(
-                            radius: 40,
-                            backgroundImage: NetworkImage(
-                              (riderDetails['facial_picture_url'] ?? '')
-                                  .replaceFirst(
-                                      'deliveryapi-plum', 'deliveryapi-ten'),
-                            ),
-                            backgroundColor: Color.fromRGBO(0, 31, 62, 0.1),
-                          )
-                        : CircleAvatar(
-                            radius: 40,
-                            backgroundColor: Color.fromRGBO(0, 31, 62, 0.1),
-                            child: Icon(EvaIcons.personOutline,
-                                size: 40, color: Color.fromRGBO(0, 31, 62, 1)),
+                  // Rider Profile Image
+                  riderDetails['facial_picture_url'] != null
+                      ? CircleAvatar(
+                          radius: 40,
+                          backgroundImage: NetworkImage(
+                            (riderDetails['facial_picture_url'] ?? '')
+                                .replaceFirst(
+                                    'deliveryapi-plum', 'deliveryapi-ten'),
                           ),
-                    SizedBox(height: 16),
+                          backgroundColor: Color.fromRGBO(0, 31, 62, 0.1),
+                        )
+                      : CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Color.fromRGBO(0, 31, 62, 0.1),
+                          child: Icon(EvaIcons.personOutline,
+                              size: 40, color: Color.fromRGBO(0, 31, 62, 1)),
+                        ),
+                  SizedBox(height: 16),
 
-                    Text(
-                      "${riderDetails['firstname'] ?? ''} ${riderDetails['lastname'] ?? ''}",
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                    ),
-                    SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.star, color: Colors.amber, size: 18),
-                        SizedBox(width: 4),
-                        Text("${riderRating.toStringAsFixed(1)} Rating",
-                            style: TextStyle(
-                                fontSize: 14, color: Colors.grey[700])),
-                      ],
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      riderDetails['phone'] ?? "No phone number",
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      "Vehicle: ${riderDetails['vehicle_type']?.toString().toUpperCase() ?? 'Bike'}",
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: Color.fromRGBO(0, 31, 62, 1),
-                          fontWeight: FontWeight.w500),
-                    ),
-                    SizedBox(height: 16),
+                  Text(
+                    "${riderDetails['firstname'] ?? ''} ${riderDetails['lastname'] ?? ''}",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                  SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.star, color: Colors.amber, size: 18),
+                      SizedBox(width: 4),
+                      Text("${riderRating.toStringAsFixed(1)} Rating",
+                          style:
+                              TextStyle(fontSize: 14, color: Colors.grey[700])),
+                    ],
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    riderDetails['phone'] ?? "No phone number",
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "Vehicle: ${riderDetails['vehicle_type']?.toString().toUpperCase() ?? 'Bike'}",
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Color.fromRGBO(0, 31, 62, 1),
+                        fontWeight: FontWeight.w500),
+                  ),
+                  SizedBox(height: 16),
 
-                    // Google Map or Error/Loader
-                    if (loading)
-                      CircularProgressIndicator(
-                          color: Color.fromRGBO(0, 31, 62, 1))
-                    else if (error)
-                      Text('Failed to load map data',
-                          style: TextStyle(color: Colors.red))
-                    else
-                      Container(
-                        height: 200,
-                        child: GoogleMap(
-                          initialCameraPosition: CameraPosition(
-                            target: LatLng(riderLat, riderLng),
-                            zoom: 14,
+                  // Google Map with curved edges and controls
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      height: 250,
+                      child: Stack(
+                        children: [
+                          GoogleMap(
+                            zoomControlsEnabled: false,
+                            onMapCreated: _onMapCreated,
+                            initialCameraPosition: CameraPosition(
+                              target: riderLatLng,
+                              zoom: 14,
+                            ),
+                            markers: markers,
+                            polylines: polylines,
                           ),
-                          markers: {
-                            Marker(
-                              markerId: MarkerId('rider'),
-                              position: LatLng(riderLat, riderLng),
-                              infoWindow: InfoWindow(title: "Rider's Location"),
-                            ),
-                            Marker(
-                              markerId: MarkerId('pickup'),
-                              position: LatLng(pickupLat, pickupLng),
-                              infoWindow: InfoWindow(title: "Pickup Location"),
-                            ),
-                            Marker(
-                              markerId: MarkerId('destination'),
-                              position: LatLng(destinationLat, destinationLng),
-                              infoWindow: InfoWindow(title: "Destination"),
-                            ),
-                          },
-                          polylines: {
-                            Polyline(
-                              polylineId: PolylineId('route'),
-                              points: [
-                                LatLng(pickupLat, pickupLng),
-                                LatLng(destinationLat, destinationLng),
-                              ],
-                              color: Color.fromRGBO(0, 31, 62, 1),
-                              width: 4,
-                            ),
-                          },
-                        ),
-                      ),
-
-                    SizedBox(height: 16),
-                    if (loading)
-                      Text("Calculating estimated arrival...",
-                          style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[700],
-                              fontWeight: FontWeight.w500))
-                    else if (error)
-                      Text("Unable to calculate arrival time",
-                          style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.red,
-                              fontWeight: FontWeight.w500))
-                    else
-                      Text(
-                        "Estimated arrival: $etaMinutes minutes",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    SizedBox(height: 20),
-
-                    // Action Buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildActionButton(
-                          icon: EvaIcons.phoneOutline,
-                          label: "Call",
-                          onPressed: () {
-                            final phone = riderDetails['phone'] ?? '';
-                            if (phone.isNotEmpty) {
-                              launchUrl(Uri.parse('tel:$phone'));
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content:
-                                        Text('Phone number not available')),
-                              );
-                            }
-                          },
-                        ),
-                        _buildActionButton(
-                          icon: EvaIcons.messageCircleOutline,
-                          label: "Chat",
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => UserChatScreen(
-                                  userName:
-                                      "${riderDetails['firstname'] ?? ''} ${riderDetails['lastname'] ?? ''}",
-                                  userImage: riderDetails['facial_picture_url'],
-                                  orderId: "MC$shortId",
-                                  deliveryId: delivery['_id'],
-                                  senderId: userId,
-                                  receiverId: riderId,
+                          Positioned(
+                            top: 10,
+                            right: 10,
+                            child: Column(
+                              children: [
+                                FloatingActionButton.small(
+                                  heroTag: 'location_button',
+                                  backgroundColor: Colors.white,
+                                  onPressed: () => _moveToLocation(riderLatLng),
+                                  child: Icon(
+                                    Icons.my_location_rounded,
+                                    color: Color.fromRGBO(0, 31, 62, 1),
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildActionButton(
-                          icon: EvaIcons.closeCircleOutline,
-                          label: "Cancel",
-                          onPressed: () {
-                            _showCancelConfirmation(context, delivery);
-                          },
-                        ),
-                      ],
+                                SizedBox(height: 8),
+                                FloatingActionButton.small(
+                                  heroTag: 'zoom_in_button',
+                                  backgroundColor: Colors.white,
+                                  onPressed: _zoomIn,
+                                  child: Icon(
+                                    Icons.add,
+                                    color: Color.fromRGBO(0, 31, 62, 1),
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                FloatingActionButton.small(
+                                  heroTag: 'zoom_out_button',
+                                  backgroundColor: Colors.white,
+                                  onPressed: _zoomOut,
+                                  child: Icon(
+                                    Icons.remove,
+                                    color: Color.fromRGBO(0, 31, 62, 1),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    SizedBox(height: 20),
-                  ],
-                ),
+                  ),
+
+                  SizedBox(height: 16),
+
+                  // ETA Text
+                  Text(
+                    etaText,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+
+                  SizedBox(height: 20),
+
+                  // Action Buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildActionButton(
+                        icon: EvaIcons.phoneOutline,
+                        label: "Call",
+                        onPressed: () {
+                          final phone = riderDetails['phone'] ?? '';
+                          if (phone.isNotEmpty) {
+                            launchUrl(Uri.parse('tel:$phone'));
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content: Text('Phone number not available')),
+                            );
+                          }
+                        },
+                      ),
+                      _buildActionButton(
+                        icon: EvaIcons.messageCircleOutline,
+                        label: "Chat",
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => UserChatScreen(
+                                userName:
+                                    "${riderDetails['firstname'] ?? ''} ${riderDetails['lastname'] ?? ''}",
+                                userImage: riderDetails['facial_picture_url'],
+                                orderId: "MC$shortId",
+                                deliveryId: delivery['_id'],
+                                senderId: userId,
+                                receiverId: riderId,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildActionButton(
+                        icon: EvaIcons.closeCircleOutline,
+                        label: "Cancel",
+                        onPressed: () {
+                          _showCancelConfirmation(context, delivery);
+                        },
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                ],
               ),
             );
           },
