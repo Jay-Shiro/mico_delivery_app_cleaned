@@ -55,6 +55,8 @@ class _OrdersPageState extends State<OrdersPage> {
     _mapController.animateCamera(CameraUpdate.zoomOut());
   }
 
+  final Set<String> notifiedMessageIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -62,18 +64,16 @@ class _OrdersPageState extends State<OrdersPage> {
       fetchDeliveries();
     });
 
-    // Set up periodic check for completed deliveries
+    // Set up periodic checks for order status updates
     Timer.periodic(Duration(minutes: 1), (timer) {
-      checkForCompletedDeliveries();
+      checkForOrderStatusUpdates();
     });
 
     // Check immediately on startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      checkForCompletedDeliveries();
+      checkForOrderStatusUpdates();
     });
   }
-
-  final Set<String> notifiedMessageIds = {};
 
   Future<void> _loadUserData() async {
     try {
@@ -594,6 +594,55 @@ class _OrdersPageState extends State<OrdersPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
+      }
+    }
+  }
+
+  void _sendOrderStatusNotification(String status, dynamic delivery) {
+    final String shortId = delivery['_id'].toString().substring(0, 8);
+    String title = '';
+    String body = '';
+
+    if (status == 'accepted') {
+      title = 'Order Accepted';
+      body = 'Your order (MC$shortId) has been accepted by the rider.';
+    } else if (status == 'completed') {
+      title = 'Order Completed';
+      body = 'Your order (MC$shortId) has been completed successfully!';
+    }
+
+    if (title.isNotEmpty && body.isNotEmpty) {
+      NotificationService().showMessageNotification(
+        title: title,
+        body: body,
+        payload: {
+          'type': 'order_status',
+          'deliveryId': delivery['_id'],
+          'orderId': shortId,
+        },
+      );
+    }
+  }
+
+  Future<void> checkForOrderStatusUpdates() async {
+    if (deliveries.isEmpty) return;
+
+    for (var delivery in deliveries) {
+      final String deliveryId = delivery['_id'];
+      final String status = delivery['status']['current'] ?? '';
+
+      // Notify when the order is accepted
+      if (status == 'accepted' &&
+          !notifiedMessageIds.contains('$deliveryId-accepted')) {
+        notifiedMessageIds.add('$deliveryId-accepted');
+        _sendOrderStatusNotification('accepted', delivery);
+      }
+
+      // Notify when the order is completed
+      if (status == 'completed' &&
+          !notifiedMessageIds.contains('$deliveryId-completed')) {
+        notifiedMessageIds.add('$deliveryId-completed');
+        _sendOrderStatusNotification('completed', delivery);
       }
     }
   }
@@ -1368,47 +1417,6 @@ class _OrdersPageState extends State<OrdersPage> {
     }
   }
 
-  // Update this method to check for completed deliveries
-  Future<void> checkForCompletedDeliveries() async {
-    if (deliveries.isEmpty) return;
-
-    for (var delivery in deliveries) {
-      final String deliveryId = delivery['_id'];
-      final String status = delivery['status']['current'] ?? '';
-
-      // Check if this is a newly completed delivery that we haven't notified about yet
-      if (status == 'completed' && !notifiedMessageIds.contains(deliveryId)) {
-        // Add to our set of notified IDs
-        notifiedMessageIds.add(deliveryId);
-
-        // Send the notification using our fixed method
-        _sendCompletionNotification(delivery);
-      }
-    }
-  }
-
-  // Fix the method to send notifications for completed deliveries
-  void _sendCompletionNotification(dynamic delivery) {
-    final String shortId = delivery['_id'].toString().substring(0, 8);
-    final String title = 'Delivery Completed';
-    final String body =
-        'Your delivery (MC$shortId) has been completed successfully!';
-
-    debugPrint('Sending notification for delivery MC$shortId');
-
-    NotificationService().showMessageNotification(
-      title: title,
-      body: body,
-      payload: {
-        'type': 'delivery_completed',
-        'deliveryId': delivery['_id'],
-        'orderId': shortId,
-        'userName': delivery['user_name'] ?? '',
-        'userImage': delivery['user_image'] ?? '',
-      },
-    );
-  }
-
   Widget orderSearchbar() {
     return Column(
       children: [
@@ -1751,6 +1759,7 @@ class _OrdersPageState extends State<OrdersPage> {
     } else if (vehicleType?.toUpperCase() == 'truck') {
       asset = 'assets/icons/truck.png';
     }
+    debugPrint('Rider vehicle type: $vehicleType, asset: $asset');
     return await BitmapDescriptor.fromAssetImage(
         ImageConfiguration(size: Size(48, 48)), asset);
   }
@@ -1918,7 +1927,7 @@ class _OrdersPageState extends State<OrdersPage> {
     return Column(
       children: [
         FloatingActionButton(
-          mini: true,
+          mini: false,
           backgroundColor: Color(0xFF001F3E),
           child: Icon(icon, color: Colors.white),
           onPressed: onPressed,
