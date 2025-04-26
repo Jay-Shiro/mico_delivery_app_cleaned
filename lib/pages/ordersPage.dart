@@ -1561,54 +1561,17 @@ class _OrdersPageState extends State<OrdersPage> {
     final String shortId = delivery['_id'].toString().substring(0, 8);
     final String riderId = delivery['rider_id'] ?? '';
 
-    // Show loading state first
+    // Show initial loading modal
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          padding: EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                margin: EdgeInsets.only(bottom: 20),
-              ),
-              Text(
-                "Loading Rider Details...",
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color.fromRGBO(0, 31, 62, 1)),
-              ),
-              SizedBox(height: 20),
-              CircularProgressIndicator(
-                color: Color.fromRGBO(0, 31, 62, 1),
-              ),
-              SizedBox(height: 30),
-            ],
-          ),
-        );
-      },
+      builder: (_) => _buildLoadingSheet(),
     );
 
-    // Fetch rider details and locations
     if (riderId.isEmpty) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Rider information not available yet')),
-      );
+      _showSnackBar(context, 'Rider information not available yet');
       return;
     }
 
@@ -1618,9 +1581,7 @@ class _OrdersPageState extends State<OrdersPage> {
 
     if (riderDetails.isEmpty || riderLocation.isEmpty) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load rider details or location')),
-      );
+      _showSnackBar(context, 'Failed to load rider details or location');
       return;
     }
 
@@ -1629,312 +1590,97 @@ class _OrdersPageState extends State<OrdersPage> {
     LatLng? pickupLatLng;
     LatLng? destinationLatLng;
 
-    await _convertAddressToLatLng(delivery['startpoint'], (latLng) {
-      pickupLatLng = latLng;
-    });
-
-    await _convertAddressToLatLng(delivery['endpoint'], (latLng) {
-      destinationLatLng = latLng;
-    });
+    await _convertAddressToLatLng(
+        delivery['startpoint'], (latLng) => pickupLatLng = latLng);
+    await _convertAddressToLatLng(
+        delivery['endpoint'], (latLng) => destinationLatLng = latLng);
 
     if (pickupLatLng == null || destinationLatLng == null) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to convert addresses to coordinates')),
-      );
+      _showSnackBar(context, 'Failed to convert addresses to coordinates');
       return;
     }
 
-    // Determine the appropriate marker icon based on the vehicle type
-    BitmapDescriptor riderIcon;
-    switch (riderDetails['vehicle_type']?.toLowerCase()) {
-      case 'car':
-        riderIcon = await BitmapDescriptor.fromAssetImage(
-            ImageConfiguration(size: Size(48, 48)), 'assets/icons/car.png');
-        break;
-      case 'truck':
-        riderIcon = await BitmapDescriptor.fromAssetImage(
-            ImageConfiguration(size: Size(48, 48)), 'assets/icons/truck.png');
-        break;
-      case 'bike':
-      default:
-        riderIcon = await BitmapDescriptor.fromAssetImage(
-            ImageConfiguration(size: Size(48, 48)), 'assets/icons/bike.png');
-        break;
-    }
+    BitmapDescriptor riderIcon =
+        await _getRiderIcon(riderDetails['vehicle_type']);
 
-    // Close the loading sheet
-    Navigator.pop(context);
+    Navigator.pop(context); // Close loading modal
 
-    // Show the actual tracking sheet with rider details
+    // Show Tracking Sheet
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      isDismissible: false, // Prevent dismissal on touch
-      enableDrag: false, // Disable drag to prevent refresh
+      isDismissible: false,
+      enableDrag: false,
       builder: (context) {
         Set<Marker> markers = {};
         Set<Polyline> polylines = {};
         String etaText = "Calculating ETA...";
+        LatLng currentRiderLatLng = riderLatLng;
 
-        // Use a StatefulBuilder to manage state without refreshing the entire modal
         return StatefulBuilder(
           builder: (context, setState) {
             _updatePolylineAndMarkers(
               riderLatLng: riderLatLng,
               pickupLatLng: pickupLatLng!,
               destinationLatLng: destinationLatLng!,
-              onMarkersUpdated: (updatedMarkers) {
-                setState(() {
-                  markers = updatedMarkers;
-                });
-              },
-              onPolylinesUpdated: (updatedPolylines) {
-                setState(() {
-                  polylines = updatedPolylines;
-                });
-              },
+              onMarkersUpdated: (updatedMarkers) =>
+                  setState(() => markers = updatedMarkers),
+              onPolylinesUpdated: (updatedPolylines) =>
+                  setState(() => polylines = updatedPolylines),
             );
 
-            // Start tracking the rider's location
             startFetchingLocation(delivery['_id'], (newLocation) async {
+              if (newLocation == null) return;
+
               LatLng newRiderLatLng =
                   LatLng(newLocation['latitude'], newLocation['longitude']);
-              setState(() {
-                markers
-                    .removeWhere((marker) => marker.markerId.value == 'rider');
-                markers.add(
-                  Marker(
-                    markerId: MarkerId('rider'),
-                    position: newRiderLatLng,
-                    icon: riderIcon,
-                    infoWindow: InfoWindow(title: "Rider's Location"),
-                  ),
-                );
+              _animateMarkerMovement(currentRiderLatLng, newRiderLatLng,
+                  (animatedPosition) {
+                setState(() {
+                  markers.removeWhere((m) => m.markerId.value == 'rider');
+                  markers.add(
+                    Marker(
+                      markerId: MarkerId('rider'),
+                      position: animatedPosition,
+                      icon: riderIcon,
+                      infoWindow: InfoWindow(title: "Rider's Location"),
+                    ),
+                  );
+                });
               });
 
-              // Update ETA text
-              if ((newRiderLatLng.latitude - pickupLatLng!.latitude).abs() <
-                      0.001 &&
-                  (newRiderLatLng.longitude - pickupLatLng!.longitude).abs() <
-                      0.001) {
-                // Rider has reached the pickup location
-                etaText =
-                    "ETA to destination: ${newLocation['eta_time'] ?? 'Unknown'}";
-              } else {
-                // Rider is on the way to the pickup location
-                etaText =
-                    "ETA to pickup: ${newLocation['eta_time'] ?? 'Unknown'}";
-              }
+              currentRiderLatLng = newRiderLatLng;
 
-              setState(() {});
+              double distanceToPickup = Geolocator.distanceBetween(
+                newRiderLatLng.latitude,
+                newRiderLatLng.longitude,
+                pickupLatLng!.latitude,
+                pickupLatLng!.longitude,
+              );
 
-              // Move the camera to follow the rider
+              setState(() {
+                etaText = distanceToPickup < 50
+                    ? "ETA to destination: ${newLocation['eta_time'] ?? 'Unknown'}"
+                    : "ETA to pickup: ${newLocation['eta_time'] ?? 'Unknown'}";
+              });
+
               _mapController
                   .animateCamera(CameraUpdate.newLatLng(newRiderLatLng));
             });
 
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              padding: EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    margin: EdgeInsets.only(bottom: 20),
-                  ),
-                  Text(
-                    "Tracking Your Delivery",
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color.fromRGBO(0, 31, 62, 1)),
-                  ),
-                  SizedBox(height: 20),
-
-                  // Rider Profile Image
-                  riderDetails['facial_picture_url'] != null
-                      ? CircleAvatar(
-                          radius: 40,
-                          backgroundImage: NetworkImage(
-                            (riderDetails['facial_picture_url'] ?? '')
-                                .replaceFirst(
-                                    'deliveryapi-plum', 'deliveryapi-ten'),
-                          ),
-                          backgroundColor: Color.fromRGBO(0, 31, 62, 0.1),
-                        )
-                      : CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Color.fromRGBO(0, 31, 62, 0.1),
-                          child: Icon(EvaIcons.personOutline,
-                              size: 40, color: Color.fromRGBO(0, 31, 62, 1)),
-                        ),
-                  SizedBox(height: 16),
-
-                  Text(
-                    "${riderDetails['firstname'] ?? ''} ${riderDetails['lastname'] ?? ''}",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                  ),
-                  SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.star, color: Colors.amber, size: 18),
-                      SizedBox(width: 4),
-                      Text("${riderRating.toStringAsFixed(1)} Rating",
-                          style:
-                              TextStyle(fontSize: 14, color: Colors.grey[700])),
-                    ],
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    riderDetails['phone'] ?? "No phone number",
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    "Vehicle: ${riderDetails['vehicle_type']?.toString().toUpperCase() ?? 'Bike'}",
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Color.fromRGBO(0, 31, 62, 1),
-                        fontWeight: FontWeight.w500),
-                  ),
-                  SizedBox(height: 16),
-
-                  // Google Map with curved edges and controls
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      height: 250,
-                      child: Stack(
-                        children: [
-                          GoogleMap(
-                            zoomControlsEnabled: false,
-                            onMapCreated: _onMapCreated,
-                            initialCameraPosition: CameraPosition(
-                              target: riderLatLng,
-                              zoom: 14,
-                            ),
-                            markers: markers,
-                            polylines: polylines,
-                          ),
-                          Positioned(
-                            top: 10,
-                            right: 10,
-                            child: Column(
-                              children: [
-                                FloatingActionButton.small(
-                                  heroTag: 'location_button',
-                                  backgroundColor: Colors.white,
-                                  onPressed: () => _moveToLocation(riderLatLng),
-                                  child: Icon(
-                                    Icons.my_location_rounded,
-                                    color: Color.fromRGBO(0, 31, 62, 1),
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                FloatingActionButton.small(
-                                  heroTag: 'zoom_in_button',
-                                  backgroundColor: Colors.white,
-                                  onPressed: _zoomIn,
-                                  child: Icon(
-                                    Icons.add,
-                                    color: Color.fromRGBO(0, 31, 62, 1),
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                FloatingActionButton.small(
-                                  heroTag: 'zoom_out_button',
-                                  backgroundColor: Colors.white,
-                                  onPressed: _zoomOut,
-                                  child: Icon(
-                                    Icons.remove,
-                                    color: Color.fromRGBO(0, 31, 62, 1),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 16),
-
-                  // ETA Text
-                  Text(
-                    etaText,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-
-                  SizedBox(height: 20),
-
-                  // Action Buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildActionButton(
-                        icon: EvaIcons.phoneOutline,
-                        label: "Call",
-                        onPressed: () {
-                          final phone = riderDetails['phone'] ?? '';
-                          if (phone.isNotEmpty) {
-                            launchUrl(Uri.parse('tel:$phone'));
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text('Phone number not available')),
-                            );
-                          }
-                        },
-                      ),
-                      _buildActionButton(
-                        icon: EvaIcons.messageCircleOutline,
-                        label: "Chat",
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => UserChatScreen(
-                                userName:
-                                    "${riderDetails['firstname'] ?? ''} ${riderDetails['lastname'] ?? ''}",
-                                userImage: riderDetails['facial_picture_url'],
-                                orderId: "MC$shortId",
-                                deliveryId: delivery['_id'],
-                                senderId: userId,
-                                receiverId: riderId,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      _buildActionButton(
-                        icon: EvaIcons.closeCircleOutline,
-                        label: "Cancel",
-                        onPressed: () {
-                          _showCancelConfirmation(context, delivery);
-                        },
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 20),
-                ],
-              ),
+            return _buildTrackingContent(
+              context,
+              riderLatLng,
+              markers,
+              polylines,
+              etaText,
+              riderDetails,
+              riderRating,
+              delivery,
+              shortId,
+              riderId,
             );
           },
         );
@@ -1942,37 +1688,267 @@ class _OrdersPageState extends State<OrdersPage> {
     );
   }
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-  }) {
-    return InkWell(
-      onTap: onPressed,
+  void _animateMarkerMovement(
+    LatLng fromLatLng,
+    LatLng toLatLng,
+    Function(LatLng) onUpdate,
+  ) async {
+    const int animationDurationMs = 1000; // 1 second
+    final int frameRate = 60;
+    final int totalFrames = (animationDurationMs / (1000 / frameRate)).round();
+
+    for (int frame = 0; frame <= totalFrames; frame++) {
+      double t = frame / totalFrames;
+      double lat = _lerp(fromLatLng.latitude, toLatLng.latitude, t);
+      double lng = _lerp(fromLatLng.longitude, toLatLng.longitude, t);
+      onUpdate(LatLng(lat, lng));
+      await Future.delayed(Duration(milliseconds: (1000 / frameRate).round()));
+    }
+  }
+
+  double _lerp(double start, double end, double t) {
+    return start + (end - start) * t;
+  }
+
+  Widget _buildLoadingSheet() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.all(20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: EdgeInsets.all(12),
+            width: 40,
+            height: 5,
+            margin: EdgeInsets.only(bottom: 20),
             decoration: BoxDecoration(
-              color: Color.fromRGBO(0, 31, 62, 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: Color.fromRGBO(0, 31, 62, 1),
-              size: 24,
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
+          Text(
+            "Loading Rider Details...",
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF001F3E)),
+          ),
+          SizedBox(height: 20),
+          CircularProgressIndicator(color: Color(0xFF001F3E)),
+          SizedBox(height: 30),
+        ],
+      ),
+    );
+  }
+
+  Future<BitmapDescriptor> _getRiderIcon(String? vehicleType) async {
+    String asset = 'assets/icons/bike.png'; // default
+    if (vehicleType?.toUpperCase() == 'car') {
+      asset = 'assets/icons/car.png';
+    } else if (vehicleType?.toUpperCase() == 'truck') {
+      asset = 'assets/icons/truck.png';
+    }
+    return await BitmapDescriptor.fromAssetImage(
+        ImageConfiguration(size: Size(48, 48)), asset);
+  }
+
+  Widget _buildTrackingContent(
+    BuildContext context,
+    LatLng riderLatLng,
+    Set<Marker> markers,
+    Set<Polyline> polylines,
+    String etaText,
+    Map riderDetails,
+    double riderRating,
+    dynamic delivery,
+    String shortId,
+    String riderId,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 5,
+            margin: EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          Text(
+            "Tracking Your Delivery",
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF001F3E)),
+          ),
+          SizedBox(height: 20),
+          CircleAvatar(
+            radius: 40,
+            backgroundImage: riderDetails['facial_picture_url'] != null
+                ? NetworkImage((riderDetails['facial_picture_url'] ?? '')
+                    .replaceFirst('deliveryapi-plum', 'deliveryapi-ten'))
+                : null,
+            backgroundColor: Color.fromRGBO(0, 31, 62, 0.1),
+            child: riderDetails['facial_picture_url'] == null
+                ? Icon(EvaIcons.personOutline,
+                    size: 40, color: Color(0xFF001F3E))
+                : null,
+          ),
+          SizedBox(height: 16),
+          Text(
+            "${riderDetails['firstname'] ?? ''} ${riderDetails['lastname'] ?? ''}",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.star, color: Colors.amber, size: 18),
+              SizedBox(width: 4),
+              Text("${riderRating.toStringAsFixed(1)} Rating",
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700])),
+            ],
+          ),
+          SizedBox(height: 4),
+          Text(riderDetails['phone'] ?? "No phone number",
+              style: TextStyle(fontSize: 14, color: Colors.grey[600])),
           SizedBox(height: 8),
           Text(
-            label,
+            "Vehicle: ${riderDetails['vehicle_type']?.toUpperCase() ?? 'Bike'}",
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
+                fontSize: 12,
+                color: Color(0xFF001F3E),
+                fontWeight: FontWeight.w500),
+          ),
+          SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              height: 250,
+              child: Stack(
+                children: [
+                  GoogleMap(
+                    zoomControlsEnabled: false,
+                    onMapCreated: _onMapCreated,
+                    initialCameraPosition:
+                        CameraPosition(target: riderLatLng, zoom: 14),
+                    markers: markers,
+                    polylines: polylines,
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Column(
+                      children: [
+                        _buildSmallButton(Icons.my_location_rounded,
+                            () => _moveToLocation(riderLatLng)),
+                        SizedBox(height: 8),
+                        _buildSmallButton(Icons.add, _zoomIn),
+                        SizedBox(height: 8),
+                        _buildSmallButton(Icons.remove, _zoomOut),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
+          SizedBox(height: 16),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: Color(0xFF001F3E), width: 1.5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(etaText,
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF001F3E))),
+          ),
+          SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildActionButton(EvaIcons.phoneOutline, "Call",
+                  () => _callRider(riderDetails['phone'])),
+              _buildActionButton(
+                  EvaIcons.messageCircleOutline,
+                  "Chat",
+                  () => _startChat(context, riderDetails, shortId,
+                      delivery['_id'], riderId)),
+              _buildActionButton(EvaIcons.closeCircleOutline, "Cancel",
+                  () => _showCancelConfirmation(context, delivery)),
+            ],
+          ),
+          SizedBox(height: 20),
         ],
+      ),
+    );
+  }
+
+// --- Utility Widgets/Functions ---
+
+  void _showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Widget _buildSmallButton(IconData icon, VoidCallback onPressed) {
+    return FloatingActionButton.small(
+      backgroundColor: Colors.white,
+      onPressed: onPressed,
+      child: Icon(icon, color: Color(0xFF001F3E)),
+    );
+  }
+
+  Widget _buildActionButton(
+      IconData icon, String label, VoidCallback onPressed) {
+    return Column(
+      children: [
+        FloatingActionButton(
+          mini: true,
+          backgroundColor: Color(0xFF001F3E),
+          child: Icon(icon, color: Colors.white),
+          onPressed: onPressed,
+        ),
+        SizedBox(height: 6),
+        Text(label, style: TextStyle(fontSize: 12)),
+      ],
+    );
+  }
+
+  void _callRider(String? phone) {
+    if (phone != null && phone.isNotEmpty) {
+      launchUrl(Uri.parse('tel:$phone'));
+    }
+  }
+
+  void _startChat(BuildContext context, Map riderDetails, String shortId,
+      String deliveryId, String riderId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => UserChatScreen(
+          userName:
+              "${riderDetails['firstname'] ?? ''} ${riderDetails['lastname'] ?? ''}",
+          userImage: riderDetails['facial_picture_url'],
+          orderId: "MC$shortId",
+          deliveryId: deliveryId,
+          senderId: userId,
+          receiverId: riderId,
+        ),
       ),
     );
   }
