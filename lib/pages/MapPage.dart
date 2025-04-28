@@ -78,8 +78,10 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
       _saveAppState(); // Save app state when app is minimized
+      _savePaymentState(); // Save payment state
     } else if (state == AppLifecycleState.resumed) {
       _restoreAppState(); // Restore app state when app is reopened
+      _restorePaymentState(); // Restore payment state
     }
   }
 
@@ -115,6 +117,28 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
       _promoDiscountAmount = prefs.getDouble('promoDiscountAmount') ?? 0.0;
     });
     debugPrint('MapPage state restored.');
+  }
+
+  Future<void> _savePaymentState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isCashorTransfer', isCashorTransfer);
+    await prefs.setBool('isOnlinePayment', isOnlinePayment);
+    await prefs.setDouble('paymentAmt', paymentAmt);
+    debugPrint('Payment state saved.');
+  }
+
+  Future<void> _restorePaymentState() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isCashorTransfer = prefs.getBool('isCashorTransfer') ?? false;
+      isOnlinePayment = prefs.getBool('isOnlinePayment') ?? false;
+      // Restore payment amount if it was saved
+      double? savedPaymentAmt = prefs.getDouble('paymentAmt');
+      if (savedPaymentAmt != null) {
+        debugPrint('Restored payment amount: $savedPaymentAmt');
+      }
+    });
+    debugPrint('Payment state restored.');
   }
 
   bool _isInLagos(double latitude, double longitude) {

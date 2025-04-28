@@ -336,7 +336,8 @@ class _OrdersPageState extends State<OrdersPage> {
   ) {
     _locationTimer?.cancel(); // Cancel existing timer if any
 
-    _locationTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+    // Change interval to 5 minutes
+    _locationTimer = Timer.periodic(const Duration(minutes: 5), (timer) async {
       final location = await _fetchRiderLocation(deliveryId);
       onLocationUpdated(location); // Pass the new location to your callback
     });
