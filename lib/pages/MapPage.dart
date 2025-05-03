@@ -9,6 +9,7 @@ import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import 'package:micollins_delivery_app/components/m_buttons.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
+import 'package:micollins_delivery_app/pages/ordersPage.dart';
 import 'package:money_formatter/money_formatter.dart';
 import 'package:paystack_for_flutter/paystack_for_flutter.dart';
 import 'package:provider/provider.dart';
@@ -713,6 +714,12 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
 
   void confirmOrder(BuildContext ctx) {
     _modeOfPayment();
+    Navigator.of(ctx).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) =>
+            OrdersPage(), // Replace with your OrdersPage widget
+      ),
+    );
   }
 
   void _modeOfPayment() {
