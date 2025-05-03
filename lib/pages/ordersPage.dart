@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:micollins_delivery_app/components/toggle_bar.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
@@ -1023,8 +1024,57 @@ class _OrdersPageState extends State<OrdersPage> {
                             color: Color.fromRGBO(0, 31, 62, 1),
                           ),
                         ),
-                      if (displayStatus == 'pending' ||
-                          displayStatus == 'in_transit')
+                      if (displayStatus == 'pending') ...[
+                        Padding(
+                          padding: EdgeInsets.only(left: 16),
+                          child: OutlinedButton(
+                            onPressed: null, // Track is inactive
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.grey,
+                              side: BorderSide(color: Colors.grey.shade300),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                            ),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child:
+                                      LoadingAnimationWidget.staggeredDotsWave(
+                                    color: Color.fromRGBO(0, 31, 62, 1),
+                                    size: 20,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Text('Looking for a rider...'),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.only(left: 16),
+                          child: OutlinedButton(
+                            onPressed: () {
+                              _showCancelConfirmation(context, delivery);
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              side: BorderSide(color: Colors.red),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                            ),
+                            child: Text('Cancel'),
+                          ),
+                        ),
+                      ],
+                      if (displayStatus == 'in_transit') ...[
                         Padding(
                           padding: EdgeInsets.only(left: 16),
                           child: OutlinedButton(
@@ -1050,6 +1100,79 @@ class _OrdersPageState extends State<OrdersPage> {
                             child: Text('Track'),
                           ),
                         ),
+                        Padding(
+                          padding: EdgeInsets.only(left: 16),
+                          child: FutureBuilder<Map<String, dynamic>>(
+                            future:
+                                _fetchRiderDetails(delivery['rider_id'] ?? ''),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return OutlinedButton.icon(
+                                  onPressed: null,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.grey,
+                                    side:
+                                        BorderSide(color: Colors.grey.shade300),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                  ),
+                                  icon: Icon(EvaIcons.phoneOutline, size: 16),
+                                  label: Text('Loading...'),
+                                );
+                              }
+
+                              if (snapshot.hasError ||
+                                  !snapshot.hasData ||
+                                  snapshot.data!.isEmpty) {
+                                return OutlinedButton.icon(
+                                  onPressed: null,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.grey,
+                                    side:
+                                        BorderSide(color: Colors.grey.shade300),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                  ),
+                                  icon: Icon(EvaIcons.phoneOutline, size: 16),
+                                  label: Text('Unavailable'),
+                                );
+                              }
+
+                              final riderPhone = snapshot.data!['phone'] ?? '';
+                              return OutlinedButton.icon(
+                                onPressed: riderPhone.isNotEmpty
+                                    ? () {
+                                        launchUrl(Uri.parse('tel:$riderPhone'));
+                                      }
+                                    : null,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: riderPhone.isNotEmpty
+                                      ? Color.fromRGBO(0, 31, 62, 1)
+                                      : Colors.grey,
+                                  side: BorderSide(
+                                      color: riderPhone.isNotEmpty
+                                          ? Color.fromRGBO(0, 31, 62, 1)
+                                          : Colors.grey.shade300),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                ),
+                                icon: Icon(EvaIcons.phoneOutline, size: 16),
+                                label: Text('Call'),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                       if (displayStatus == 'completed') ...[
                         SizedBox(width: 4),
                         OutlinedButton(
@@ -1111,40 +1234,6 @@ class _OrdersPageState extends State<OrdersPage> {
                               Icon(EvaIcons.fileTextOutline, size: 16),
                               SizedBox(width: 4),
                               Text('Receipt'),
-                            ],
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        OutlinedButton(
-                          onPressed: () async {
-                            const url =
-                                'https://tawk.to/chat/67d9b700ceba8418ffbf99f7/1iml75og6';
-                            if (await canLaunch(url)) {
-                              await launch(url);
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content:
-                                        Text('Could not launch support chat')),
-                              );
-                            }
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Color.fromRGBO(0, 31, 62, 1),
-                            side:
-                                BorderSide(color: Color.fromRGBO(0, 31, 62, 1)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(EvaIcons.micOutline, size: 16),
-                              SizedBox(width: 4),
-                              Text('Support'),
                             ],
                           ),
                         ),

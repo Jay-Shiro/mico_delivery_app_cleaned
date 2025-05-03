@@ -713,6 +713,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
 
   void confirmOrder(BuildContext ctx) {
+    FocusScope.of(ctx).unfocus();
     _modeOfPayment();
     Navigator.of(ctx).pushReplacement(
       MaterialPageRoute(
