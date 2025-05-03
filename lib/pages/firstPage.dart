@@ -9,6 +9,7 @@ import 'package:micollins_delivery_app/pages/profilePage.dart';
 import 'package:micollins_delivery_app/pages/MapPage.dart';
 import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
 import 'package:micollins_delivery_app/services/notification_service.dart';
+import 'package:upgrader/upgrader.dart';
 
 class FirstPage extends StatefulWidget {
   const FirstPage({super.key});
@@ -69,9 +70,11 @@ class _FirstPageState extends State<FirstPage> {
   @override
   Widget build(BuildContext context) {
     // Wrap the Scaffold with ChangeNotifierProvider
-    return ChangeNotifierProvider(
-      create: (context) => IndexProvider(),
-      child: _FirstPageContent(),
+    return UpgradeAlert(
+      child: ChangeNotifierProvider(
+        create: (context) => IndexProvider(),
+        child: _FirstPageContent(),
+      ),
     );
   }
 }

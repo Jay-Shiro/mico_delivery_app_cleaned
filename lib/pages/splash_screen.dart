@@ -2,26 +2,28 @@ import 'package:animated_splash_screen/animated_splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
+import 'package:upgrader/upgrader.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSplashScreen(
-      duration: 2800, // 6 seconds
-      splash: Center(
-        child: Lottie.asset(
-          'assets/animations/Customer.mp4.lottie.json',
-          fit: BoxFit.cover,
+    return UpgradeAlert(
+      child: AnimatedSplashScreen(
+        duration: 2800, // 6 seconds
+        splash: Center(
+          child: Lottie.asset(
+            'assets/animations/Customer.mp4.lottie.json',
+            fit: BoxFit.cover,
+          ),
         ),
+        nextScreen: const FirstPage(),
+        splashTransition: SplashTransition.fadeTransition,
+        backgroundColor: Color.fromRGBO(219, 230, 76, 1),
+        animationDuration: const Duration(milliseconds: 2500),
+        splashIconSize: 120,
       ),
-
-      nextScreen: const FirstPage(),
-      splashTransition: SplashTransition.fadeTransition,
-      backgroundColor: Color.fromRGBO(219, 230, 76, 1),
-      animationDuration: const Duration(milliseconds: 2500),
-      splashIconSize: 120,
     );
   }
 }

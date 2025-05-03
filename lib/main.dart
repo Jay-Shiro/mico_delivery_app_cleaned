@@ -13,6 +13,7 @@ import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:micollins_delivery_app/services/global_message_service.dart';
 import 'package:micollins_delivery_app/services/onesignal_service.dart';
+import 'package:upgrader/upgrader.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -105,21 +106,23 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      debugShowCheckedModeBanner: false,
-      home: isLoggedIn ? SplashScreen() : LoginPage(),
-      routes: {
-        '/loginpage': (context) => LoginPage(),
-        '/signuppage': (context) => SignUpPage(),
-        '/resetpasspage': (context) => RecoverPassword(),
-        '/mappage': (context) => MapPage(),
-        '/firstpage': (context) => FirstPage(),
-        '/orderspage': (context) => OrdersPage(),
-        '/profilepage': (context) => ProfilePage(),
-        '/supportpage': (context) => SupportPage(),
-        '/chatpage': (context) => UserChatScreen(),
-      },
+    return UpgradeAlert(
+      child: MaterialApp(
+        navigatorKey: navigatorKey,
+        debugShowCheckedModeBanner: false,
+        home: isLoggedIn ? SplashScreen() : LoginPage(),
+        routes: {
+          '/loginpage': (context) => LoginPage(),
+          '/signuppage': (context) => SignUpPage(),
+          '/resetpasspage': (context) => RecoverPassword(),
+          '/mappage': (context) => MapPage(),
+          '/firstpage': (context) => FirstPage(),
+          '/orderspage': (context) => OrdersPage(),
+          '/profilepage': (context) => ProfilePage(),
+          '/supportpage': (context) => SupportPage(),
+          '/chatpage': (context) => UserChatScreen(),
+        },
+      ),
     );
   }
 }
