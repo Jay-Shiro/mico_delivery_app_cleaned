@@ -32,6 +32,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+/Users/macuser/Documents/Flutter Projects/micollins_delivery_app/lib/services/onesignal_service.dart
 
 # Symbolication related
 app.*.symbols

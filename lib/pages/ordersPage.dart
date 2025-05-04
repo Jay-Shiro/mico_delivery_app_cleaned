@@ -1842,7 +1842,14 @@ class _OrdersPageState extends State<OrdersPage> {
                 color: Color(0xFF001F3E)),
           ),
           SizedBox(height: 20),
-          CircularProgressIndicator(color: Color(0xFF001F3E)),
+          SizedBox(
+            width: 40,
+            height: 40,
+            child: LoadingAnimationWidget.staggeredDotsWave(
+              color: Color.fromRGBO(0, 31, 62, 1),
+              size: 40,
+            ),
+          ),
           SizedBox(height: 30),
         ],
       ),
