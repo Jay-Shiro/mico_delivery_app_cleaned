@@ -20,6 +20,7 @@ class UserChatScreen extends StatefulWidget {
   final String? deliveryId;
   final String? senderId;
   final String? receiverId;
+  final String recipientName; // Add this parameter
   final bool isDeliveryCompleted;
 
   const UserChatScreen({
@@ -27,9 +28,10 @@ class UserChatScreen extends StatefulWidget {
     this.userName = "User",
     this.userImage,
     this.orderId = "MC12345",
-    this.deliveryId,
-    this.senderId,
-    this.receiverId,
+    required this.deliveryId,
+    required this.senderId,
+    required this.receiverId,
+    required this.recipientName, // Add this parameter
     this.isDeliveryCompleted = false,
   });
 
@@ -79,7 +81,9 @@ class _UserChatScreenState extends State<UserChatScreen> {
     _fetchChatHistory();
 
     // Use GlobalMessageService instead of local timer
-    if (widget.deliveryId != null && widget.senderId != null && widget.receiverId != null) {
+    if (widget.deliveryId != null &&
+        widget.senderId != null &&
+        widget.receiverId != null) {
       GlobalMessageService().startPolling(
         deliveryId: widget.deliveryId!,
         senderId: widget.senderId!,
@@ -360,57 +364,58 @@ class _UserChatScreenState extends State<UserChatScreen> {
     });
 
     try {
+      // Use the correct API endpoint format
+      final Uri url = Uri.parse(
+          'https://deliveryapi-ten.vercel.app/chat/${widget.deliveryId}/${widget.senderId}/${widget.receiverId}');
+
       final Map<String, dynamic> messageData = {
-        'sender_id': widget.senderId,
-        'receiver_id': widget.receiverId,
-        'delivery_id': widget.deliveryId,
         'message': text,
-        'timestamp': timestamp.toIso8601String(),
       };
 
       final response = await http.post(
-        Uri.parse('https://deliveryapi-ten.vercel.app/chat/send'),
+        url,
         headers: {'Content-Type': 'application/json'},
         body: json.encode(messageData),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = json.decode(response.body);
-        
+
         // Update the message status and ID with the one from the server
         setState(() {
-          final index = _messages.indexWhere((msg) => 
-            msg['timestamp'] == timestamp && msg['isUser'] == true);
-          
+          final index = _messages.indexWhere(
+              (msg) => msg['timestamp'] == timestamp && msg['isUser'] == true);
+
           if (index != -1) {
             _messages[index]['status'] = 'delivered';
             _messages[index]['id'] = responseData['_id'] ?? messageId;
           }
         });
-        
+
         // Immediately fetch messages to ensure both sides are updated
         _fetchChatHistory(silent: true);
-        
+
         // Clear the message input
         _messageController.clear();
       } else {
         // Handle error
         setState(() {
-          final index = _messages.indexWhere((msg) => 
-            msg['timestamp'] == timestamp && msg['isUser'] == true);
-          
+          final index = _messages.indexWhere(
+              (msg) => msg['timestamp'] == timestamp && msg['isUser'] == true);
+
           if (index != -1) {
             _messages[index]['status'] = 'error';
           }
         });
-        print('Failed to send message: ${response.statusCode}');
+        print(
+            'Failed to send message: ${response.statusCode}, ${response.body}');
       }
     } catch (e) {
       // Handle exception
       setState(() {
-        final index = _messages.indexWhere((msg) => 
-          msg['timestamp'] == timestamp && msg['isUser'] == true);
-        
+        final index = _messages.indexWhere(
+            (msg) => msg['timestamp'] == timestamp && msg['isUser'] == true);
+
         if (index != -1) {
           _messages[index]['status'] = 'error';
         }

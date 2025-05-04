@@ -16,6 +16,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:micollins_delivery_app/components/ad_banner_carousel.dart';
+import 'package:lottie/lottie.dart' as lottie;
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -713,14 +714,8 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
 
   void confirmOrder(BuildContext ctx) {
-    FocusScope.of(ctx).unfocus();
+    FocusScope.of(ctx).unfocus(); // Ensure keyboard is dismissed
     _modeOfPayment();
-    Navigator.of(ctx).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) =>
-            OrdersPage(), // Replace with your OrdersPage widget
-      ),
-    );
   }
 
   void _modeOfPayment() {
@@ -1219,6 +1214,22 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }) async {
     if (!_isMounted) return;
 
+    // Show loading animation
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Center(
+          child: lottie.Lottie.asset(
+            'assets/animations/SubmitLoadingAnimation.json',
+            width: 200,
+            height: 200,
+            fit: BoxFit.cover,
+          ),
+        );
+      },
+    );
+
     try {
       // Ensure the user is logged in
       if (userId == null || userId!.isEmpty) {
@@ -1326,6 +1337,9 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
             amountPaid: actualAmountPaid,
           );
 
+          // Close loading animation
+          Navigator.of(context).pop();
+
           // Show success confirmation
           _showSuccessModal(context);
         } else {
@@ -1333,9 +1347,15 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
           debugPrint('📄 Full response: ${response.body}');
         }
       } else {
+        // Close loading animation
+        Navigator.of(context).pop();
+
         _showErrorSnackbar('Failed to create delivery: ${response.body}');
       }
     } catch (e) {
+      // Close loading animation
+      Navigator.of(context).pop();
+
       debugPrint('🚨 Error creating delivery: $e');
       _showErrorSnackbar('Error creating delivery: $e');
     }
@@ -1487,7 +1507,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
   }
 
   // Modern success modal
-  void _showSuccessModal(BuildContext context) {
+  void _showSuccessModal(BuildContext outerContext) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1560,18 +1580,18 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                     onPressed: () {
                       Navigator.of(context).pop(); // Close the dialog
 
-                      // Clear form fields
-                      setState(() {
-                        _startPointController.clear();
-                        _destinationController.clear();
-                        _userMarkers.clear();
-                        polylines.clear();
-                        roundDistanceKM = 0;
-                      });
+                      // Clear form
+                      _startPointController.clear();
+                      _destinationController.clear();
+                      _userMarkers.clear();
+                      polylines.clear();
+                      roundDistanceKM = 0;
 
-                      // Navigate to the OrdersPage
-                      Provider.of<IndexProvider>(context, listen: false)
-                          .setSelectedIndex(1);
+                      // Update nav index using the outer context
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        Provider.of<IndexProvider>(outerContext, listen: false)
+                            .setSelectedIndex(1);
+                      });
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color.fromRGBO(0, 31, 62, 1),
@@ -1749,7 +1769,10 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
               isLatLngRequired: true,
               countries: isPickupField ? ['ng'] : null,
               getPlaceDetailWithLatLng: onGetDetailWithLatLng,
-              itemClick: onItemClick,
+              itemClick: (prediction) {
+                onItemClick(prediction);
+                focusNode.unfocus(); // Remove focus after prediction is mounted
+              },
               inputDecoration: InputDecoration(
                 hintText: hintText,
                 hintStyle: TextStyle(
@@ -2507,12 +2530,16 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                                                           "bus"
                                                       ? Icons
                                                           .directions_bus // Bus icon for Standard
-                                                      : Icons
-                                                          .pedal_bike, // Default standard icon
+                                                      : selectedVehicleType ==
+                                                              "car"
+                                                          ? Icons
+                                                              .directions_car // Car icon for Same Day Delivery
+                                                          : Icons
+                                                              .pedal_bike, // Default standard icon
                                                   label: selectedVehicleType ==
                                                           "bus"
                                                       ? "Bus" // Change label if Bus is selected
-                                                      : "Standard",
+                                                      : "Same Day Delivery",
                                                   isSelected:
                                                       isStandardSelected ??
                                                           false,
@@ -2729,9 +2756,22 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                                     margin:
                                         EdgeInsets.symmetric(horizontal: 20),
                                     child: ElevatedButton(
-                                      onPressed: () {
-                                        confirmOrder(context);
-                                      },
+                                      onPressed: (isExpressSelected == true ||
+                                                  isStandardSelected == true) &&
+                                              (selectedVehicleType != "bike" ||
+                                                  is25Selected ||
+                                                  is50Selected ||
+                                                  is75Selected ||
+                                                  is100Selected) &&
+                                              (paymentAmt > 0) &&
+                                              (_startPointController
+                                                      .text.isNotEmpty &&
+                                                  _destinationController
+                                                      .text.isNotEmpty)
+                                          ? () {
+                                              confirmOrder(context);
+                                            }
+                                          : null, // Disable button if conditions are not met
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor:
                                             Color.fromRGBO(0, 31, 62, 1),

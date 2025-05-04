@@ -1,71 +1,86 @@
+import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:micollins_delivery_app/pages/LoginPage.dart';
-import 'package:micollins_delivery_app/pages/MapPage.dart';
-import 'package:micollins_delivery_app/pages/RecoverPassword.dart';
-import 'package:micollins_delivery_app/pages/SignUpPage.dart';
-import 'package:micollins_delivery_app/pages/firstPage.dart';
-import 'package:micollins_delivery_app/pages/ordersPage.dart';
-import 'package:micollins_delivery_app/pages/profilePage.dart';
-import 'package:micollins_delivery_app/pages/splash_screen.dart';
-import 'package:micollins_delivery_app/pages/supportPage.dart';
-import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:micollins_delivery_app/services/global_message_service.dart';
-import 'package:micollins_delivery_app/services/onesignal_service.dart';
 import 'package:upgrader/upgrader.dart';
 
+import 'pages/LoginPage.dart';
+import 'pages/MapPage.dart';
+import 'pages/RecoverPassword.dart';
+import 'pages/SignUpPage.dart';
+import 'pages/firstPage.dart';
+import 'pages/ordersPage.dart';
+import 'pages/profilePage.dart';
+import 'pages/splash_screen.dart';
+import 'pages/supportPage.dart';
+import 'pages/user_chat_screen.dart';
+
+import 'services/global_message_service.dart';
+import 'services/onesignal_service.dart';
+
+// Global key for navigation
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize OneSignal
-  await OneSignalService().init();
+    // Initialize OneSignal
+    await OneSignalService().init();
 
-  final prefs = await SharedPreferences.getInstance();
-  final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    final prefs = await SharedPreferences.getInstance();
+    final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    final String? userString = prefs.getString('user');
 
-  // Declare userString variable here
-  final String? userString = prefs.getString('user');
-
-  // Listen for notification taps
-  OneSignalService().onNotificationTapped.listen((payloadString) {
-    _handleNotificationTap(payloadString);
-  });
-
-  // --- Add this block before runApp ---
-  if (isLoggedIn) {
-    if (userString != null) {
+    // Register external user ID if logged in
+    if (isLoggedIn && userString != null) {
       final userData = json.decode(userString);
       final userId = userData['_id'];
-      // Set external user ID for OneSignal
       if (userId != null) {
         await OneSignalService().setExternalUserId(userId);
       }
     }
-  }
 
-  final deliveryId = prefs.getString('deliveryId');
-  final orderId = prefs.getString('orderId');
-  if (userString != null && deliveryId != null && orderId != null) {
-    final userData = json.decode(userString);
-    final userId = userData['_id'];
-    final userName = userData['name'];
-    final userImage = userData['image'];
-    final riderId = prefs.getString('riderId') ?? '';
+    // Start polling chat if saved data exists
+    final deliveryId = prefs.getString('deliveryId');
+    final orderId = prefs.getString('orderId');
+    if (userString != null && deliveryId != null && orderId != null) {
+      final userData = json.decode(userString);
+      final userId = userData['_id'];
+      final userName = userData['name'];
+      final userImage = userData['image'];
+      final riderId = prefs.getString('riderId') ?? '';
 
-    GlobalMessageService().startPolling(
-      deliveryId: deliveryId,
-      senderId: userId,
-      receiverId: riderId,
-      userName: userName,
-      userImage: userImage,
-      orderId: orderId,
+      GlobalMessageService().startPolling(
+        deliveryId: deliveryId,
+        senderId: userId,
+        receiverId: riderId,
+        userName: userName,
+        userImage: userImage,
+        orderId: orderId,
+      );
+    }
+
+    // Listen for OneSignal notification taps
+    OneSignalService().onNotificationTapped.listen((payloadString) {
+      _handleNotificationTap(payloadString);
+    });
+
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => IndexProvider()),
+          // Add more providers as needed
+        ],
+        child: MyApp(isLoggedIn: isLoggedIn),
+      ),
     );
-  }
-
-  runApp(MyApp(isLoggedIn: isLoggedIn));
+  }, (error, stackTrace) {
+    print('Uncaught error: $error');
+    // Optional: Log to Crashlytics or another service
+  });
 }
 
 void _handleNotificationTap(String payloadString) {
@@ -80,19 +95,22 @@ void _handleNotificationTap(String payloadString) {
       final userName = payload['userName'] ?? 'Rider';
       final userImage = payload['userImage'];
 
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(
-          builder: (context) => UserChatScreen(
-            userName: userName,
-            userImage: userImage,
-            orderId: orderId,
-            deliveryId: deliveryId,
-            senderId: receiverId,
-            receiverId: senderId,
-            isDeliveryCompleted: false,
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => UserChatScreen(
+              userName: userName,
+              userImage: userImage,
+              orderId: orderId,
+              deliveryId: deliveryId,
+              senderId: receiverId,
+              receiverId: senderId,
+              isDeliveryCompleted: false,
+              recipientName: '',
+            ),
           ),
-        ),
-      );
+        );
+      });
     }
   } catch (e) {
     print('Error handling notification tap: $e');
@@ -120,7 +138,12 @@ class MyApp extends StatelessWidget {
           '/orderspage': (context) => OrdersPage(),
           '/profilepage': (context) => ProfilePage(),
           '/supportpage': (context) => SupportPage(),
-          '/chatpage': (context) => UserChatScreen(),
+          '/chatpage': (context) => UserChatScreen(
+                deliveryId: '',
+                senderId: '',
+                receiverId: '',
+                recipientName: '',
+              ),
         },
       ),
     );

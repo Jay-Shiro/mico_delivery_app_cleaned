@@ -51,6 +51,7 @@ class _FirstPageState extends State<FirstPage> {
             receiverId: payloadData['receiverId'],
             userName: payloadData['userName'],
             userImage: payloadData['userImage'],
+            recipientName: '',
           ),
         ));
       } else if (payloadData['type'] == 'delivery_completed') {

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 class OneSignalService {
@@ -6,7 +7,7 @@ class OneSignalService {
   factory OneSignalService() => _instance;
   OneSignalService._internal();
 
-  static const String oneSignalAppId = "09090e62-359f-42ff-a7c7-679ca74e78a7";
+  static const String oneSignalAppId = "d676b5cd-14d1-4ded-9f1c-8b20a59b7054";
 
   final StreamController<String> _notificationStreamController =
       StreamController<String>.broadcast();
@@ -27,7 +28,7 @@ class OneSignalService {
     });
 
     OneSignal.Notifications.addClickListener((event) {
-      print("Notification opened: ${event.notification.body}");
+      debugPrint("Notification opened: ${event.notification.body}");
 
       if (event.notification.additionalData != null) {
         final data = event.notification.additionalData!;

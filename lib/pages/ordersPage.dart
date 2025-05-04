@@ -1024,57 +1024,8 @@ class _OrdersPageState extends State<OrdersPage> {
                             color: Color.fromRGBO(0, 31, 62, 1),
                           ),
                         ),
-                      if (displayStatus == 'pending') ...[
-                        Padding(
-                          padding: EdgeInsets.only(left: 16),
-                          child: OutlinedButton(
-                            onPressed: null, // Track is inactive
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.grey,
-                              side: BorderSide(color: Colors.grey.shade300),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                            ),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child:
-                                      LoadingAnimationWidget.staggeredDotsWave(
-                                    color: Color.fromRGBO(0, 31, 62, 1),
-                                    size: 20,
-                                  ),
-                                ),
-                                SizedBox(width: 8),
-                                Text('Looking for a rider...'),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.only(left: 16),
-                          child: OutlinedButton(
-                            onPressed: () {
-                              _showCancelConfirmation(context, delivery);
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.red,
-                              side: BorderSide(color: Colors.red),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                            ),
-                            child: Text('Cancel'),
-                          ),
-                        ),
-                      ],
-                      if (displayStatus == 'in_transit') ...[
+                      if (displayStatus == 'pending' ||
+                          displayStatus == 'in_transit')
                         Padding(
                           padding: EdgeInsets.only(left: 16),
                           child: OutlinedButton(
@@ -1097,11 +1048,65 @@ class _OrdersPageState extends State<OrdersPage> {
                               padding: EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 8),
                             ),
-                            child: Text('Track'),
+                            child: canTrack
+                                ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(EvaIcons.navigationOutline,
+                                          size: 16),
+                                      SizedBox(width: 4),
+                                      Text('Track'),
+                                    ],
+                                  )
+                                : Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: LoadingAnimationWidget
+                                            .staggeredDotsWave(
+                                          color: Color.fromRGBO(0, 31, 62, 1),
+                                          size: 20,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text('Getting a rider...'),
+                                    ],
+                                  ),
                           ),
                         ),
+                      if (displayStatus == 'pending' && canTrack == false) ...[
+                        SizedBox(width: 8),
+                        OutlinedButton(
+                          onPressed: () {
+                            _showCancelConfirmation(
+                              context,
+                              delivery,
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: BorderSide(color: Colors.red),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(EvaIcons.closeCircleOutline, size: 16),
+                              SizedBox(width: 4),
+                              Text('Cancel'),
+                            ],
+                          ),
+                        ),
+                      ],
+                      if (displayStatus == 'pending' && canTrack == true) ...[
+                        SizedBox(width: 8),
                         Padding(
-                          padding: EdgeInsets.only(left: 16),
+                          padding: EdgeInsets.only(left: 0),
                           child: FutureBuilder<Map<String, dynamic>>(
                             future:
                                 _fetchRiderDetails(delivery['rider_id'] ?? ''),
@@ -1173,6 +1178,7 @@ class _OrdersPageState extends State<OrdersPage> {
                           ),
                         ),
                       ],
+                      SizedBox(width: 8),
                       if (displayStatus == 'completed') ...[
                         SizedBox(width: 4),
                         OutlinedButton(
@@ -1190,6 +1196,7 @@ class _OrdersPageState extends State<OrdersPage> {
                                     senderId: userId,
                                     receiverId: riderId,
                                     isDeliveryCompleted: true,
+                                    recipientName: '',
                                   ),
                                 ),
                               );
@@ -1980,8 +1987,6 @@ class _OrdersPageState extends State<OrdersPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildActionButton(EvaIcons.phoneOutline, "Call",
-                  () => _callRider(riderDetails['phone'])),
               _buildActionButton(
                   EvaIcons.messageCircleOutline,
                   "Chat",
@@ -2018,7 +2023,8 @@ class _OrdersPageState extends State<OrdersPage> {
       children: [
         FloatingActionButton(
           mini: false,
-          backgroundColor: Color(0xFF001F3E),
+          backgroundColor:
+              label == "Cancel" ? Colors.red : Color.fromRGBO(0, 31, 62, 1),
           child: Icon(icon, color: Colors.white),
           onPressed: onPressed,
         ),
@@ -2047,6 +2053,7 @@ class _OrdersPageState extends State<OrdersPage> {
           deliveryId: deliveryId,
           senderId: userId,
           receiverId: riderId,
+          recipientName: '',
         ),
       ),
     );
@@ -2065,23 +2072,22 @@ class _OrdersPageState extends State<OrdersPage> {
               "Are you sure you want to cancel this delivery? A cancellation fee may apply."),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(context), // Close the dialog
               child: Text(
                 "No",
                 style: TextStyle(color: Colors.grey[700]),
               ),
             ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                // Implement cancel delivery logic
-                cancelDelivery(delivery['_id']);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Delivery cancelled')),
-                );
-                // Optionally, navigate to another page or refresh the order list
-                Provider.of<IndexProvider>(context, listen: false)
-                    .setSelectedIndex(1);
+              onPressed: () async {
+                Navigator.pop(context); // Close the dialog
+                await cancelDelivery(delivery['_id']); // Cancel the delivery
+                if (mounted) {
+                  setState(() {
+                    // Refresh the UI after cancellation
+                    fetchDeliveries();
+                  });
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
