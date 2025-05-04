@@ -1278,6 +1278,36 @@ class _OrdersPageState extends State<OrdersPage> {
                     ],
                   ),
                 ),
+                if (displayStatus == 'pending' && canTrack == false) ...[
+                  SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.orange.withOpacity(0.1),
+                    ),
+                    child: OutlinedButton(
+                      onPressed: () {},
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.orange,
+                        side: BorderSide(color: Colors.orange),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(EvaIcons.options2Outline, size: 16),
+                          SizedBox(width: 4),
+                          Text('Reroute Order'),
+                        ],
+                      ),
+                    ),
+                  )
+                ],
               ],
             ),
           )
