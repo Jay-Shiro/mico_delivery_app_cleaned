@@ -1103,7 +1103,9 @@ class _OrdersPageState extends State<OrdersPage> {
                           ),
                         ),
                       ],
-                      if (displayStatus == 'pending' && canTrack == true) ...[
+                      if (displayStatus == 'pending' ||
+                          displayStatus == 'in_transit' &&
+                              canTrack == true) ...[
                         SizedBox(width: 8),
                         Padding(
                           padding: EdgeInsets.only(left: 0),
