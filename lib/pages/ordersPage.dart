@@ -1117,26 +1117,27 @@ class _OrdersPageState extends State<OrdersPage> {
                               if (snapshot.connectionState ==
                                   ConnectionState.waiting) {
                                 return OutlinedButton.icon(
-                                    onPressed: null,
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: Colors.grey,
-                                      side: BorderSide(
-                                          color: Colors.grey.shade300),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 8),
+                                  onPressed: null,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.grey,
+                                    side:
+                                        BorderSide(color: Colors.grey.shade300),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                    icon: Icon(EvaIcons.phoneOutline, size: 16),
-                                    label: Center(
-                                      child: lottie.Lottie.asset(
-                                        'assets/animations/Circularprogressloading.json',
-                                        width: 20,
-                                        height: 20,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ));
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                  ),
+                                  icon: Icon(EvaIcons.phoneOutline, size: 16),
+                                  label: Center(
+                                    child: lottie.Lottie.asset(
+                                      'assets/animations/Circularprogressloading.json',
+                                      width: 20,
+                                      height: 20,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                );
                               }
 
                               if (snapshot.hasError ||
