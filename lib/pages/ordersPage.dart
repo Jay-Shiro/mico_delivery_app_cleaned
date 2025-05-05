@@ -6,6 +6,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:lottie/lottie.dart' as lottie;
 import 'package:micollins_delivery_app/components/toggle_bar.dart';
 import 'package:micollins_delivery_app/pages/firstPage.dart';
 import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
@@ -1116,20 +1117,26 @@ class _OrdersPageState extends State<OrdersPage> {
                               if (snapshot.connectionState ==
                                   ConnectionState.waiting) {
                                 return OutlinedButton.icon(
-                                  onPressed: null,
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.grey,
-                                    side:
-                                        BorderSide(color: Colors.grey.shade300),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                                    onPressed: null,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.grey,
+                                      side: BorderSide(
+                                          color: Colors.grey.shade300),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
                                     ),
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 8),
-                                  ),
-                                  icon: Icon(EvaIcons.phoneOutline, size: 16),
-                                  label: Text('Loading...'),
-                                );
+                                    icon: Icon(EvaIcons.phoneOutline, size: 16),
+                                    label: Center(
+                                      child: lottie.Lottie.asset(
+                                        'assets/animations/Circularprogressloading.json',
+                                        width: 20,
+                                        height: 20,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ));
                               }
 
                               if (snapshot.hasError ||
@@ -1175,6 +1182,109 @@ class _OrdersPageState extends State<OrdersPage> {
                                 ),
                                 icon: Icon(EvaIcons.phoneOutline, size: 16),
                                 label: Text('Call'),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                      if (displayStatus == 'pending' ||
+                          displayStatus == 'in_transit' &&
+                              canTrack == true) ...[
+                        SizedBox(width: 8),
+                        Padding(
+                          padding: EdgeInsets.only(left: 0),
+                          child: FutureBuilder<Map<String, dynamic>>(
+                            future:
+                                _fetchRiderDetails(delivery['rider_id'] ?? ''),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return OutlinedButton.icon(
+                                    onPressed: null,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.grey,
+                                      side: BorderSide(
+                                          color: Colors.grey.shade300),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
+                                    ),
+                                    icon: Icon(EvaIcons.messageCircleOutline,
+                                        size: 16),
+                                    label: Center(
+                                      child: lottie.Lottie.asset(
+                                        'assets/animations/Circularprogressloading.json',
+                                        width: 20,
+                                        height: 20,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ));
+                              }
+
+                              if (snapshot.hasError ||
+                                  !snapshot.hasData ||
+                                  snapshot.data!.isEmpty) {
+                                return OutlinedButton.icon(
+                                  onPressed: null,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.grey,
+                                    side:
+                                        BorderSide(color: Colors.grey.shade300),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                  ),
+                                  icon: Icon(EvaIcons.messageCircleOutline,
+                                      size: 16),
+                                  label: Text('Unavailable'),
+                                );
+                              }
+
+                              final riderPhone = snapshot.data!['phone'] ?? '';
+                              return OutlinedButton(
+                                onPressed: () {
+                                  final String riderId =
+                                      delivery['rider_id'] ?? '';
+                                  if (riderId.isNotEmpty) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => UserChatScreen(
+                                          userName: "Rider",
+                                          userImage: null,
+                                          orderId: "MC$shortId",
+                                          deliveryId: delivery['_id'],
+                                          senderId: userId,
+                                          receiverId: riderId,
+                                          isDeliveryCompleted: false,
+                                          recipientName: '',
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(
+                                              'Rider information not available')),
+                                    );
+                                  }
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Color.fromRGBO(0, 31, 62, 1),
+                                  side: BorderSide(
+                                      color: Color.fromRGBO(0, 31, 62, 1)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                ),
+                                child: Icon(EvaIcons.messageCircleOutline,
+                                    size: 18),
                               );
                             },
                           ),
@@ -2026,11 +2136,6 @@ class _OrdersPageState extends State<OrdersPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildActionButton(
-                  EvaIcons.messageCircleOutline,
-                  "Chat",
-                  () => _startChat(context, riderDetails, shortId,
-                      delivery['_id'], riderId)),
               _buildActionButton(EvaIcons.closeCircleOutline, "Cancel",
                   () => _showCancelConfirmation(context, delivery)),
             ],

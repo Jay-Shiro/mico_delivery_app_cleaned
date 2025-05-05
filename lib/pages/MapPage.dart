@@ -1535,20 +1535,23 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: EdgeInsets.all(20),
+                  padding: EdgeInsets.all(5),
                   decoration: BoxDecoration(
                     color: Color.fromRGBO(0, 31, 62, 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.check_circle,
-                    color: Color.fromRGBO(0, 31, 62, 1),
-                    size: 50,
+                  child: Center(
+                    child: lottie.Lottie.asset(
+                      'assets/animations/PendingDelivery.json',
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 SizedBox(height: 20),
                 Text(
-                  "Success!",
+                  "Congrats!",
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -1566,7 +1569,7 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  "A rider will reach out to you shortly.",
+                  "You'll be notified shortly once a rider accepts your order and reaches out to you.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
@@ -2797,11 +2800,11 @@ class _MapPageState extends State<MapPage> with WidgetsBindingObserver {
                             );
                           } else {
                             return Center(
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 60.0),
-                                child: CircularProgressIndicator(
-                                  color: Color.fromRGBO(0, 31, 62, 1),
-                                ),
+                              child: lottie.Lottie.asset(
+                                'assets/animations/Circularprogressloading.json',
+                                width: 200,
+                                height: 200,
+                                fit: BoxFit.cover,
                               ),
                             );
                           }
