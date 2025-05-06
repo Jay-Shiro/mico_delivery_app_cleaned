@@ -10,6 +10,7 @@ import 'package:micollins_delivery_app/pages/MapPage.dart';
 import 'package:micollins_delivery_app/pages/user_chat_screen.dart';
 import 'package:micollins_delivery_app/services/notification_service.dart';
 import 'package:upgrader/upgrader.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FirstPage extends StatefulWidget {
   const FirstPage({super.key});
@@ -36,97 +37,7 @@ class _FirstPageState extends State<FirstPage> {
   void initState() {
     super.initState();
 
-    // Show surge period notification if it's peak time
-    if (_isPeakHour()) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showDialog(
-          context: context,
-          builder: (context) => Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            child: Container(
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    spreadRadius: 5,
-                    blurRadius: 10,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Color.fromRGBO(0, 31, 62, 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.access_time,
-                      color: Color.fromRGBO(0, 31, 62, 1),
-                      size: 40,
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  Text(
-                    'Surge Period',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color.fromRGBO(0, 31, 62, 1),
-                    ),
-                  ),
-                  SizedBox(height: 15),
-                  Text(
-                    'It\'s currently a surge period. Making an order at a later time might help you get better prices.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[700],
-                      height: 1.5,
-                    ),
-                  ),
-                  SizedBox(height: 25),
-                  Container(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color.fromRGBO(0, 31, 62, 1),
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Got it',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      });
-    }
+    _checkAndShowSurgePrompt();
 
     // Listen for notification taps
     _notificationSubscription =
@@ -152,6 +63,132 @@ class _FirstPageState extends State<FirstPage> {
         ));
       }
     });
+  }
+
+  Future<void> _checkAndShowSurgePrompt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastSurgePromptDate = prefs.getString('lastSurgePromptDate');
+    final today = DateTime.now().toIso8601String().split('T').first;
+
+    if (lastSurgePromptDate != today && _isPeakHour()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          builder: (context) => _buildSurgeDialog(prefs, today),
+        );
+      });
+    }
+  }
+
+  Widget _buildSurgeDialog(SharedPreferences prefs, String today) {
+    bool doNotShowAgain = false;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              spreadRadius: 5,
+              blurRadius: 10,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                color: Color.fromRGBO(0, 31, 62, 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.access_time,
+                color: Color.fromRGBO(0, 31, 62, 1),
+                size: 40,
+              ),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'Surge Period',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color.fromRGBO(0, 31, 62, 1),
+              ),
+            ),
+            SizedBox(height: 15),
+            Text(
+              'It\'s currently a surge period. Making an order at a later time might help you get better prices.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[700],
+                height: 1.5,
+              ),
+            ),
+            SizedBox(height: 15),
+            Row(
+              children: [
+                Checkbox(
+                  value: doNotShowAgain,
+                  onChanged: (value) {
+                    doNotShowAgain = value ?? false;
+                  },
+                ),
+                Expanded(
+                  child: Text(
+                    'Don\'t show this again today',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 25),
+            Container(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (doNotShowAgain) {
+                    prefs.setString('lastSurgePromptDate', today);
+                  }
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color.fromRGBO(0, 31, 62, 1),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  'Got it',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // Example helper to check if it's peak time
