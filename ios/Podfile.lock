@@ -16,9 +16,9 @@ PODS:
     - Flutter
     - Google-Maps-iOS-Utils (< 7.0, >= 5.0)
     - GoogleMaps (< 10.0, >= 8.4)
-  - GoogleMaps (9.2.0):
-    - GoogleMaps/Maps (= 9.2.0)
-  - GoogleMaps/Maps (9.2.0)
+  - GoogleMaps (9.4.0):
+    - GoogleMaps/Maps (= 9.4.0)
+  - GoogleMaps/Maps (9.4.0)
   - image_picker_ios (0.0.1):
     - Flutter
   - onesignal_flutter (5.3.0):
@@ -146,7 +146,7 @@ SPEC CHECKSUMS:
   geolocator_apple: 1560c3c875af2a412242c7a923e15d0d401966ff
   Google-Maps-iOS-Utils: 0a484b05ed21d88c9f9ebbacb007956edd508a96
   google_maps_flutter_ios: 0291eb2aa252298a769b04d075e4a9d747ff7264
-  GoogleMaps: 634ec3ca99698b31ca2253d64f017217d70cfb38
+  GoogleMaps: 0608099d4870cac8754bdba9b6953db543432438
   image_picker_ios: 7fe1ff8e34c1790d6fff70a32484959f563a928a
   onesignal_flutter: 6596144e1f08756a2c402047366c867a62b0f6f1
   OneSignalXCFramework: 1a3b28dfbff23aabce585796d23c1bef37772774
@@ -156,6 +156,6 @@ SPEC CHECKSUMS:
   url_launcher_ios: 694010445543906933d732453a59da0a173ae33d
   webview_flutter_wkwebview: 1821ceac936eba6f7984d89a9f3bcb4dea99ebb2
 
-PODFILE CHECKSUM: 8d3e28d9d017b4e0ea56f73da6131cc03ec6afa0
+PODFILE CHECKSUM: 04ee9da088663ff46f939b83c0e727e8a7bc52ac
 
 COCOAPODS: 1.16.2
